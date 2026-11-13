@@ -64,4 +64,4 @@ Verified Apple Silicon Release AU, VST3 and Standalone builds and DSP tests at 4
 
 Verified the revised Shimmer gain and routing with Apple Silicon Release builds, DSP tests at all four sample rates, and validation of the installed AU. With every voice Send at zero, the Feedback knob leaves the rendered tail identical.
 
-Shimmer voice checkboxes independently enable the voice and reveal its controls. Scroll the voice rows when more than two are open. Schema 5 saves the checkboxes and enables voices with a positive saved Level when opening schema 4 projects. Apple Silicon Release AU, VST3 and Standalone builds and DSP tests passed.
+Each Shimmer voice has its own card. On enables the voice and opens its controls. Hide controls folds the card while the voice continues to play. Show controls opens it for editing, including while the voice is off. Scroll the cards when opening multiple sets of controls. Schema 5 saves the checkboxes and enables voices with a positive saved Level when opening schema 4 projects. Apple Silicon Release AU, VST3 and Standalone builds and DSP tests passed.

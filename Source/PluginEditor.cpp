@@ -5,7 +5,8 @@ namespace preglow
 namespace
 {
 constexpr int voiceRowHeight = 105;
-constexpr int maxVoiceHeight = 2 * voiceRowHeight;
+constexpr int voiceHeaderHeight = 48;
+constexpr int maxVoiceHeight = 4 * voiceHeaderHeight + voiceRowHeight;
 constexpr int compactHeight = 250;
 constexpr int sectionHeight = 136;
 constexpr std::size_t bloomStart = 6;
@@ -79,16 +80,29 @@ PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner)
     {
         const auto name = "Voice " + juce::String(static_cast<int>(voice + 1));
         auto& toggle = voiceToggles[voice];
-        toggle.setButtonText(name);
-        addAndMakeVisible(toggle);
+        auto& card = voiceCards[voice];
+        card.setText(name);
+        card.setColour(juce::GroupComponent::outlineColourId, juce::Colour(0xff575876));
+        voiceContent.addAndMakeVisible(card);
+        toggle.setButtonText("On");
+        toggle.setTitle(name + " on");
+        voiceContent.addAndMakeVisible(toggle);
         voiceToggleAttachments[voice] = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
             owner.state, parameters::voiceId(voice, parameters::voiceEnabled), toggle);
+
+        auto& details = voiceDetails[voice];
+        details.setClickingTogglesState(true);
+        details.setTitle(name + " controls");
+        details.setToggleState(toggle.getToggleState(), juce::dontSendNotification);
+        details.onClick = [this] { updateSections(); };
+        voiceContent.addAndMakeVisible(details);
         toggle.onStateChange = [this, voice, enabled = toggle.getToggleState()] () mutable
         {
             const auto current = voiceToggles[voice].getToggleState();
             if (current != enabled)
             {
                 enabled = current;
+                voiceDetails[voice].setToggleState(current, juce::dontSendNotification);
                 updateSections();
             }
         };
@@ -123,25 +137,26 @@ void PluginEditor::updateSections()
         sliders[i].setVisible(visible);
     }
     const auto shimmerOpen = shimmerPanel.getToggleState();
-    int visibleRows = 0;
-    for (auto& toggle : voiceToggles)
+    int expandedCount = 0;
+    for (auto& details : voiceDetails)
     {
-        toggle.setVisible(shimmerOpen);
-        visibleRows += static_cast<int>(toggle.getToggleState());
+        const auto expanded = details.getToggleState();
+        details.setButtonText(expanded ? "Hide controls" : "Show controls");
+        expandedCount += static_cast<int>(expanded);
     }
-    voiceViewport.setVisible(shimmerOpen && visibleRows > 0);
+    voiceViewport.setVisible(shimmerOpen);
     for (auto& slider : shimmerGlobals)
         slider.setVisible(shimmerOpen);
     for (auto& label : shimmerGlobalLabels)
         label.setVisible(shimmerOpen);
     for (std::size_t i = 0; i < voiceSliders.size(); ++i)
     {
-        const auto visible = voiceToggles[i / parameters::voiceParameters.size()].getToggleState();
+        const auto visible = voiceDetails[i / parameters::voiceParameters.size()].getToggleState();
         voiceSliders[i].setVisible(visible);
         voiceLabels[i].setVisible(visible);
     }
     setSize(getWidth(), compactHeight + sectionHeight * (static_cast<int>(bloomOpen) + static_cast<int>(swellOpen))
-        + (shimmerOpen ? 128 + std::min(maxVoiceHeight, visibleRows * voiceRowHeight) : 0));
+        + (shimmerOpen ? 100 + std::min(maxVoiceHeight, static_cast<int>(voiceDetails.size()) * voiceHeaderHeight + expandedCount * voiceRowHeight) : 0));
     resized();
 }
 
@@ -191,28 +206,32 @@ void PluginEditor::resized()
             shimmerGlobalLabels[i].setBounds(column.removeFromTop(22));
             shimmerGlobals[i].setBounds(column);
         }
-        auto toggles = controls.removeFromTop(28);
-        for (auto& toggle : voiceToggles)
-            toggle.setBounds(toggles.removeFromLeft(105));
-        const auto enabledCount = std::count_if(voiceToggles.begin(), voiceToggles.end(),
-            [](const auto& toggle) { return toggle.getToggleState(); });
-        const auto height = static_cast<int>(enabledCount) * voiceRowHeight;
+        const auto expandedCount = std::count_if(voiceDetails.begin(), voiceDetails.end(),
+            [](const auto& details) { return details.getToggleState(); });
+        const auto height = static_cast<int>(voiceDetails.size()) * voiceHeaderHeight
+            + static_cast<int>(expandedCount) * voiceRowHeight;
         voiceViewport.setBounds(controls.removeFromTop(std::min(maxVoiceHeight, height)));
         voiceContent.setSize(voiceViewport.getWidth() - voiceViewport.getScrollBarThickness(), height);
         auto area = voiceContent.getLocalBounds();
         constexpr auto fields = parameters::voiceParameters.size();
         for (std::size_t voice = 0; voice < voiceToggles.size(); ++voice)
         {
-            if (!voiceToggles[voice].getToggleState())
+            const auto expanded = voiceDetails[voice].getToggleState();
+            auto card = area.removeFromTop(voiceHeaderHeight + (expanded ? voiceRowHeight : 0)).reduced(4, 2);
+            voiceCards[voice].setBounds(card);
+            auto inner = card.reduced(12, 0);
+            inner.removeFromTop(14);
+            auto header = inner.removeFromTop(25);
+            voiceToggles[voice].setBounds(header.removeFromLeft(64));
+            voiceDetails[voice].setBounds(header.removeFromRight(106));
+            if (!expanded)
                 continue;
-            auto row = area.removeFromTop(voiceRowHeight);
+            auto row = inner;
             const auto width = row.getWidth() / static_cast<int>(fields);
             for (std::size_t field = 0; field < fields; ++field)
             {
                 const auto i = voice * fields + field;
                 auto column = row.removeFromLeft(width);
-                voiceLabels[i].setText("V" + juce::String(static_cast<int>(voice + 1)) + " " + parameters::voiceParameters[field].label,
-                    juce::dontSendNotification);
                 voiceLabels[i].setBounds(column.removeFromTop(24));
                 voiceSliders[i].setBounds(column);
             }

@@ -16,6 +16,8 @@ private:
     std::array<juce::ToggleButton, Shimmer::voiceCount> voiceToggles;
     std::array<std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment>, Shimmer::voiceCount> voiceToggleAttachments;
     juce::Component voiceContent;
+    std::array<juce::GroupComponent, Shimmer::voiceCount> voiceCards;
+    std::array<juce::TextButton, Shimmer::voiceCount> voiceDetails;
     juce::Viewport voiceViewport;
     std::array<juce::Slider, 2> shimmerGlobals;
     std::array<juce::Label, 2> shimmerGlobalLabels;

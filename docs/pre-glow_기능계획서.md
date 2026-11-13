@@ -188,4 +188,8 @@
 
 Phase 4는 Apple Silicon에서 Release AU·VST3·Standalone 빌드를 마쳤다. 네 샘플레이트에서 최대 Shimmer 피드백, Freeze 유지 및 해제 시 출력 안정성을 검사했다. DAW 청취와 상태 저장·복원 확인이 남아 있다. 전체 Stereo Spread와 Pitch Modulation은 목표 기능으로 남아 있다.
 
+각 Shimmer 보이스의 설정을 개별 카드로 분리했다. 보이스를 켜 둔 채 설정을 접거나, 보이스를 끈 상태에서 설정을 열어 조정할 수 있다.
+
+Phase 5는 Flexible Routing부터 시작한다. 첫 구현 범위는 기존 Feedback Shimmer 경로를 기본값으로 보존하면서 리버브 뒤에 피치 신호를 더하는 Post-Reverb 경로를 선택할 수 있게 하는 것이다. 모드 전환 시 잔향이 끊기지 않는지, 기존 프로젝트를 열었을 때 이전 경로가 복원되는지, Freeze 중 피드백이 차단되는지 확인한다.
+
 > **제품 방향:** 간편하게 사용할 수도 있지만, 원한다면 잔향의 내부 구조까지 직접 설계할 수 있는 앰비언트 사운드 디자인 플러그인.
