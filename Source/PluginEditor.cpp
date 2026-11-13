@@ -281,7 +281,7 @@ void PluginEditor::paint(juce::Graphics& graphics)
 void PluginEditor::resized()
 {
     auto controls = getLocalBounds().reduced(16);
-    spectrumBounds = controls.removeFromRight(spectrumWidth);
+    spectrumBounds = controls.removeFromRight(spectrumWidth).withHeight(compactHeight - 32);
     controls.removeFromRight(columnGap);
     auto titleRow = controls.removeFromTop(56);
     shimmerPanel.setBounds(titleRow.removeFromRight(96).withSizeKeepingCentre(96, 28));

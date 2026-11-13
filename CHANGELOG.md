@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Kept the spectrum at its compact height when opening control panels.
+
 - Moved the Dry/Reverb spectrum beside the controls to reduce the plug-in window height.
 
 - Added Pre-Reverb Shimmer with a smooth route transition and Freeze-aware input. Existing preset route indices are preserved.
