@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added input diffusion for a denser start to the reverb tail.
 - Added stereo early reflections before the FDN tail.
 
 ## 0.1.1

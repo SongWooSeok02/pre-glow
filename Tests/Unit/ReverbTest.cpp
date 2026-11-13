@@ -31,6 +31,24 @@ int main()
                 return 5;
         }
 
+        preglow::Reverb diffused;
+        diffused.prepare(rate);
+        diffused.setTarget({ 3.0f, 0.0f, 1.0f });
+        diffused.reset();
+        // The first FDN line should produce a second arrival before any
+        // other line or feedback path can contribute to this window.
+        double diffusionEnergy = 0.0;
+        for (int sample = 0; sample < static_cast<int>(rate * 0.035); ++sample)
+        {
+            float left = sample == 0 ? 1.0f : 0.0f;
+            float right = 0.0f;
+            diffused.process(left, right);
+            if (sample >= static_cast<int>(rate * 0.031))
+                diffusionEnergy += left * left + right * right;
+        }
+        if (!(diffusionEnergy > 0.00001))
+            return 6;
+
         for (float decay : { 0.1f, 3.0f, 120.0f })
         {
             preglow::Reverb reverb;

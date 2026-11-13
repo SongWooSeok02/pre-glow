@@ -19,10 +19,12 @@ class Reverb
 public:
     void prepare(double sampleRate)
     {
+        constexpr std::array diffusionSeconds { 0.0031, 0.0047, 0.0061, 0.0083 };
         constexpr std::array delaySeconds { 0.0297, 0.0371, 0.0411, 0.0437 };
         for (std::size_t i = 0; i < lines.size(); ++i)
         {
             auto& line = lines[i];
+            line.diffusion.samples.resize(static_cast<std::size_t>(std::max(1.0, std::round(sampleRate * diffusionSeconds[i]))));
             line.samples.assign(static_cast<std::size_t>(std::max(1.0, std::round(sampleRate * delaySeconds[i]))), 0.0f);
             line.seconds = static_cast<float>(static_cast<double>(line.samples.size()) / sampleRate);
         }
@@ -43,6 +45,7 @@ public:
         {
             std::fill(line.samples.begin(), line.samples.end(), 0.0f);
             line.position = 0;
+            line.diffusion.reset();
             line.low = 0.0f;
             line.gain = line.targetGain;
         }
@@ -87,7 +90,7 @@ public:
         for (std::size_t i = 0; i < lines.size(); ++i)
         {
             auto& line = lines[i];
-            const auto value = 0.5f * mixed[i] + 0.22f * std::clamp(input[i], -8.0f, 8.0f);
+            const auto value = 0.5f * mixed[i] + 0.22f * line.diffusion.process(std::clamp(input[i], -8.0f, 8.0f));
             line.samples[line.position] = std::isfinite(value) ? std::clamp(value, -8.0f, 8.0f) : 0.0f;
             if (++line.position == line.samples.size())
                 line.position = 0;
@@ -119,6 +122,29 @@ private:
         return std::isfinite(value) ? std::clamp(value, minimum, maximum) : fallback;
     }
 
+    struct Diffuser
+    {
+        void reset() noexcept
+        {
+            std::fill(samples.begin(), samples.end(), 0.0f);
+            position = 0;
+        }
+
+        float process(float input) noexcept
+        {
+            constexpr float coefficient = 0.6f;
+            const auto delayed = samples[position];
+            const auto output = delayed - coefficient * input;
+            samples[position] = input + coefficient * output;
+            if (++position == samples.size())
+                position = 0;
+            return output;
+        }
+
+        std::vector<float> samples;
+        std::size_t position = 0;
+    };
+
     struct Line
     {
         std::vector<float> samples;
@@ -127,6 +153,7 @@ private:
         float low = 0.0f;
         float gain = 0.0f;
         float targetGain = 0.0f;
+        Diffuser diffusion;
     };
 
     struct Reflection
