@@ -18,9 +18,11 @@ ReverbSettings PluginProcessor::readSettings() const noexcept
              lateWidth->load(std::memory_order_relaxed) * 0.01f,
              dry->load(std::memory_order_relaxed) * 0.02f * (1.0f - legacyMix),
              freeze->load(std::memory_order_relaxed) >= 0.5f, infinite->load(std::memory_order_relaxed) >= 0.5f,
-             bloomAmount->load(std::memory_order_relaxed) * 0.01f,
+             bloomEnabled->load(std::memory_order_relaxed) >= 0.5f ? bloomAmount->load(std::memory_order_relaxed) * 0.01f : 0.0f,
              bloomAttack->load(std::memory_order_relaxed), bloomRelease->load(std::memory_order_relaxed),
-             bloomShape->load(std::memory_order_relaxed) * 0.01f };
+             bloomShape->load(std::memory_order_relaxed) * 0.01f,
+             swellEnabled->load(std::memory_order_relaxed) >= 0.5f, swellTime->load(std::memory_order_relaxed),
+             swellSensitivity->load(std::memory_order_relaxed) * 0.01f, swellCurve->load(std::memory_order_relaxed) * 0.01f };
 }
 
 void PluginProcessor::prepareToPlay(double sampleRate, int)
@@ -133,10 +135,15 @@ void PluginProcessor::setStateInformation(const void* data, int size)
     const auto xml = getXmlFromBinary(data, size);
     if (xml != nullptr && xml->hasTagName(parameters::stateType)
         && (xml->getIntAttribute("schemaVersion") == 1
+            || xml->getIntAttribute("schemaVersion") == 2
             || xml->getIntAttribute("schemaVersion") == parameters::schemaVersion))
     {
         auto restored = juce::ValueTree::fromXml(*xml);
         const auto legacy = xml->getIntAttribute("schemaVersion") == 1;
+        const auto oldBloom = restored.getChildWithProperty("id", parameters::bloomAmount);
+        const auto storedBloom = static_cast<float>(oldBloom.getProperty("value", 0.0f));
+        const auto legacyBloomEnabled = xml->getIntAttribute("schemaVersion") < 3
+            && std::isfinite(storedBloom) && storedBloom > 0.0f;
         auto mixNode = restored.getChildWithProperty("id", parameters::mix);
         const auto storedMix = static_cast<float>(mixNode.getProperty("value", 0.35f));
         const auto oldWet = std::isfinite(storedMix) ? std::clamp(storedMix, 0.0f, 1.0f) : 0.35f;
@@ -147,7 +154,12 @@ void PluginProcessor::setStateInformation(const void* data, int size)
                                          std::pair { parameters::lateWidth, 100.0f },
                                          std::pair { parameters::freeze, 0.0f },
                                          std::pair { parameters::infinite, 0.0f },
-                                         std::pair { parameters::bloomAmount, 0.0f },
+                                         std::pair { parameters::bloomAmount, 75.0f },
+                                         std::pair { parameters::bloomEnabled, legacyBloomEnabled ? 1.0f : 0.0f },
+                                         std::pair { parameters::swellEnabled, 0.0f },
+                                         std::pair { parameters::swellTime, 400.0f },
+                                         std::pair { parameters::swellSensitivity, 50.0f },
+                                         std::pair { parameters::swellCurve, 50.0f },
                                          std::pair { parameters::bloomAttack, 250.0f },
                                          std::pair { parameters::bloomRelease, 1500.0f },
                                          std::pair { parameters::bloomShape, 50.0f },

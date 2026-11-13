@@ -19,8 +19,13 @@ inline constexpr auto bloomAmount = "bloom_amount";
 inline constexpr auto bloomAttack = "bloom_attack";
 inline constexpr auto bloomRelease = "bloom_release";
 inline constexpr auto bloomShape = "bloom_shape";
+inline constexpr auto bloomEnabled = "bloom_enabled";
+inline constexpr auto swellEnabled = "swell_enabled";
+inline constexpr auto swellTime = "swell_time";
+inline constexpr auto swellSensitivity = "swell_sensitivity";
+inline constexpr auto swellCurve = "swell_curve";
 inline constexpr auto stateType = "PreGlowState";
-inline constexpr int schemaVersion = 2;
+inline constexpr int schemaVersion = 3;
 
 inline juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
 {
@@ -42,7 +47,7 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
             juce::AudioParameterFloatAttributes().withLabel("%")));
     layout.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID { freeze, 5 }, "Freeze", false));
     layout.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID { infinite, 6 }, "Infinite Decay", false));
-    for (const auto& [id, name, initial] : { std::tuple { bloomAmount, "Bloom Amount", 0.0f },
+    for (const auto& [id, name, initial] : { std::tuple { bloomAmount, "Bloom Amount", 75.0f },
                                            std::tuple { bloomShape, "Bloom Shape", 50.0f } })
         layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID { id, 7 }, name,
             juce::NormalisableRange<float> { 0.0f, 100.0f, 1.0f }, initial,
@@ -56,6 +61,16 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
         layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID { id, 7 }, name, range,
             initial, juce::AudioParameterFloatAttributes().withLabel("ms")));
     }
+    layout.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID { bloomEnabled, 8 }, "Bloom", false));
+    layout.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID { swellEnabled, 8 }, "Swell", false));
+    juce::NormalisableRange<float> swellRange { 10.0f, 4000.0f, 1.0f };
+    swellRange.setSkewForCentre(400.0f);
+    layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID { swellTime, 8 }, "Swell Time", swellRange, 400.0f,
+        juce::AudioParameterFloatAttributes().withLabel("ms")));
+    for (const auto& [id, name] : { std::pair { swellSensitivity, "Swell Sensitivity" }, std::pair { swellCurve, "Swell Curve" } })
+        layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID { id, 8 }, name,
+            juce::NormalisableRange<float> { 0.0f, 100.0f, 1.0f }, 50.0f,
+            juce::AudioParameterFloatAttributes().withLabel("%")));
     return layout;
 }
 }

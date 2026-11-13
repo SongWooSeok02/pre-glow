@@ -23,6 +23,10 @@ struct ReverbSettings
     float bloomAttackMs = 250.0f;
     float bloomReleaseMs = 1500.0f;
     float bloomShape = 0.5f;
+    bool swell = false;
+    float swellTimeMs = 400.0f;
+    float swellSensitivity = 0.5f;
+    float swellCurve = 0.5f;
 };
 
 class Reverb
@@ -74,6 +78,8 @@ public:
 
         smoothing = static_cast<float>(-std::expm1(-1.0 / (0.025 * sampleRate)));
         samplesPerMs = static_cast<float>(sampleRate * 0.001);
+        swellGainSmoothing = 1.0f / (1.0f + 5.0f * samplesPerMs);
+        swellDetectorRelease = 1.0f / (1.0f + 40.0f * samplesPerMs);
         freezeStep = static_cast<float>(1.0 / (0.10 * sampleRate));
         reset();
     }
@@ -93,6 +99,11 @@ public:
         earlyPosition = 0;
         damping = targetDamping;
         bloomPeak = bloomEnvelope = 0.0f;
+        swellPeak = swellProgress = 0.0f;
+        swellTriggered = swellInputActive = false;
+        swellMix = targetSwellMix;
+        swellGain = 1.0f - swellMix;
+        swellCurve = targetSwellCurve;
         bloomAmount = targetBloomAmount;
         bloomShape = targetBloomShape;
         freeze = targetFreeze ? 1.0f : 0.0f;
@@ -119,6 +130,11 @@ public:
         targetBloomShape = bounded(settings.bloomShape, 0.0f, 1.0f, 0.5f);
         bloomAttack = 1.0f / (1.0f + samplesPerMs * bounded(settings.bloomAttackMs, 10.0f, 2000.0f, 250.0f));
         bloomRelease = 1.0f / (1.0f + samplesPerMs * bounded(settings.bloomReleaseMs, 100.0f, 10000.0f, 1500.0f));
+        targetSwellMix = settings.swell ? 1.0f : 0.0f;
+        targetSwellCurve = bounded(settings.swellCurve, 0.0f, 1.0f, 0.5f);
+        const auto sensitivity = bounded(settings.swellSensitivity, 0.0f, 1.0f, 0.5f);
+        swellThreshold = 0.001f + 0.099f * (1.0f - sensitivity) * (1.0f - sensitivity);
+        swellStep = 1.0f / (samplesPerMs * bounded(settings.swellTimeMs, 10.0f, 4000.0f, 400.0f));
         targetDamping = bounded(settings.damping, 0.0f, 1.0f, 0.45f);
         targetEarlyWidth = bounded(settings.earlyWidth, 0.0f, 2.0f, 1.0f);
         targetLateWidth = bounded(settings.lateWidth, 0.0f, 2.0f, 1.0f);
@@ -148,6 +164,24 @@ public:
         const auto bloom = feed * bloomAmount;
         const auto earlyGain = 1.0f - bloom;
         const auto lateGain = earlyGain + bloom * contour;
+        swellMix += smoothing * (targetSwellMix - swellMix);
+        swellCurve += smoothing * (targetSwellCurve - swellCurve);
+        swellPeak = std::max(feed * std::max(std::abs(left), std::abs(right)),
+                             swellPeak * (1.0f - swellDetectorRelease));
+        if (swellInputActive && swellPeak < swellThreshold * 0.5f)
+            swellInputActive = false;
+        // Re-arm after quiet input without cutting the outgoing tail.
+        if (!swellInputActive && swellPeak >= swellThreshold)
+        {
+            swellInputActive = swellTriggered = true;
+            swellProgress = 0.0f;
+        }
+        if (swellTriggered)
+            swellProgress = std::min(1.0f, swellProgress + swellStep);
+        const auto swellFade = swellProgress * (1.0f - swellCurve + swellCurve * swellProgress);
+        const auto swellTarget = 1.0f - feed * swellMix * (1.0f - swellFade);
+        swellGain += swellGainSmoothing * (swellTarget - swellGain);
+        const auto wetWithSwell = wet * swellGain;
         const auto dampingAmount = feed * std::min(1.0f, damping * dampingScale);
         std::array<float, 4> taps {};
         for (std::size_t i = 0; i < lines.size(); ++i)
@@ -202,8 +236,8 @@ public:
         auto lateRight = 0.45f * (a - b + c - d);
         applyWidth(early[0], early[1], earlyWidth);
         applyWidth(lateLeft, lateRight, lateWidth);
-        left = dry * left + wet * (earlyGain * earlyLevel * early[0] + lateGain * lateLeft);
-        right = dry * right + wet * (earlyGain * earlyLevel * early[1] + lateGain * lateRight);
+        left = dry * left + wetWithSwell * (earlyGain * earlyLevel * early[0] + lateGain * lateLeft);
+        right = dry * right + wetWithSwell * (earlyGain * earlyLevel * early[1] + lateGain * lateRight);
     }
 
 private:
@@ -280,6 +314,19 @@ private:
     float earlyLevel = 1.0f;
     float lastDecay = -1.0f;
     float smoothing = 1.0f;
+    float swellGain = 1.0f;
+    float swellGainSmoothing = 1.0f;
+    float swellPeak = 0.0f;
+    float swellDetectorRelease = 1.0f;
+    float swellProgress = 0.0f;
+    float swellMix = 0.0f;
+    float targetSwellMix = 0.0f;
+    float swellStep = 1.0f;
+    float swellThreshold = 0.02575f;
+    float swellCurve = 0.5f;
+    float targetSwellCurve = 0.5f;
+    bool swellTriggered = false;
+    bool swellInputActive = false;
     float samplesPerMs = 48.0f;
     float bloomPeak = 0.0f;
     float bloomEnvelope = 0.0f;

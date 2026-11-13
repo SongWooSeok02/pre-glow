@@ -211,6 +211,40 @@ int main()
               && bloom[2] > shortRelease[2] * 4 && curved[1] > 0.0 && curved[1] < bloom[1]))
             return 18;
 
+        const auto swellResponse = [rate](bool enabled, float time, float sensitivity, float curve)
+        {
+            preglow::Reverb engine;
+            engine.prepare(rate);
+            preglow::ReverbSettings settings { 5.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f };
+            settings.swell = enabled;
+            settings.swellTimeMs = time;
+            settings.swellSensitivity = sensitivity;
+            settings.swellCurve = curve;
+            engine.setTarget(settings);
+            engine.reset();
+            std::array<double, 3> energy {};
+            for (int i = 0; i < static_cast<int>(rate); ++i)
+            {
+                float left = i == 0 ? 0.05f : 0.0f;
+                float right = 0.0f;
+                engine.process(left, right);
+                if (!std::isfinite(left) || !std::isfinite(right))
+                    return std::array<double, 3> {};
+                auto& window = energy[i < rate * 0.1 ? 0 : i < rate * 0.6 ? 1 : 2];
+                window += left * left + right * right;
+            }
+            return energy;
+        };
+        const auto noSwell = swellResponse(false, 400, 0.5f, 0.0f);
+        const auto swell = swellResponse(true, 400, 0.5f, 0.0f);
+        const auto fastSwell = swellResponse(true, 25, 0.5f, 0.0f);
+        const auto quietSwell = swellResponse(true, 400, 0.0f, 0.0f);
+        const auto curvedSwell = swellResponse(true, 400, 0.5f, 1.0f);
+        if (!(swell[0] > 0.0 && swell[0] < noSwell[0] * 0.1 && fastSwell[0] > swell[0] * 4.0
+              && quietSwell[2] == 0.0 && swell[2] > 0.99 * noSwell[2]
+              && curvedSwell[0] > 0.0 && curvedSwell[0] < swell[0]))
+            return 19;
+
         std::cout << rate << " Hz passed\n";
     }
 }

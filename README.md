@@ -38,6 +38,10 @@ Verified on Apple Silicon: Release AU, VST3 and Standalone builds; DSP tests at 
 
 Verified on Apple Silicon: Release AU, VST3 and Standalone builds; DSP tests at 44.1, 48, 88.2 and 96 kHz; AU validation with `auval`; and AU/VST3 input, persistence and release at 48 kHz in a plug-in host.
 
-**Bloom** softens early reflections and lets the late tail grow in response to input. Amount blends in the effect (0% leaves the original response); Attack sets how quickly it rises, Release sets how long it lingers, and higher Shape values soften the start further. Freeze gradually takes over the tail level while engaged. Older projects load Bloom at 0%.
+**Bloom** softens early reflections and lets the late tail grow in response to input. Amount blends in the effect (0% leaves the original response); Attack sets how quickly it rises, Release sets how long it lingers, and higher Shape values soften the start further. Freeze gradually takes over the tail level while engaged.
 
 Verified on Apple Silicon: Release AU, VST3 and Standalone builds, Bloom impulse tests at 44.1, 48, 88.2 and 96 kHz, AU validation with `auval`, and AU/VST3 Bloom response at 48 kHz in a plug-in host. Logic listening remains to be checked.
+
+**Bloom and Swell** each have a switch. Turning a switch on expands its settings; turning it off collapses the row and keeps its settings. Swell fades in the wet signal when input crosses the Sensitivity threshold. Time sets the rise duration and Curve shapes the fade. Both switches start off in new projects. Schema 1 and 2 projects with a positive saved Bloom Amount restore with Bloom on; Swell defaults off.
+
+Verified on Apple Silicon: Release AU, VST3 and Standalone builds; DSP at 44.1, 48, 88.2 and 96 kHz; AU validation with `auval`; both effects and off states in AU/VST3 at 48 kHz; and independent expansion and collapse in Standalone. Logic window behavior remains to be checked.

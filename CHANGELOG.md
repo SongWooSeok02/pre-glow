@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Added Swell with Time, Sensitivity and Curve controls.
+- Added Bloom and Swell switches that expand or collapse their settings.
+
 - Added Bloom Amount, Attack, Release and Shape to bring in the late tail gradually.
 
 - Added Infinite Decay for extended tails that continue to accept input.
