@@ -54,7 +54,7 @@ Verified all 16 switch combinations for bounded DSP output and compared the froz
 
 See the [Phase 3 handoff](docs/phase-3-handoff.md) for the original scope, implementation changes, compatibility, validation gaps, and the Phase 4 starting point.
 
-## Phase 4 in progress
+## Phase 4 complete
 
 The standalone DSP pitch shifter uses two crossfaded delay taps and supports ±24 semitones. The pitch test checks frequency, output bounds, and reset at 44.1, 48, 88.2 and 96 kHz on Apple Silicon. The four-voice Shimmer DSP adds independent pitch, fine tune, level, pan, delay, tone, and feedback send. DSP tests at the same four rates cover voice summing, stereo placement, delay, and send isolation. The editor's Shimmer panel exposes Mix, Feedback, and the seven controls for each of four voices. Raise Mix to hear the default octave-up voice. Feedback adds the summed voice sends to the reverb loop without scaling down its original feedback. The added return is limited by the loop gain and fades out as Freeze takes hold. The audible pitch-shifted layer continues over the held tail.
 
@@ -66,4 +66,6 @@ Verified the revised Shimmer gain and routing with Apple Silicon Release builds,
 
 Each Shimmer voice has its own card. On enables the voice and opens its controls. Hide controls folds the card while the voice continues to play. Show controls opens it for editing, including while the voice is off. Scroll the cards when opening multiple sets of controls. Schema 5 saves the checkboxes and enables voices with a positive saved Level when opening schema 4 projects. Apple Silicon Release AU, VST3 and Standalone builds and DSP tests passed.
 
-Shimmer Routing starts Phase 5 with Feedback and Post-Reverb modes. Feedback is the default for existing projects. Post-Reverb keeps the pitch layer in the wet output and fades its return into the reverb loop to zero. Apple Silicon AU, VST3 and Standalone builds and DSP tests passed. Logic listening and project recall checks are pending.
+Phase 4 includes Shimmer Routing with Feedback and Post-Reverb modes. Feedback is the default for existing projects. Post-Reverb keeps the pitch layer in the wet output and fades its return into the reverb loop to zero. Apple Silicon AU, VST3 and Standalone builds and DSP tests passed. Logic listening and project recall checks are pending.
+
+See the [Phase 4 handoff](docs/phase-4-handoff.md) for the Phase 5 starting point.

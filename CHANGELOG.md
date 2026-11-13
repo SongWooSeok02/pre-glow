@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Kept Shimmer voice value fields inside their cards with per-column spacing and bottom padding.
+
 - Added a Shimmer Routing selector for Feedback and Post-Reverb.
 
 - Grouped Shimmer knobs into four cards with independent controls for enabling the voice and folding its knobs.

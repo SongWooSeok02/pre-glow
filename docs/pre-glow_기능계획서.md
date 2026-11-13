@@ -190,6 +190,6 @@ Phase 4는 Apple Silicon에서 Release AU·VST3·Standalone 빌드를 마쳤다.
 
 각 Shimmer 보이스의 설정을 개별 카드로 분리했다. 보이스를 켜 둔 채 설정을 접거나, 보이스를 끈 상태에서 설정을 열어 조정할 수 있다.
 
-Phase 5의 Flexible Routing 첫 단계로 Feedback과 Post-Reverb를 선택할 수 있게 했다. 기존 프로젝트는 Feedback으로 열린다. Post-Reverb는 피치가 바뀐 신호를 후기 잔향 출력에 더하고 피드백 루프로 보내는 양을 서서히 0으로 내린다. Logic에서 경로 전환 청취와 저장·복원 검증이 남아 있다.
+Phase 4에 Feedback과 Post-Reverb 선택 및 보이스 카드 입력칸 레이아웃 수정을 포함했다. Phase 5 시작점은 [Phase 4 인수인계](phase-4-handoff.md)에 정리했다. 기존 프로젝트는 Feedback으로 열린다. Post-Reverb는 피치가 바뀐 신호를 후기 잔향 출력에 더하고 피드백 루프로 보내는 양을 서서히 0으로 내린다. Logic에서 경로 전환 청취와 저장·복원 검증이 남아 있다.
 
 > **제품 방향:** 간편하게 사용할 수도 있지만, 원한다면 잔향의 내부 구조까지 직접 설계할 수 있는 앰비언트 사운드 디자인 플러그인.

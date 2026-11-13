@@ -4,7 +4,7 @@ namespace preglow
 {
 namespace
 {
-constexpr int voiceRowHeight = 105;
+constexpr int voiceRowHeight = 122;
 constexpr int voiceHeaderHeight = 48;
 constexpr int maxVoiceHeight = 4 * voiceHeaderHeight + voiceRowHeight;
 constexpr int compactHeight = 250;
@@ -233,6 +233,7 @@ void PluginEditor::resized()
             auto card = area.removeFromTop(voiceHeaderHeight + (expanded ? voiceRowHeight : 0)).reduced(4, 2);
             voiceCards[voice].setBounds(card);
             auto inner = card.reduced(12, 0);
+            inner.removeFromBottom(12);
             inner.removeFromTop(14);
             auto header = inner.removeFromTop(25);
             voiceToggles[voice].setBounds(header.removeFromLeft(64));
@@ -244,8 +245,10 @@ void PluginEditor::resized()
             for (std::size_t field = 0; field < fields; ++field)
             {
                 const auto i = voice * fields + field;
-                auto column = row.removeFromLeft(width);
+                auto column = row.removeFromLeft(width).reduced(4, 0);
                 voiceLabels[i].setBounds(column.removeFromTop(24));
+                if (voiceSliders[i].getTextBoxWidth() != std::min(64, column.getWidth()))
+                    voiceSliders[i].setTextBoxStyle(juce::Slider::TextBoxBelow, false, std::min(64, column.getWidth()), 22);
                 voiceSliders[i].setBounds(column);
             }
         }
