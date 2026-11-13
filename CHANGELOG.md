@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Show both reverb percentages on the A/B control.
+
 - Added Reverb A/B Blend to mix two existing reverb characters. Older sessions load at 0% B.
 
 - Added a Parallel Shimmer route that blends pitch-shifted input into the wet output alongside the reverb.

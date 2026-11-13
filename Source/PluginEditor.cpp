@@ -52,14 +52,18 @@ PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner)
         owner.state, parameters::characterB, characterB);
     characterBlend.setTitle("Reverb A/B Blend");
     characterBlend.setSliderStyle(juce::Slider::LinearHorizontal);
-    characterBlend.setTextBoxStyle(juce::Slider::TextBoxRight, false, 54, 22);
-    characterBlend.setTextValueSuffix("%");
+    characterBlend.setTextBoxStyle(juce::Slider::TextBoxRight, true, 124, 22);
     addAndMakeVisible(characterBlend);
     characterBlendAttachment = std::make_unique<SliderAttachment>(owner.state, parameters::characterBlend, characterBlend);
+    characterBlend.textFromValueFunction = [](double value)
+    {
+        const auto b = juce::roundToInt(value);
+        return "A " + juce::String(100 - b) + "% / B " + juce::String(b) + "%";
+    };
+    characterBlend.updateText();
     characterALabel.setText("A", juce::dontSendNotification);
     characterBLabel.setText("B", juce::dontSendNotification);
-    characterBlendLabel.setText("A/B Blend", juce::dontSendNotification);
-    for (auto* label : { &characterALabel, &characterBLabel, &characterBlendLabel })
+    for (auto* label : { &characterALabel, &characterBLabel })
         addAndMakeVisible(*label);
     addAndMakeVisible(freeze);
     freezeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
@@ -312,7 +316,6 @@ void PluginEditor::resized()
     characterBLabel.setBounds(characters.removeFromLeft(22));
     characterB.setBounds(characters.removeFromLeft(112));
     characters.removeFromLeft(12);
-    characterBlendLabel.setBounds(characters.removeFromLeft(78));
     characterBlend.setBounds(characters);
     auto options = controls.removeFromTop(28);
     freeze.setBounds(options.removeFromLeft(90));

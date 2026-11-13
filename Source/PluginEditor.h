@@ -50,7 +50,7 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> freezeAttachment;
     juce::ComboBox character, characterB;
     juce::Slider characterBlend;
-    juce::Label characterALabel, characterBLabel, characterBlendLabel;
+    juce::Label characterALabel, characterBLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> characterBAttachment;
     std::unique_ptr<SliderAttachment> characterBlendAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> characterAttachment;
