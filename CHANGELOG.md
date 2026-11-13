@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added a Parallel Shimmer route that blends pitch-shifted input into the wet output alongside the reverb.
+
 - Kept the spectrum at its compact height when opening control panels.
 
 - Moved the Dry/Reverb spectrum beside the controls to reduce the plug-in window height.

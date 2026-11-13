@@ -404,6 +404,26 @@ int main()
                 return 34;
         }
 
+        auto parallel = bypass;
+        parallel.setShimmer(voices, 1.0f, 0.0f, false, true);
+        parallel.reset();
+        bypass.reset();
+        double parallelDifference = 0.0;
+        for (int i = 0; i < rate; ++i)
+        {
+            const auto input = i < rate / 8 && i % 257 == 0 ? 0.5f : 0.0f;
+            const auto mixed = parallel.processSources(input, input);
+            const auto plain = bypass.processSources(input, input);
+            if (mixed.dry != plain.dry || !std::isfinite(mixed.wet[0]))
+                return 35;
+            const auto delta = std::abs(mixed.wet[0] - plain.wet[0]);
+            parallelDifference += delta;
+            if (i > rate / 2 && delta > 1.0e-7f)
+                return 36;
+        }
+        if (parallelDifference < 0.01)
+            return 37;
+
         std::cout << rate << " Hz passed\n";
     }
 }

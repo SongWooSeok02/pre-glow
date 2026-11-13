@@ -35,12 +35,13 @@ class Reverb
 public:
     static constexpr float infiniteDecaySeconds = 600.0f;
 
-    void setShimmer(const std::array<Shimmer::Voice, Shimmer::voiceCount>& voices, float mix, float feedback, bool pre = false) noexcept
+    void setShimmer(const std::array<Shimmer::Voice, Shimmer::voiceCount>& voices, float mix, float feedback, bool pre = false, bool parallel = false) noexcept
     {
         shimmer.setVoices(voices);
         targetShimmerMix = mix;
         targetShimmerFeedback = feedback;
         targetPreRoute = pre ? 1.0f : 0.0f;
+        targetParallelRoute = parallel ? 1.0f : 0.0f;
         preShimmer.setVoices(voices);
     }
 
@@ -121,6 +122,7 @@ public:
         shimmer.reset();
         preShimmer.reset();
         preRoute = targetPreRoute;
+        parallelRoute = targetParallelRoute;
         shimmerMix = targetShimmerMix;
         shimmerFeedback = targetShimmerFeedback;
         freeze = targetFreeze ? 1.0f : 0.0f;
@@ -250,13 +252,17 @@ public:
         preRoute += smoothing * (targetPreRoute - preRoute);
         if (std::abs(preRoute - targetPreRoute) < 0.00001f)
             preRoute = targetPreRoute;
+        parallelRoute += smoothing * (targetParallelRoute - parallelRoute);
+        if (std::abs(parallelRoute - targetParallelRoute) < 0.00001f)
+            parallelRoute = targetParallelRoute;
         if (targetShimmerMix == 0.0f && shimmerMix < 0.00001f)
             shimmerMix = 0.0f;
 
         const auto preMix = shimmerMix * preRoute;
-        const auto lateMix = shimmerMix * (1.0f - preRoute);
+        const auto parallelMix = shimmerMix * parallelRoute;
+        const auto lateMix = shimmerMix * std::max(0.0f, 1.0f - preRoute - parallelRoute);
         const auto shifted = processShimmer(shimmer, lateShimmerRunning, lateMix, lateLeftRaw, lateRightRaw);
-        const auto pre = processShimmer(preShimmer, preShimmerRunning, preMix,
+        const auto pre = processShimmer(preShimmer, preShimmerRunning, preMix + parallelMix,
                                        feed * left, feed * right);
         const auto reverbLeft = left + preMix * pre.wet[0];
         const auto reverbRight = right + preMix * pre.wet[1];
@@ -313,8 +319,8 @@ public:
         applyWidth(early[0], early[1], earlyWidth);
         applyWidth(lateLeft, lateRight, lateWidth);
         return { { dry * left, dry * right },
-                 { wet * (earlyGain * earlyLevel * early[0] + lateGain * lateLeft),
-                   wet * (earlyGain * earlyLevel * early[1] + lateGain * lateRight) } };
+                 { wet * (earlyGain * earlyLevel * early[0] + lateGain * lateLeft + feed * parallelMix * pre.wet[0]),
+                   wet * (earlyGain * earlyLevel * early[1] + lateGain * lateRight + feed * parallelMix * pre.wet[1]) } };
     }
 
 private:
@@ -337,6 +343,7 @@ private:
     Shimmer shimmer, preShimmer;
     bool lateShimmerRunning = false, preShimmerRunning = false;
     float preRoute = 0.0f, targetPreRoute = 0.0f;
+    float parallelRoute = 0.0f, targetParallelRoute = 0.0f;
     float shimmerMix = 0.0f, shimmerFeedback = 0.0f;
     float targetShimmerMix = 0.0f, targetShimmerFeedback = 0.0f;
 

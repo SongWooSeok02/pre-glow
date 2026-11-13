@@ -32,7 +32,7 @@ void PluginProcessor::updateShimmer() noexcept
     const auto feedback = route < 0.5f
         ? shimmerFeedback->load(std::memory_order_relaxed) * 0.01f : 0.0f;
     for (auto& engine : engines)
-        engine.setShimmer(voices, amount, feedback, route >= 1.5f);
+        engine.setShimmer(voices, amount, feedback, route >= 1.5f && route < 2.5f, route >= 2.5f);
 }
 
 ReverbSettings PluginProcessor::readSettings() const noexcept
