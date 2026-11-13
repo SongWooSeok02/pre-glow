@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Added stereo early reflections before the FDN tail.
+
 ## 0.1.1
 
 - Show the build version in the host plug-in name and editor.

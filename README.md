@@ -1,6 +1,6 @@
 # pre-glow
 
-Phase 1 stereo reverb prototype. Decay, Damping and Mix support host automation and session recall.
+Stereo reverb plugin. Phase 2 is in progress. Decay, Damping and Mix support host automation and session recall.
 
 ## Build
 
@@ -26,6 +26,6 @@ GitHub Actions passed the channel-layout update on Apple Silicon, Intel macOS, a
 
 The user confirmed the AU loaded on a stereo track and produced audible reverb. In the open Logic Pro project, an accessibility-driven check set Decay to 5.00, Damping to 0.45 and Mix to 0.35. Closing and reopening the plug-in editor preserved those values. The initial values (0.76, 1.00 and 1.00) were restored. Apple's auval passed after the mono output update and reported 1→1, 1→2, and 2→2 channel layouts. Logic Pro menu visibility for the updated Mono → Stereo variant, project save/reload, and automation playback remain pending.
 
-## Next development session
+## Phase 2 progress
 
-Start Phase 2 from the 0.1.1 foundation. Expand the FDN with distinct reverb characters, diffusion, early reflections, and stereo processing. Preserve the existing parameter IDs, state schema, and supported channel layouts. Validate changes with impulse tests and use Logic Pro to check the mono-to-stereo insert when testing the next AU build.
+Stereo early reflections now precede the FDN tail. The standalone C++ DSP test passed on macOS at 44.1, 48, 88.2 and 96 kHz, including reflection timing, stereo separation and reset. Next, add diffusion, distinct reverb characters and further stereo controls. Preserve the existing parameter IDs, state schema, and supported channel layouts. Validate changes with impulse tests and use Logic Pro to check the mono-to-stereo insert when testing the next AU build.

@@ -2,7 +2,7 @@
 
 JUCE owns host wrappers, bus configuration, automation and the editor. The processor reads cached atomic parameter values once per block and passes typed targets to the DSP. The DSP owns the delay memory and runs independently of JUCE. The editor attaches controls to the same parameter state as host automation.
 
-The stereo engine exposes prepare, reset, setTarget and in-place sample processing. Prepare sizes the delay memory. Reset clears the tail and snaps smoothing to the current targets. SetTarget clamps settings and recalculates feedback gains when decay changes. The four delay lines use an orthogonal Hadamard feedback matrix and low-pass feedback damping. The requested decay controls nominal RT60 at low frequencies. The processor reports a conservative 120-second tail and zero algorithmic latency.
+The stereo engine exposes prepare, reset, setTarget and in-place sample processing. Prepare sizes the delay memory. Reset clears the tail and snaps smoothing to the current targets. SetTarget clamps settings and recalculates feedback gains when decay changes. The four delay lines use an orthogonal Hadamard feedback matrix and low-pass feedback damping. A stereo input history feeds early reflections into the wet output independently of the feedback loop. Prepare allocates the history and reset clears it. The requested decay controls nominal RT60 at low frequencies. The processor reports a conservative 120-second tail and zero algorithmic latency.
 
 ## Host contract
 

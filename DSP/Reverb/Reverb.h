@@ -27,6 +27,10 @@ public:
             line.seconds = static_cast<float>(static_cast<double>(line.samples.size()) / sampleRate);
         }
 
+        for (std::size_t i = 0; i < reflections.size(); ++i)
+            reflectionDelays[i] = static_cast<std::size_t>(std::max(1.0, std::round(sampleRate * reflections[i].seconds)));
+        earlyHistory.resize(reflectionDelays.back() + 1);
+
         lastDecay = -1.0f;
 
         smoothing = static_cast<float>(-std::expm1(-1.0 / (0.025 * sampleRate)));
@@ -42,6 +46,8 @@ public:
             line.low = 0.0f;
             line.gain = line.targetGain;
         }
+        std::fill(earlyHistory.begin(), earlyHistory.end(), std::array<float, 2> {});
+        earlyPosition = 0;
         damping = targetDamping;
         mix = targetMix;
     }
@@ -87,8 +93,24 @@ public:
                 line.position = 0;
         }
 
-        left = (1.0f - mix) * left + mix * 0.45f * (a + b - c - d);
-        right = (1.0f - mix) * right + mix * 0.45f * (a - b + c - d);
+        std::array<float, 2> early {};
+        for (std::size_t i = 0; i < reflections.size(); ++i)
+        {
+            const auto delay = reflectionDelays[i];
+            const auto index = earlyPosition >= delay ? earlyPosition - delay
+                                                       : earlyHistory.size() + earlyPosition - delay;
+            const auto [l, r] = earlyHistory[index];
+            const auto direct = reflections[i].direct;
+            const auto cross = reflections[i].cross;
+            early[0] += direct * l + cross * r;
+            early[1] += direct * r + cross * l;
+        }
+        earlyHistory[earlyPosition] = { std::clamp(left, -8.0f, 8.0f), std::clamp(right, -8.0f, 8.0f) };
+        if (++earlyPosition == earlyHistory.size())
+            earlyPosition = 0;
+
+        left = (1.0f - mix) * left + mix * (early[0] + 0.45f * (a + b - c - d));
+        right = (1.0f - mix) * right + mix * (early[1] + 0.45f * (a - b + c - d));
     }
 
 private:
@@ -107,6 +129,22 @@ private:
         float targetGain = 0.0f;
     };
 
+    struct Reflection
+    {
+        double seconds;
+        float direct;
+        float cross;
+    };
+
+    inline static constexpr std::array reflections {
+        Reflection { 0.007, 0.12f, 0.0f },
+        Reflection { 0.011, 0.0f, 0.09f },
+        Reflection { 0.017, 0.07f, 0.03f },
+        Reflection { 0.023, 0.02f, 0.06f }
+    };
+    std::array<std::size_t, reflections.size()> reflectionDelays {};
+    std::vector<std::array<float, 2>> earlyHistory;
+    std::size_t earlyPosition = 0;
     std::array<Line, 4> lines;
     float lastDecay = -1.0f;
     float smoothing = 1.0f;
