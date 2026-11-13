@@ -8,6 +8,24 @@ PluginProcessor::PluginProcessor()
                                      .withOutput("Output", juce::AudioChannelSet::stereo(), true)),
       state(*this, nullptr, parameters::stateType, parameters::createLayout())
 {
+    for (std::size_t voice = 0; voice < shimmerVoices.size(); ++voice)
+        for (std::size_t field = 0; field < parameters::voiceParameters.size(); ++field)
+            shimmerVoices[voice][field] = state.getRawParameterValue(parameters::voiceId(voice, parameters::voiceParameters[field]));
+}
+
+void PluginProcessor::updateShimmer() noexcept
+{
+    std::array<Shimmer::Voice, Shimmer::voiceCount> voices;
+    for (std::size_t i = 0; i < voices.size(); ++i)
+    {
+        const auto& fields = shimmerVoices[i];
+        const auto load = [&](std::size_t field) { return fields[field]->load(std::memory_order_relaxed); };
+        voices[i] = { load(0), load(1), load(2), load(3), load(4), load(5), load(6) };
+    }
+    const auto amount = shimmerMix->load(std::memory_order_relaxed) * 0.01f;
+    const auto feedback = shimmerFeedback->load(std::memory_order_relaxed) * 0.01f;
+    for (auto& engine : engines)
+        engine.setShimmer(voices, amount, feedback);
 }
 
 ReverbSettings PluginProcessor::readSettings() const noexcept
@@ -34,6 +52,7 @@ void PluginProcessor::prepareToPlay(double sampleRate, int)
         engines[i].setTarget(settings);
     }
     characterSmoothing = static_cast<float>(-std::expm1(-1.0 / (0.025 * sampleRate)));
+    updateShimmer();
     reset();
 }
 
@@ -89,6 +108,7 @@ void PluginProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiB
     targetCharacter = readCharacter();
     for (auto& engine : engines)
         engine.setTarget(settings);
+    updateShimmer();
     auto* left = buffer.getWritePointer(0);
     if (getMainBusNumOutputChannels() == 1)
     {
@@ -136,6 +156,7 @@ void PluginProcessor::setStateInformation(const void* data, int size)
     if (xml != nullptr && xml->hasTagName(parameters::stateType)
         && (xml->getIntAttribute("schemaVersion") == 1
             || xml->getIntAttribute("schemaVersion") == 2
+            || xml->getIntAttribute("schemaVersion") == 3
             || xml->getIntAttribute("schemaVersion") == parameters::schemaVersion))
     {
         auto restored = juce::ValueTree::fromXml(*xml);
@@ -173,6 +194,16 @@ void PluginProcessor::setStateInformation(const void* data, int size)
             parameter.setProperty("id", id, nullptr);
             parameter.setProperty("value", value, nullptr);
             restored.appendChild(parameter, nullptr);
+        }
+        for (const auto* parameter : getParameters())
+        {
+            const auto* ranged = dynamic_cast<const juce::RangedAudioParameter*>(parameter);
+            if (ranged == nullptr || restored.getChildWithProperty("id", ranged->getParameterID()).isValid())
+                continue;
+            juce::ValueTree node { "PARAM" };
+            node.setProperty("id", ranged->getParameterID(), nullptr);
+            node.setProperty("value", ranged->convertFrom0to1(ranged->getDefaultValue()), nullptr);
+            restored.appendChild(node, nullptr);
         }
         restored.setProperty("schemaVersion", parameters::schemaVersion, nullptr);
         state.replaceState(restored);

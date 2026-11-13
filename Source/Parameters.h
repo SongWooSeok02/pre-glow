@@ -1,5 +1,7 @@
 #pragma once
 #include <tuple>
+#include <array>
+#include "../DSP/Pitch/Shimmer.h"
 #include <juce_audio_processors/juce_audio_processors.h>
 
 namespace preglow::parameters
@@ -25,7 +27,28 @@ inline constexpr auto swellTime = "swell_time";
 inline constexpr auto swellSensitivity = "swell_sensitivity";
 inline constexpr auto swellCurve = "swell_curve";
 inline constexpr auto stateType = "PreGlowState";
-inline constexpr int schemaVersion = 3;
+inline constexpr int schemaVersion = 4;
+inline constexpr auto shimmerMix = "shimmer_mix";
+inline constexpr auto shimmerFeedback = "shimmer_feedback";
+struct VoiceParameter
+{
+    const char* suffix;
+    const char* label;
+    float minimum, maximum, step, initial;
+};
+inline constexpr std::array voiceParameters {
+    VoiceParameter { "pitch", "Pitch", -24.0f, 24.0f, 1.0f, 12.0f },
+    VoiceParameter { "fine", "Fine (ct)", -100.0f, 100.0f, 1.0f, 0.0f },
+    VoiceParameter { "level", "Level", 0.0f, 1.0f, 0.01f, 0.0f },
+    VoiceParameter { "pan", "Pan", -1.0f, 1.0f, 0.01f, 0.0f },
+    VoiceParameter { "delay", "Delay (ms)", 0.0f, 250.0f, 1.0f, 0.0f },
+    VoiceParameter { "send", "Send", 0.0f, 1.0f, 0.01f, 0.5f },
+    VoiceParameter { "tone", "Tone (Hz)", 100.0f, 18000.0f, 1.0f, 6000.0f }
+};
+inline juce::String voiceId(std::size_t voice, const VoiceParameter& parameter)
+{
+    return "shimmer_" + juce::String(static_cast<int>(voice + 1)) + "_" + parameter.suffix;
+}
 
 inline juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
 {
@@ -71,6 +94,19 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
         layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID { id, 8 }, name,
             juce::NormalisableRange<float> { 0.0f, 100.0f, 1.0f }, 50.0f,
             juce::AudioParameterFloatAttributes().withLabel("%")));
+    for (const auto& [id, name] : { std::pair { shimmerMix, "Shimmer Mix" },
+                                    std::pair { shimmerFeedback, "Shimmer Feedback" } })
+        layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID { id, 9 }, name,
+            juce::NormalisableRange<float> { 0.0f, 100.0f, 1.0f }, 0.0f,
+            juce::AudioParameterFloatAttributes().withLabel("%")));
+
+    for (std::size_t voice = 0; voice < Shimmer::voiceCount; ++voice)
+        for (const auto& parameter : voiceParameters)
+            layout.add(std::make_unique<juce::AudioParameterFloat>(
+                juce::ParameterID { voiceId(voice, parameter), 9 },
+                "Shimmer " + juce::String(static_cast<int>(voice + 1)) + " " + parameter.label,
+                juce::NormalisableRange<float> { parameter.minimum, parameter.maximum, parameter.step },
+                voice == 0 && juce::String(parameter.suffix) == "level" ? 1.0f : parameter.initial));
     return layout;
 }
 }

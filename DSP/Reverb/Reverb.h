@@ -1,4 +1,5 @@
 #pragma once
+#include "../Pitch/Shimmer.h"
 
 #include <algorithm>
 #include <array>
@@ -33,6 +34,13 @@ class Reverb
 {
 public:
     static constexpr float infiniteDecaySeconds = 600.0f;
+
+    void setShimmer(const std::array<Shimmer::Voice, Shimmer::voiceCount>& voices, float mix, float feedback) noexcept
+    {
+        shimmer.setVoices(voices);
+        targetShimmerMix = mix;
+        targetShimmerFeedback = feedback;
+    }
 
     void prepare(double sampleRate, ReverbCharacter character = ReverbCharacter::hall)
     {
@@ -80,6 +88,7 @@ public:
         samplesPerMs = static_cast<float>(sampleRate * 0.001);
         swellGainSmoothing = 1.0f / (1.0f + 5.0f * samplesPerMs);
         swellDetectorRelease = 1.0f / (1.0f + 40.0f * samplesPerMs);
+        shimmer.prepare(sampleRate);
         freezeStep = static_cast<float>(1.0 / (0.10 * sampleRate));
         reset();
     }
@@ -106,6 +115,9 @@ public:
         swellCurve = targetSwellCurve;
         bloomAmount = targetBloomAmount;
         bloomShape = targetBloomShape;
+        shimmer.reset();
+        shimmerMix = targetShimmerMix;
+        shimmerFeedback = targetShimmerFeedback;
         freeze = targetFreeze ? 1.0f : 0.0f;
         reflectionLow.fill(0.0f);
         dry = targetDry;
@@ -217,6 +229,21 @@ public:
         }
 
         const auto [a, b, c, d] = taps;
+        shimmerMix += smoothing * (targetShimmerMix - shimmerMix);
+        shimmerFeedback += smoothing * (targetShimmerFeedback - shimmerFeedback);
+        const auto lateLeftRaw = 0.45f * (a + b - c - d);
+        const auto lateRightRaw = 0.45f * (a - b + c - d);
+        Shimmer::Output shifted;
+        if (targetShimmerMix > 0.0f || shimmerMix > 0.00001f)
+            shifted = shimmer.process(lateLeftRaw, lateRightRaw);
+        else if (shimmerMix > 0.0f)
+        {
+            shimmerMix = 0.0f;
+            shimmer.reset();
+        }
+        const auto feedbackBlend = 0.25f * feed * shimmerMix * shimmerFeedback;
+        const auto [sendLeft, sendRight] = shifted.feedback;
+        const std::array shimmerReturn { sendLeft, sendRight, -sendLeft, -sendRight };
         const std::array mixed { a + b + c + d, a - b + c - d, a + b - c - d, a - b - c + d };
         const std::array input { left, right, -left, -right };
         for (std::size_t i = 0; i < lines.size(); ++i)
@@ -225,7 +252,8 @@ public:
             auto diffused = line.diffusion.process(feed * std::clamp(input[i], -8.0f, 8.0f));
             if (!line.extraDiffusion.samples.empty())
                 diffused = line.extraDiffusion.process(diffused);
-            const auto value = 0.5f * mixed[i] + 0.22f * feed * diffused;
+            const auto value = (1.0f - feedbackBlend) * 0.5f * mixed[i]
+                + feedbackBlend * 0.5f * shimmerReturn[i] + 0.22f * feed * diffused;
             line.samples[line.position] = std::isfinite(value) ? std::clamp(value, -8.0f, 8.0f) : 0.0f;
             if (++line.position == line.samples.size())
                 line.position = 0;
@@ -255,8 +283,8 @@ public:
                 early[channel] = reflectionLow[channel];
             }
         }
-        auto lateLeft = 0.45f * (a + b - c - d);
-        auto lateRight = 0.45f * (a - b + c - d);
+        auto lateLeft = lateLeftRaw + shimmerMix * shifted.wet[0] * 0.25f;
+        auto lateRight = lateRightRaw + shimmerMix * shifted.wet[1] * 0.25f;
         applyWidth(early[0], early[1], earlyWidth);
         applyWidth(lateLeft, lateRight, lateWidth);
         left = dry * left + wet * (earlyGain * earlyLevel * early[0] + lateGain * lateLeft);
@@ -264,6 +292,10 @@ public:
     }
 
 private:
+    Shimmer shimmer;
+    float shimmerMix = 0.0f, shimmerFeedback = 0.0f;
+    float targetShimmerMix = 0.0f, targetShimmerFeedback = 0.0f;
+
     static void applyWidth(float& left, float& right, float width) noexcept
     {
         const auto mid = 0.5f * (left + right);

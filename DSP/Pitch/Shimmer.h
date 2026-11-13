@@ -93,7 +93,7 @@ public:
             const auto first = static_cast<std::size_t>(read);
             const auto next = (first + 1) % voice.delay.size();
             const auto sample = voice.delay[first]
-                + static_cast<float>(read - first) * (voice.delay[next] - voice.delay[first]);
+                + static_cast<float>(read - static_cast<double>(first)) * (voice.delay[next] - voice.delay[first]);
             voice.write = (voice.write + 1) % voice.delay.size();
 
             const std::array<float, 2> gains { leftGain, rightGain };

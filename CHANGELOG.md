@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Added the four-voice Shimmer DSP engine ahead of plug-in integration.
+- Added a four-voice Shimmer panel with independent voice controls, global Mix and Feedback, and Freeze-aware reverb feedback.
 
 - Started Shimmer development with a standalone pitch shifter and DSP verification (no plug-in controls yet).
 

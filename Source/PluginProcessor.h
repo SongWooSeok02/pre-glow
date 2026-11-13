@@ -36,6 +36,10 @@ public:
     juce::AudioProcessorValueTreeState state;
 
 private:
+    void updateShimmer() noexcept;
+    std::array<std::array<const std::atomic<float>*, parameters::voiceParameters.size()>, Shimmer::voiceCount> shimmerVoices {};
+    const std::atomic<float>* const shimmerMix = state.getRawParameterValue(parameters::shimmerMix);
+    const std::atomic<float>* const shimmerFeedback = state.getRawParameterValue(parameters::shimmerFeedback);
     void upmixMonoInput(juce::AudioBuffer<float>&) const noexcept;
     ReverbSettings readSettings() const noexcept;
     const std::atomic<float>* const decay = state.getRawParameterValue(parameters::decay);

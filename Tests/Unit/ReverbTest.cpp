@@ -302,6 +302,58 @@ int main()
                 return 24;
         }
 
+        // Maximum sends must change the live tail, then have no effect
+        // on the held tail after Freeze has finished fading in.
+        preglow::Reverb shimmer;
+        shimmer.prepare(rate);
+        preglow::ReverbSettings shimmerSettings { 120.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f };
+        shimmerSettings.infinite = true;
+        shimmer.setTarget(shimmerSettings);
+        std::array<preglow::Shimmer::Voice, preglow::Shimmer::voiceCount> voices {};
+        for (auto& voice : voices)
+        {
+            voice.level = 1.0f;
+            voice.feedbackSend = 1.0f;
+        }
+        shimmer.setShimmer(voices, 1.0f, 1.0f);
+        shimmer.reset();
+        auto noFeedback = shimmer;
+        noFeedback.setShimmer(voices, 1.0f, 0.0f);
+        noFeedback.reset();
+        double difference = 0.0;
+        for (int i = 0; i < 2 * rate; ++i)
+        {
+            float left = i % 257 == 0 ? 0.7f : 0.0f;
+            float right = left, refLeft = left, refRight = right;
+            shimmer.process(left, right);
+            noFeedback.process(refLeft, refRight);
+            if (!std::isfinite(left) || !std::isfinite(right)
+                || std::abs(left) > 2.0f || std::abs(right) > 2.0f)
+                return 25;
+            difference += std::abs(left - refLeft) + std::abs(right - refRight);
+        }
+        if (difference < 0.01)
+            return 26;
+        shimmerSettings.freeze = true;
+        shimmer.setTarget(shimmerSettings);
+        if (!drive(shimmer, 0.0f))
+            return 27;
+        auto held = shimmer;
+        held.setShimmer(voices, 1.0f, 0.0f);
+        for (int i = 0; i < rate; ++i)
+        {
+            float left = 0.5f, right = left, refLeft = 0.0f, refRight = 0.0f;
+            shimmer.process(left, right);
+            held.process(refLeft, refRight);
+            if (!std::isfinite(left) || !std::isfinite(right)
+                || std::abs(left - refLeft) > 1.0e-6f || std::abs(right - refRight) > 1.0e-6f)
+                return 28;
+        }
+        shimmerSettings.freeze = false;
+        shimmer.setTarget(shimmerSettings);
+        if (!drive(shimmer, 0.25f))
+            return 29;
+
         std::cout << rate << " Hz passed\n";
     }
 }
