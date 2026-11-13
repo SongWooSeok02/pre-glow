@@ -2,8 +2,8 @@
 
 ## 0.1.1
 
+- Show the build version in the host plug-in name and editor.
 - Added a mono output option for hosts that filter mono inserts by channel layout.
-
 
 ## 0.1.0
 

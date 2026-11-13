@@ -31,7 +31,7 @@ void PluginEditor::paint(juce::Graphics& graphics)
     graphics.fillAll(juce::Colour(0xff151627));
     graphics.setColour(juce::Colour(0xfff0eaff));
     graphics.setFont(juce::FontOptions(30.0f));
-    graphics.drawText("pre-glow", getLocalBounds().removeFromTop(68).reduced(24, 0), juce::Justification::centredLeft);
+    graphics.drawText(JucePlugin_Name, getLocalBounds().removeFromTop(68).reduced(24, 0), juce::Justification::centredLeft);
 }
 
 void PluginEditor::resized()

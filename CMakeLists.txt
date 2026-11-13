@@ -17,6 +17,8 @@ juce_add_plugin(pre_glow
     PLUGIN_MANUFACTURER_CODE Pglo
     PLUGIN_CODE PrGl
     FORMATS ${formats}
+    PLUGIN_NAME "pre-glow ${PROJECT_VERSION}"
+
     PRODUCT_NAME "pre-glow")
 target_sources(pre_glow PRIVATE Source/PluginProcessor.cpp Source/PluginEditor.cpp)
 target_compile_features(pre_glow PUBLIC cxx_std_17)
