@@ -29,6 +29,22 @@ int main()
             if (tailEnergy < 0.00001 || sideEnergy < 0.00001)
                 return 2;
         }
+        preglow::Reverb monoReverb;
+        monoReverb.prepare(rate);
+        monoReverb.setTarget({ 3.0f, 0.45f, 1.0f });
+        monoReverb.reset();
+        double monoSideEnergy = 0.0;
+        for (int sample = 0; sample < static_cast<int>(rate); ++sample)
+        {
+            float left = sample == 0 ? 1.0f : 0.0f;
+            float right = left;
+            monoReverb.process(left, right);
+            const auto side = left - right;
+            monoSideEnergy += side * side;
+        }
+        if (!std::isfinite(monoSideEnergy) || monoSideEnergy < 0.00001)
+            return 3;
+
         std::cout << rate << " Hz passed\n";
     }
 }

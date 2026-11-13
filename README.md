@@ -20,7 +20,7 @@ See [architecture](docs/architecture.md) for the DSP boundary and state contract
 
 On Apple Silicon with Xcode 27.2, Apple Clang 21, CMake 3.31.6 and Ninja, Release builds succeeded for AU, VST3 and Standalone. The Standalone process launched. CTest passed the stereo impulse test at 44.1, 48, 88.2 and 96 kHz, using decay settings of 0.1, 3 and 120 seconds. The test checks finite, bounded samples and stereo tail energy over four seconds per case.
 
-Windows x64 and Intel macOS jobs are defined in CI and await execution. Formal format validation and compatibility checks in other DAWs remain pending. The current plugin accepts stereo input and output.
+Windows x64 and Intel macOS jobs are defined in CI and await execution. Formal format validation and compatibility checks in other DAWs remain pending. The plugin accepts mono or stereo input with stereo output. The host selects the channel layout. In Logic Pro, select the Mono → Stereo AU variant on a mono channel strip when available.
 
 ### Logic Pro smoke test
 
