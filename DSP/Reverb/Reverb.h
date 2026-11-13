@@ -18,11 +18,14 @@ struct ReverbSettings
     float lateWidth = 1.0f;
     float dry = 0.65f;
     bool freeze = false;
+    bool infinite = false;
 };
 
 class Reverb
 {
 public:
+    static constexpr float infiniteDecaySeconds = 600.0f;
+
     void prepare(double sampleRate, ReverbCharacter character = ReverbCharacter::hall)
     {
         constexpr std::array diffusionSeconds { 0.0031, 0.0047, 0.0061, 0.0083 };
@@ -94,7 +97,9 @@ public:
 
     void setTarget(ReverbSettings settings) noexcept
     {
-        const auto decay = bounded(settings.decaySeconds, 0.1f, 120.0f, 3.0f);
+        // Keep a small feedback loss: Infinite still injects live input.
+        const auto decay = settings.infinite ? infiniteDecaySeconds
+                                             : bounded(settings.decaySeconds, 0.1f, 120.0f, 3.0f);
         if (std::abs(decay - lastDecay) > 0.000001f)
         {
             for (auto& line : lines)

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added Infinite Decay for extended tails that continue to accept input.
+
 - Added an automatable Freeze switch that holds the reverb tail while keeping the dry signal live.
 
 - Softened early reflections and increased input diffusion in Hall and Room.

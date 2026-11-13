@@ -33,3 +33,7 @@ The reverb engine includes stereo early reflections, input diffusion, six charac
 Phase 3 starts with **Freeze**. It holds the current tail, fades new input out of the wet path, and leaves the dry signal live. Turning it off restores the current Decay and Damping settings. Older projects without the Freeze parameter load with it off.
 
 Verified on Apple Silicon: Release AU, VST3 and Standalone builds; DSP tests at 44.1, 48, 88.2 and 96 kHz; AU validation with `auval`; and AU/VST3 Freeze hold and release at 48 kHz in a plug-in host. Logic listening, project recall and automation playback remain to be checked.
+
+**Infinite Decay** keeps the wet input live and sets the feedback decay to 600 seconds before damping. The Damping control still shapes the tail, and Freeze takes precedence while engaged. Switching Infinite Decay off brings back the Decay knob setting. Older projects default to off.
+
+Verified on Apple Silicon: Release AU, VST3 and Standalone builds; DSP tests at 44.1, 48, 88.2 and 96 kHz; AU validation with `auval`; and AU/VST3 input, persistence and release at 48 kHz in a plug-in host.

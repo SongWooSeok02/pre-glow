@@ -11,6 +11,8 @@ public:
     void resized() override;
 
 private:
+    juce::ToggleButton infinite { "Infinite Decay" };
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> infiniteAttachment;
     juce::ToggleButton freeze { "Freeze" };
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> freezeAttachment;
     juce::ComboBox character;

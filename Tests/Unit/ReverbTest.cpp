@@ -144,6 +144,42 @@ int main()
             }
         }
 
+        preglow::Reverb sustained;
+        sustained.prepare(rate);
+        preglow::ReverbSettings settings { 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, false, true };
+        sustained.setTarget(settings);
+        sustained.reset();
+        const auto renderInfinite = [&](int seconds, bool charge)
+        {
+            double energy = 0.0;
+            for (int i = 0; i < static_cast<int>(seconds * rate); ++i)
+            {
+                float left = charge && i == 0 ? 0.5f : 0.0f;
+                float right = 0.0f;
+                sustained.process(left, right);
+                if (!std::isfinite(left) || !std::isfinite(right)
+                    || std::abs(left) > 1.0f || std::abs(right) > 1.0f)
+                    return -1.0;
+                energy += left * left + right * right;
+            }
+            return energy;
+        };
+        if (renderInfinite(1, true) <= 0.0)
+            return 13;
+        const auto first = renderInfinite(1, false);
+        if (renderInfinite(5, false) <= 0.0)
+            return 14;
+        const auto later = renderInfinite(1, false);
+        if (first <= 0.0 || later < 0.5 * first || later > 1.5 * first)
+            return 15;
+        settings.infinite = false;
+        sustained.setTarget(settings);
+        if (renderInfinite(2, false) <= 0.0)
+            return 16;
+        const auto released = renderInfinite(1, false);
+        if (released < 0.0 || released > later * 0.001)
+            return 17;
+
         std::cout << rate << " Hz passed\n";
     }
 }
