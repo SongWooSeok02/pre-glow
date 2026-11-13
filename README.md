@@ -33,3 +33,5 @@ Stereo early reflections now precede the FDN tail. The standalone C++ DSP test p
 macOS 0.1.2 built AU, VST3 and Standalone and passed CTest and auval. A 48 kHz host impulse test verified distinct Hall, Room and Plate responses in AU and VST3.
 
 In 0.1.3, Character also offers Cloud, Cathedral and Void. Early Width and Late Width independently adjust the stereo image of the wet signal. The macOS Release build passed CTest and auval. A 48 kHz host test verified distinct responses for all six characters and independent width controls in both AU and VST3. Logic listening tests for 0.1.3 are pending.
+
+Hall and Room use softer early reflections and a second input diffuser. The editor provides separate Dry and Wet levels. On macOS, AU, VST3 and Standalone built successfully, CTest and auval passed, and AU and VST3 impulse checks verified dry-only, wet-only and muted output. Listening verification is pending.

@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Softened early reflections and increased input diffusion in Hall and Room.
+- Replaced the editor Mix knob with independent Dry and Wet controls.
+
 ## 0.1.3
 
 - Added Cloud, Cathedral and Void to the Character menu.

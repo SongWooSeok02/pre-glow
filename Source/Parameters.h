@@ -1,4 +1,5 @@
 #pragma once
+#include <tuple>
 #include <juce_audio_processors/juce_audio_processors.h>
 
 namespace preglow::parameters
@@ -10,8 +11,10 @@ inline constexpr auto character = "character";
 inline const juce::StringArray characterNames { "Hall", "Room", "Plate", "Cloud", "Cathedral", "Void" };
 inline constexpr auto earlyWidth = "early_width";
 inline constexpr auto lateWidth = "late_width";
+inline constexpr auto dry = "dry";
+inline constexpr auto wet = "wet";
 inline constexpr auto stateType = "PreGlowState";
-inline constexpr int schemaVersion = 1;
+inline constexpr int schemaVersion = 2;
 
 inline juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
 {
@@ -21,11 +24,15 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
     layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID { decay, 1 }, "Decay", decayRange, 3.0f,
         juce::AudioParameterFloatAttributes().withLabel("s")));
     layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID { damping, 1 }, "Damping", 0.0f, 1.0f, 0.45f));
-    layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID { mix, 1 }, "Mix", 0.0f, 1.0f, 0.35f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID { mix, 1 }, "Mix (Legacy)", 0.0f, 1.0f, 0.5f));
     layout.add(std::make_unique<juce::AudioParameterChoice>(juce::ParameterID { character, 2 }, "Character", characterNames, 0));
     for (const auto& [id, name] : { std::pair { earlyWidth, "Early Width" }, std::pair { lateWidth, "Late Width" } })
         layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID { id, 3 }, name,
             juce::NormalisableRange<float> { 0.0f, 200.0f, 1.0f }, 100.0f,
+            juce::AudioParameterFloatAttributes().withLabel("%")));
+    for (const auto& [id, name, initial] : { std::tuple { dry, "Dry", 65.0f }, std::tuple { wet, "Wet", 35.0f } })
+        layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID { id, 4 }, name,
+            juce::NormalisableRange<float> { 0.0f, 100.0f, 0.01f }, initial,
             juce::AudioParameterFloatAttributes().withLabel("%")));
     return layout;
 }

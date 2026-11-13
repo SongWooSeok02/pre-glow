@@ -4,8 +4,8 @@ namespace preglow
 {
 PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner)
 {
-    constexpr std::array ids { parameters::decay, parameters::damping, parameters::mix, parameters::earlyWidth, parameters::lateWidth };
-    constexpr std::array names { "Decay", "Damping", "Mix", "Early Width", "Late Width" };
+    constexpr std::array ids { parameters::decay, parameters::damping, parameters::dry, parameters::wet, parameters::earlyWidth, parameters::lateWidth };
+    constexpr std::array names { "Decay", "Damping", "Dry", "Wet", "Early Width", "Late Width" };
     for (std::size_t i = 0; i < sliders.size(); ++i)
     {
         auto& slider = sliders[i];
@@ -27,8 +27,8 @@ PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner)
     characterAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
         owner.state, parameters::character, character);
     setResizable(true, true);
-    setResizeLimits(500, 250, 900, 560);
-    setSize(520, 290);
+    setResizeLimits(560, 250, 900, 560);
+    setSize(620, 290);
 }
 
 void PluginEditor::paint(juce::Graphics& graphics)

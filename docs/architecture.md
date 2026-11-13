@@ -16,18 +16,20 @@ Cloud and Void add a second input diffuser. Cathedral uses longer FDN delays. Ea
 | Manufacturer code | Pglo |
 | Plugin code | PrGl |
 | State root | PreGlowState |
-| Schema version | 1 |
+| Schema version | 2 |
 
 | Parameter ID | Range | Default |
 |---|---|---|
 | decay | 0.1–120 seconds | 3 seconds |
 | damping | 0–1 | 0.45 |
-| mix | 0–1 | 0.35 |
+| mix (legacy) | 0–1 | 0.5 |
+| dry | 0–100% | 65% |
+| wet | 0–100% | 35% |
 | character | Hall, Room, Plate, Cloud, Cathedral, Void | Hall |
 | early_width | 0–200% | 100% |
 | late_width | 0–200% | 100% |
 
-Existing parameter IDs use AU version hint 1. Character uses hint 2 and the width controls use hint 3. Missing parameters use their defaults when loading schema 1. Character indices in saved state are preserved. Hosts that store automation as normalized values may remap existing Character automation as the choice range expands. The host state chunk wraps APVTS XML in JUCE's binary envelope and carries schemaVersion. The loader accepts schema 1 and the matching root. Future schema changes should use explicit migration before state replacement. Presets can share the versioned payload and add metadata outside the processor state.
+Existing parameter IDs use AU version hint 1. Character uses hint 2 and the width controls use hint 3. Missing parameters use their defaults when loading schema 1. Character indices in saved state are preserved. Hosts that store automation as normalized values may remap existing Character automation as the choice range expands. The host state chunk wraps APVTS XML in JUCE's binary envelope and carries schemaVersion. The loader accepts schemas 1 and 2 with the matching root. Schema 1 Mix is converted to complementary Dry and Wet levels. The legacy Mix parameter ID remains available to hosts and biases the new levels when automated away from its neutral midpoint. Future schema changes should use explicit migration before state replacement. Presets can share the versioned payload and add metadata outside the processor state.
 
 ## Phases
 

@@ -41,6 +41,8 @@ private:
     const std::atomic<float>* const decay = state.getRawParameterValue(parameters::decay);
     const std::atomic<float>* const damping = state.getRawParameterValue(parameters::damping);
     const std::atomic<float>* const mix = state.getRawParameterValue(parameters::mix);
+    const std::atomic<float>* const dry = state.getRawParameterValue(parameters::dry);
+    const std::atomic<float>* const wet = state.getRawParameterValue(parameters::wet);
     void processSample(float& left, float& right) noexcept;
     std::size_t readCharacter() const noexcept;
     const std::atomic<float>* const character = state.getRawParameterValue(parameters::character);

@@ -6,18 +6,18 @@ int main()
     for (double rate : { 44100.0, 48000.0, 88200.0, 96000.0 })
     {
         preglow::Reverb early;
-        early.prepare(rate);
-        early.setTarget({ 3.0f, 0.45f, 1.0f });
+        early.prepare(rate, preglow::ReverbCharacter::plate);
+        early.setTarget({ 3.0f, 0.45f, 1.0f, 1.0f, 1.0f, 0.0f });
         early.reset();
-        const auto directSample = static_cast<int>(std::round(rate * 0.007));
-        const auto crossSample = static_cast<int>(std::round(rate * 0.011));
+        const auto directSample = static_cast<int>(std::round(rate * 0.007 * 0.75));
+        const auto crossSample = static_cast<int>(std::round(rate * 0.011 * 0.75));
         for (int sample = 0; sample <= crossSample; ++sample)
         {
             float left = sample == 0 ? 1.0f : 0.0f;
             float right = 0.0f;
             early.process(left, right);
-            const auto expectedLeft = sample == directSample ? 0.12f : 0.0f;
-            const auto expectedRight = sample == crossSample ? 0.09f : 0.0f;
+            const auto expectedLeft = sample == directSample ? 0.024f : 0.0f;
+            const auto expectedRight = sample == crossSample ? 0.018f : 0.0f;
             if (!(std::abs(left - expectedLeft) < 1.0e-6f && std::abs(right - expectedRight) < 1.0e-6f))
                 return 4;
         }
@@ -33,7 +33,7 @@ int main()
 
         preglow::Reverb diffused;
         diffused.prepare(rate);
-        diffused.setTarget({ 3.0f, 0.0f, 1.0f });
+        diffused.setTarget({ 3.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f });
         diffused.reset();
         // The first FDN line should produce a second arrival before any
         // other line or feedback path can contribute to this window.
@@ -53,7 +53,7 @@ int main()
         {
             preglow::Reverb reverb;
             reverb.prepare(rate);
-            reverb.setTarget({ decay, 0.0f, 1.0f });
+            reverb.setTarget({ decay, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f });
             reverb.reset();
             double tailEnergy = 0.0;
             double sideEnergy = 0.0;
@@ -75,7 +75,7 @@ int main()
         }
         preglow::Reverb monoReverb;
         monoReverb.prepare(rate);
-        monoReverb.setTarget({ 3.0f, 0.45f, 1.0f });
+        monoReverb.setTarget({ 3.0f, 0.45f, 1.0f, 1.0f, 1.0f, 0.0f });
         monoReverb.reset();
         double monoSideEnergy = 0.0;
         for (int sample = 0; sample < static_cast<int>(rate); ++sample)

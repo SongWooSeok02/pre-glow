@@ -13,9 +13,10 @@ struct ReverbSettings
 {
     float decaySeconds = 3.0f;
     float damping = 0.45f;
-    float mix = 0.35f;
+    float wet = 0.35f;
     float earlyWidth = 1.0f;
     float lateWidth = 1.0f;
+    float dry = 0.65f;
 };
 
 class Reverb
@@ -31,8 +32,8 @@ public:
             float earlyLevel, diffusion, extraDiffusion, dampingScale;
         };
         constexpr std::array profiles {
-            Profile { 1.00, 1.00, 1.00, 1.00f, 0.60f, 0.0f, 1.0f }, // Hall
-            Profile { 0.55, 1.00, 0.58, 1.35f, 0.40f, 0.0f, 1.0f }, // Room
+            Profile { 1.00, 1.00, 1.00, 0.40f, 0.60f, 0.53f, 1.0f }, // Hall
+            Profile { 0.55, 1.00, 0.58, 0.48f, 0.40f, 0.49f, 1.0f }, // Room
             Profile { 0.78, 0.46, 0.75, 0.20f, 0.73f, 0.0f, 1.0f }, // Plate
             Profile { 0.92, 1.71, 1.18, 0.25f, 0.78f, 0.64f, 1.45f }, // Cloud
             Profile { 2.23, 1.24, 2.08, 0.90f, 0.57f, 0.0f, 1.2f }, // Cathedral
@@ -42,6 +43,8 @@ public:
         const auto [delayScale, diffusionScale, reflectionScale, level, diffusion, extraDiffusion, profileDamping] =
             profiles[std::min(static_cast<std::size_t>(character), profiles.size() - 1)];
         earlyLevel = level;
+        softenReflections = character == ReverbCharacter::hall || character == ReverbCharacter::room;
+        reflectionFilter = static_cast<float>(-std::expm1(-1.0 / (0.00035 * sampleRate)));
         dampingScale = profileDamping;
         for (std::size_t i = 0; i < lines.size(); ++i)
         {
@@ -79,7 +82,9 @@ public:
         std::fill(earlyHistory.begin(), earlyHistory.end(), std::array<float, 2> {});
         earlyPosition = 0;
         damping = targetDamping;
-        mix = targetMix;
+        reflectionLow.fill(0.0f);
+        dry = targetDry;
+        wet = targetWet;
         earlyWidth = targetEarlyWidth;
         lateWidth = targetLateWidth;
     }
@@ -96,7 +101,8 @@ public:
         targetDamping = bounded(settings.damping, 0.0f, 1.0f, 0.45f);
         targetEarlyWidth = bounded(settings.earlyWidth, 0.0f, 2.0f, 1.0f);
         targetLateWidth = bounded(settings.lateWidth, 0.0f, 2.0f, 1.0f);
-        targetMix = bounded(settings.mix, 0.0f, 1.0f, 0.35f);
+        targetWet = bounded(settings.wet, 0.0f, 1.0f, 0.35f);
+        targetDry = bounded(settings.dry, 0.0f, 1.0f, 0.65f);
     }
 
     void process(float& left, float& right) noexcept
@@ -104,7 +110,8 @@ public:
         left = std::isfinite(left) ? left : 0.0f;
         right = std::isfinite(right) ? right : 0.0f;
         damping += smoothing * (targetDamping - damping);
-        mix += smoothing * (targetMix - mix);
+        wet += smoothing * (targetWet - wet);
+        dry += smoothing * (targetDry - dry);
 
         earlyWidth += smoothing * (targetEarlyWidth - earlyWidth);
         lateWidth += smoothing * (targetLateWidth - lateWidth);
@@ -149,12 +156,20 @@ public:
         if (++earlyPosition == earlyHistory.size())
             earlyPosition = 0;
 
+        if (softenReflections)
+        {
+            for (std::size_t channel = 0; channel < early.size(); ++channel)
+            {
+                reflectionLow[channel] += reflectionFilter * (early[channel] - reflectionLow[channel]);
+                early[channel] = reflectionLow[channel];
+            }
+        }
         auto lateLeft = 0.45f * (a + b - c - d);
         auto lateRight = 0.45f * (a - b + c - d);
         applyWidth(early[0], early[1], earlyWidth);
         applyWidth(lateLeft, lateRight, lateWidth);
-        left = (1.0f - mix) * left + mix * (earlyLevel * early[0] + lateLeft);
-        right = (1.0f - mix) * right + mix * (earlyLevel * early[1] + lateRight);
+        left = dry * left + wet * (earlyLevel * early[0] + lateLeft);
+        right = dry * right + wet * (earlyLevel * early[1] + lateRight);
     }
 
 private:
@@ -233,7 +248,12 @@ private:
     float smoothing = 1.0f;
     float damping = 0.45f;
     float targetDamping = damping;
-    float mix = 0.35f;
-    float targetMix = mix;
+    bool softenReflections = false;
+    float reflectionFilter = 1.0f;
+    std::array<float, 2> reflectionLow {};
+    float dry = 0.65f;
+    float wet = 0.35f;
+    float targetDry = dry;
+    float targetWet = wet;
 };
 }

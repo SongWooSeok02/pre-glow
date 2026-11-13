@@ -12,9 +12,11 @@ PluginProcessor::PluginProcessor()
 
 ReverbSettings PluginProcessor::readSettings() const noexcept
 {
+    const auto legacyMix = mix->load(std::memory_order_relaxed);
     return { decay->load(std::memory_order_relaxed), damping->load(std::memory_order_relaxed),
-             mix->load(std::memory_order_relaxed), earlyWidth->load(std::memory_order_relaxed) * 0.01f,
-             lateWidth->load(std::memory_order_relaxed) * 0.01f };
+             wet->load(std::memory_order_relaxed) * 0.02f * legacyMix, earlyWidth->load(std::memory_order_relaxed) * 0.01f,
+             lateWidth->load(std::memory_order_relaxed) * 0.01f,
+             dry->load(std::memory_order_relaxed) * 0.02f * (1.0f - legacyMix) };
 }
 
 void PluginProcessor::prepareToPlay(double sampleRate, int)
@@ -126,12 +128,22 @@ void PluginProcessor::setStateInformation(const void* data, int size)
 {
     const auto xml = getXmlFromBinary(data, size);
     if (xml != nullptr && xml->hasTagName(parameters::stateType)
-        && xml->getIntAttribute("schemaVersion") == parameters::schemaVersion)
+        && (xml->getIntAttribute("schemaVersion") == 1
+            || xml->getIntAttribute("schemaVersion") == parameters::schemaVersion))
     {
         auto restored = juce::ValueTree::fromXml(*xml);
+        const auto legacy = xml->getIntAttribute("schemaVersion") == 1;
+        auto mixNode = restored.getChildWithProperty("id", parameters::mix);
+        const auto storedMix = static_cast<float>(mixNode.getProperty("value", 0.35f));
+        const auto oldWet = std::isfinite(storedMix) ? std::clamp(storedMix, 0.0f, 1.0f) : 0.35f;
+        if (legacy && mixNode.isValid())
+            mixNode.setProperty("value", 0.5f, nullptr);
         for (const auto& [id, value] : { std::pair { parameters::character, 0.0f },
                                          std::pair { parameters::earlyWidth, 100.0f },
-                                         std::pair { parameters::lateWidth, 100.0f } })
+                                         std::pair { parameters::lateWidth, 100.0f },
+                                         std::pair { parameters::mix, 0.5f },
+                                         std::pair { parameters::dry, legacy ? 100.0f * (1.0f - oldWet) : 65.0f },
+                                         std::pair { parameters::wet, legacy ? 100.0f * oldWet : 35.0f } })
         {
             if (restored.getChildWithProperty("id", id).isValid())
                 continue;
@@ -140,6 +152,7 @@ void PluginProcessor::setStateInformation(const void* data, int size)
             parameter.setProperty("value", value, nullptr);
             restored.appendChild(parameter, nullptr);
         }
+        restored.setProperty("schemaVersion", parameters::schemaVersion, nullptr);
         state.replaceState(restored);
     }
 }
