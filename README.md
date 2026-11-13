@@ -56,8 +56,10 @@ See the [Phase 3 handoff](docs/phase-3-handoff.md) for the original scope, imple
 
 ## Phase 4 in progress
 
-The standalone DSP pitch shifter uses two crossfaded delay taps and supports ±24 semitones. The pitch test checks frequency, output bounds, and reset at 44.1, 48, 88.2 and 96 kHz on Apple Silicon. The four-voice Shimmer DSP adds independent pitch, fine tune, level, pan, delay, tone, and feedback send. DSP tests at the same four rates cover voice summing, stereo placement, delay, and send isolation. The editor's Shimmer panel exposes Mix, Feedback, and the seven controls for each of four voices. Raise Mix to hear the default octave-up voice. Feedback blends the summed voice sends into the reverb loop and fades out as Freeze takes hold. The audible pitch-shifted layer continues over the held tail.
+The standalone DSP pitch shifter uses two crossfaded delay taps and supports ±24 semitones. The pitch test checks frequency, output bounds, and reset at 44.1, 48, 88.2 and 96 kHz on Apple Silicon. The four-voice Shimmer DSP adds independent pitch, fine tune, level, pan, delay, tone, and feedback send. DSP tests at the same four rates cover voice summing, stereo placement, delay, and send isolation. The editor's Shimmer panel exposes Mix, Feedback, and the seven controls for each of four voices. Raise Mix to hear the default octave-up voice. Feedback adds the summed voice sends to the reverb loop without scaling down its original feedback. The added return is limited by the loop gain and fades out as Freeze takes hold. The audible pitch-shifted layer continues over the held tail.
 
 State schema 4 adds Shimmer parameters. Schemas 1–3 restore with Shimmer Mix and Feedback at zero and retain the existing Mix and Bloom migrations.
 
 Verified Apple Silicon Release AU, VST3 and Standalone builds and DSP tests at 44.1, 48, 88.2 and 96 kHz. The tests check that feedback changes the active tail, fresh input and feedback changes leave the fully frozen tail intact, and output stays bounded on release. Listening and state restoration in a DAW remain to be checked.
+
+Verified the revised Shimmer gain and routing with Apple Silicon Release builds, DSP tests at all four sample rates, and validation of the installed AU. With every voice Send at zero, the Feedback knob leaves the rendered tail identical.

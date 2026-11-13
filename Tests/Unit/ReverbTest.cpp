@@ -354,6 +354,24 @@ int main()
         if (!drive(shimmer, 0.25f))
             return 29;
 
+        // With voice sends at zero the Feedback knob must leave the tail alone.
+        for (auto& voice : voices)
+            voice.feedbackSend = 0.0f;
+        shimmer.setShimmer(voices, 1.0f, 1.0f);
+        shimmer.reset();
+        auto zeroSend = shimmer;
+        zeroSend.setShimmer(voices, 1.0f, 0.0f);
+        zeroSend.reset();
+        for (int i = 0; i < rate; ++i)
+        {
+            float left = i == 0 ? 1.0f : 0.0f;
+            float right = left, refLeft = left, refRight = right;
+            shimmer.process(left, right);
+            zeroSend.process(refLeft, refRight);
+            if (std::abs(left - refLeft) > 1.0e-7f || std::abs(right - refRight) > 1.0e-7f)
+                return 30;
+        }
+
         std::cout << rate << " Hz passed\n";
     }
 }

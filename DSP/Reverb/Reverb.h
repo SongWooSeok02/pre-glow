@@ -241,7 +241,13 @@ public:
             shimmerMix = 0.0f;
             shimmer.reset();
         }
-        const auto feedbackBlend = 0.25f * feed * shimmerMix * shimmerFeedback;
+        // Reserve part of the normal loop's loss for the pitch-shifted return.
+        // This preserves the original feedback coefficient at every setting.
+        float loopGain = 0.0f;
+        for (const auto& line : lines)
+            loopGain = std::max(loopGain, line.gain);
+        const auto feedbackGain = feed * shimmerMix * shimmerFeedback
+            * std::min(0.25f, 2.0f * (1.0f - loopGain));
         const auto [sendLeft, sendRight] = shifted.feedback;
         const std::array shimmerReturn { sendLeft, sendRight, -sendLeft, -sendRight };
         const std::array mixed { a + b + c + d, a - b + c - d, a + b - c - d, a - b - c + d };
@@ -252,8 +258,8 @@ public:
             auto diffused = line.diffusion.process(feed * std::clamp(input[i], -8.0f, 8.0f));
             if (!line.extraDiffusion.samples.empty())
                 diffused = line.extraDiffusion.process(diffused);
-            const auto value = (1.0f - feedbackBlend) * 0.5f * mixed[i]
-                + feedbackBlend * 0.5f * shimmerReturn[i] + 0.22f * feed * diffused;
+            const auto value = 0.5f * mixed[i]
+                + feedbackGain * shimmerReturn[i] + 0.22f * feed * diffused;
             line.samples[line.position] = std::isfinite(value) ? std::clamp(value, -8.0f, 8.0f) : 0.0f;
             if (++line.position == line.samples.size())
                 line.position = 0;
@@ -283,8 +289,8 @@ public:
                 early[channel] = reflectionLow[channel];
             }
         }
-        auto lateLeft = lateLeftRaw + shimmerMix * shifted.wet[0] * 0.25f;
-        auto lateRight = lateRightRaw + shimmerMix * shifted.wet[1] * 0.25f;
+        auto lateLeft = lateLeftRaw + shimmerMix * shifted.wet[0];
+        auto lateRight = lateRightRaw + shimmerMix * shifted.wet[1];
         applyWidth(early[0], early[1], earlyWidth);
         applyWidth(lateLeft, lateRight, lateWidth);
         left = dry * left + wet * (earlyGain * earlyLevel * early[0] + lateGain * lateLeft);
