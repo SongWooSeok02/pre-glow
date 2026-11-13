@@ -20,6 +20,8 @@ See [architecture](docs/architecture.md) for the DSP boundary and state contract
 
 On Apple Silicon with Xcode 27.2, Apple Clang 21, CMake 3.31.6 and Ninja, Release builds succeeded for AU, VST3 and Standalone. The Standalone process launched. CTest passed the stereo impulse test at 44.1, 48, 88.2 and 96 kHz, using decay settings of 0.1, 3 and 120 seconds. The test checks finite, bounded samples and stereo tail energy over four seconds per case.
 
+Shimmer On was built locally on macOS in Standalone, AU, and VST3 formats. Both DSP tests passed.
+
 GitHub Actions passed the channel-layout update on Apple Silicon, Intel macOS, and Windows x64 ([build results](https://github.com/SongWooSeok02/pre-glow/actions/runs/43503197818)). The plugin supports mono-to-mono, mono-to-stereo, and stereo-to-stereo layouts. The host selects the channel layout. In Logic Pro, select the Mono → Stereo AU variant on a mono channel strip when available.
 
 ### Logic Pro smoke test

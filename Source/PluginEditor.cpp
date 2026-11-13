@@ -56,6 +56,9 @@ PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner)
     shimmerPanel.setClickingTogglesState(true);
     shimmerPanel.onClick = [this] { updateSections(); };
     addAndMakeVisible(shimmerPanel);
+    addAndMakeVisible(shimmerPower);
+    shimmerPowerAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
+        owner.state, parameters::shimmerEnabled, shimmerPower);
     shimmerRouting.setTitle("Shimmer Routing");
     shimmerRouting.addItemList(parameters::shimmerRoutes, 1);
     addAndMakeVisible(shimmerRouting);
@@ -185,6 +188,8 @@ void PluginEditor::resized()
     auto controls = getLocalBounds().reduced(16);
     auto titleRow = controls.removeFromTop(56);
     shimmerPanel.setBounds(titleRow.removeFromRight(96).withSizeKeepingCentre(96, 28));
+    titleRow.removeFromRight(8);
+    shimmerPower.setBounds(titleRow.removeFromRight(110).withSizeKeepingCentre(110, 28));
     auto options = controls.removeFromTop(28);
     character.setBounds(options.removeFromLeft(130));
     options.removeFromLeft(12);

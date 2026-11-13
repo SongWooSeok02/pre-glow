@@ -25,7 +25,9 @@ void PluginProcessor::updateShimmer() noexcept
         const auto load = [&](std::size_t field) { return fields[field]->load(std::memory_order_relaxed); };
         voices[i] = { load(0), load(1), voiceEnabled[i]->load(std::memory_order_relaxed) >= 0.5f ? load(2) : 0.0f, load(3), load(4), load(5), load(6) };
     }
-    const auto amount = shimmerMix->load(std::memory_order_relaxed) * 0.01f;
+    // The reverb smooths the effective mix for both the wet layer and feedback send.
+    const auto amount = shimmerEnabled->load(std::memory_order_relaxed) > 0.5f
+        ? shimmerMix->load(std::memory_order_relaxed) * 0.01f : 0.0f;
     const auto feedback = shimmerRouting->load(std::memory_order_relaxed) < 0.5f
         ? shimmerFeedback->load(std::memory_order_relaxed) * 0.01f : 0.0f;
     for (auto& engine : engines)
@@ -162,6 +164,7 @@ void PluginProcessor::setStateInformation(const void* data, int size)
             || xml->getIntAttribute("schemaVersion") == 2
             || xml->getIntAttribute("schemaVersion") == 3
             || xml->getIntAttribute("schemaVersion") == 4
+            || xml->getIntAttribute("schemaVersion") == 5
             || xml->getIntAttribute("schemaVersion") == parameters::schemaVersion))
     {
         auto restored = juce::ValueTree::fromXml(*xml);

@@ -13,6 +13,8 @@ public:
 private:
     void updateSections();
     juce::TextButton shimmerPanel { "Shimmer" };
+    juce::ToggleButton shimmerPower { "Shimmer On" };
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> shimmerPowerAttachment;
     std::array<juce::ToggleButton, Shimmer::voiceCount> voiceToggles;
     std::array<std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment>, Shimmer::voiceCount> voiceToggleAttachments;
     juce::ComboBox shimmerRouting;
