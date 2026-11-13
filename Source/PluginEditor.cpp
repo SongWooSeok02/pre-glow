@@ -7,7 +7,9 @@ namespace
 constexpr int voiceRowHeight = 122;
 constexpr int voiceHeaderHeight = 48;
 constexpr int maxVoiceHeight = 4 * voiceHeaderHeight + voiceRowHeight;
-constexpr int spectrumHeight = 172;
+constexpr int controlsWidth = 620;
+constexpr int spectrumWidth = 376;
+constexpr int columnGap = 12;
 constexpr int compactHeight = 250;
 constexpr int sectionHeight = 136;
 constexpr std::size_t bloomStart = 6;
@@ -137,7 +139,7 @@ PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner)
         voiceLabels[i].setJustificationType(juce::Justification::centred);
         voiceContent.addAndMakeVisible(voiceLabels[i]);
     }
-    setSize(620, compactHeight + spectrumHeight);
+    setSize(controlsWidth + columnGap + spectrumWidth, compactHeight);
     startTimerHz(30);
     updateSections();
 }
@@ -172,7 +174,7 @@ void PluginEditor::updateSections()
         voiceSliders[i].setVisible(visible);
         voiceLabels[i].setVisible(visible);
     }
-    setSize(getWidth(), compactHeight + spectrumHeight + sectionHeight * (static_cast<int>(bloomOpen) + static_cast<int>(swellOpen))
+    setSize(getWidth(), compactHeight + sectionHeight * (static_cast<int>(bloomOpen) + static_cast<int>(swellOpen))
         + (shimmerOpen ? 100 + std::min(maxVoiceHeight, static_cast<int>(voiceDetails.size()) * voiceHeaderHeight + expandedCount * voiceRowHeight) : 0));
     resized();
 }
@@ -206,7 +208,7 @@ void PluginEditor::timerCallback()
 void PluginEditor::paintSpectrum(juce::Graphics& g)
 {
     const auto bounds = spectrumBounds.toFloat();
-    const auto plot = bounds.withTrimmedLeft(39).withTrimmedRight(12)
+    const auto plot = bounds.withTrimmedLeft(39).withTrimmedRight(17)
                             .withTrimmedTop(29).withTrimmedBottom(21);
     constexpr float minHz = 20.0f, maxHz = 20000.0f, minDB = -90.0f, maxDB = 6.0f;
     const auto xFor = [&](float hz) { return plot.getX() + plot.getWidth() * std::log(hz / minHz) / std::log(maxHz / minHz); };
@@ -279,11 +281,12 @@ void PluginEditor::paint(juce::Graphics& graphics)
 void PluginEditor::resized()
 {
     auto controls = getLocalBounds().reduced(16);
+    spectrumBounds = controls.removeFromRight(spectrumWidth);
+    controls.removeFromRight(columnGap);
     auto titleRow = controls.removeFromTop(56);
     shimmerPanel.setBounds(titleRow.removeFromRight(96).withSizeKeepingCentre(96, 28));
     titleRow.removeFromRight(8);
     shimmerPower.setBounds(titleRow.removeFromRight(110).withSizeKeepingCentre(110, 28));
-    spectrumBounds = controls.removeFromTop(spectrumHeight).reduced(4, 6);
     auto options = controls.removeFromTop(28);
     character.setBounds(options.removeFromLeft(130));
     options.removeFromLeft(12);

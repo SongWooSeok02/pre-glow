@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Moved the Dry/Reverb spectrum beside the controls to reduce the plug-in window height.
+
 - Added Pre-Reverb Shimmer with a smooth route transition and Freeze-aware input. Existing preset route indices are preserved.
 - Added an EQ-style spectrum display for the Dry and Reverb signals at their mix levels.
 
