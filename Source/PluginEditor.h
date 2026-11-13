@@ -13,11 +13,14 @@ public:
 private:
     void updateSections();
     juce::TextButton shimmerPanel { "Shimmer" };
-    juce::ComboBox shimmerVoice;
+    std::array<juce::ToggleButton, Shimmer::voiceCount> voiceToggles;
+    std::array<std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment>, Shimmer::voiceCount> voiceToggleAttachments;
+    juce::Component voiceContent;
+    juce::Viewport voiceViewport;
     std::array<juce::Slider, 2> shimmerGlobals;
     std::array<juce::Label, 2> shimmerGlobalLabels;
     std::array<juce::Slider, Shimmer::voiceCount * parameters::voiceParameters.size()> voiceSliders;
-    std::array<juce::Label, parameters::voiceParameters.size()> voiceLabels;
+    std::array<juce::Label, Shimmer::voiceCount * parameters::voiceParameters.size()> voiceLabels;
     using SliderAttachment = juce::AudioProcessorValueTreeState::SliderAttachment;
     std::array<std::unique_ptr<SliderAttachment>, 2> shimmerAttachments;
     std::array<std::unique_ptr<SliderAttachment>, Shimmer::voiceCount * parameters::voiceParameters.size()> voiceAttachments;

@@ -9,8 +9,11 @@ PluginProcessor::PluginProcessor()
       state(*this, nullptr, parameters::stateType, parameters::createLayout())
 {
     for (std::size_t voice = 0; voice < shimmerVoices.size(); ++voice)
+    {
+        voiceEnabled[voice] = state.getRawParameterValue(parameters::voiceId(voice, parameters::voiceEnabled));
         for (std::size_t field = 0; field < parameters::voiceParameters.size(); ++field)
             shimmerVoices[voice][field] = state.getRawParameterValue(parameters::voiceId(voice, parameters::voiceParameters[field]));
+    }
 }
 
 void PluginProcessor::updateShimmer() noexcept
@@ -20,7 +23,7 @@ void PluginProcessor::updateShimmer() noexcept
     {
         const auto& fields = shimmerVoices[i];
         const auto load = [&](std::size_t field) { return fields[field]->load(std::memory_order_relaxed); };
-        voices[i] = { load(0), load(1), load(2), load(3), load(4), load(5), load(6) };
+        voices[i] = { load(0), load(1), voiceEnabled[i]->load(std::memory_order_relaxed) >= 0.5f ? load(2) : 0.0f, load(3), load(4), load(5), load(6) };
     }
     const auto amount = shimmerMix->load(std::memory_order_relaxed) * 0.01f;
     const auto feedback = shimmerFeedback->load(std::memory_order_relaxed) * 0.01f;
@@ -157,6 +160,7 @@ void PluginProcessor::setStateInformation(const void* data, int size)
         && (xml->getIntAttribute("schemaVersion") == 1
             || xml->getIntAttribute("schemaVersion") == 2
             || xml->getIntAttribute("schemaVersion") == 3
+            || xml->getIntAttribute("schemaVersion") == 4
             || xml->getIntAttribute("schemaVersion") == parameters::schemaVersion))
     {
         auto restored = juce::ValueTree::fromXml(*xml);
@@ -195,6 +199,15 @@ void PluginProcessor::setStateInformation(const void* data, int size)
             parameter.setProperty("value", value, nullptr);
             restored.appendChild(parameter, nullptr);
         }
+        if (xml->getIntAttribute("schemaVersion") == 4)
+            for (std::size_t voice = 0; voice < Shimmer::voiceCount; ++voice)
+            {
+                const auto level = restored.getChildWithProperty("id", parameters::voiceId(voice, parameters::voiceParameters[2]));
+                juce::ValueTree node { "PARAM" };
+                node.setProperty("id", parameters::voiceId(voice, parameters::voiceEnabled), nullptr);
+                node.setProperty("value", static_cast<float>(level.getProperty("value", voice == 0 ? 1.0f : 0.0f)) > 0.0f ? 1.0f : 0.0f, nullptr);
+                restored.appendChild(node, nullptr);
+            }
         for (const auto* parameter : getParameters())
         {
             const auto* ranged = dynamic_cast<const juce::RangedAudioParameter*>(parameter);

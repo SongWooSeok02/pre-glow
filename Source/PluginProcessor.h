@@ -36,6 +36,7 @@ public:
     juce::AudioProcessorValueTreeState state;
 
 private:
+    std::array<const std::atomic<float>*, Shimmer::voiceCount> voiceEnabled {};
     void updateShimmer() noexcept;
     std::array<std::array<const std::atomic<float>*, parameters::voiceParameters.size()>, Shimmer::voiceCount> shimmerVoices {};
     const std::atomic<float>* const shimmerMix = state.getRawParameterValue(parameters::shimmerMix);

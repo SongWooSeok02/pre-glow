@@ -27,7 +27,7 @@ inline constexpr auto swellTime = "swell_time";
 inline constexpr auto swellSensitivity = "swell_sensitivity";
 inline constexpr auto swellCurve = "swell_curve";
 inline constexpr auto stateType = "PreGlowState";
-inline constexpr int schemaVersion = 4;
+inline constexpr int schemaVersion = 5;
 inline constexpr auto shimmerMix = "shimmer_mix";
 inline constexpr auto shimmerFeedback = "shimmer_feedback";
 struct VoiceParameter
@@ -45,6 +45,7 @@ inline constexpr std::array voiceParameters {
     VoiceParameter { "send", "Send", 0.0f, 1.0f, 0.01f, 0.5f },
     VoiceParameter { "tone", "Tone (Hz)", 100.0f, 18000.0f, 1.0f, 6000.0f }
 };
+inline constexpr VoiceParameter voiceEnabled { "enabled", "Enabled", 0, 1, 1, 0 };
 inline juce::String voiceId(std::size_t voice, const VoiceParameter& parameter)
 {
     return "shimmer_" + juce::String(static_cast<int>(voice + 1)) + "_" + parameter.suffix;
@@ -107,6 +108,10 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
                 "Shimmer " + juce::String(static_cast<int>(voice + 1)) + " " + parameter.label,
                 juce::NormalisableRange<float> { parameter.minimum, parameter.maximum, parameter.step },
                 voice == 0 && juce::String(parameter.suffix) == "level" ? 1.0f : parameter.initial));
+    for (std::size_t voice = 0; voice < Shimmer::voiceCount; ++voice)
+        layout.add(std::make_unique<juce::AudioParameterBool>(
+            juce::ParameterID { voiceId(voice, voiceEnabled), 10 },
+            "Shimmer Voice " + juce::String(static_cast<int>(voice + 1)) + " Enabled", voice == 0));
     return layout;
 }
 }

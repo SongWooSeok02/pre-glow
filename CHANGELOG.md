@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added independent Shimmer voice checkboxes that mute or expand each voice and retain its settings.
+
 - Raised the Shimmer wet level and made its feedback additive so the base reverb loop keeps its decay.
 
 - Added a four-voice Shimmer panel with independent voice controls, global Mix and Feedback, and Freeze-aware reverb feedback.

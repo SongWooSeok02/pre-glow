@@ -4,6 +4,8 @@ namespace preglow
 {
 namespace
 {
+constexpr int voiceRowHeight = 105;
+constexpr int maxVoiceHeight = 2 * voiceRowHeight;
 constexpr int compactHeight = 250;
 constexpr int sectionHeight = 136;
 constexpr std::size_t bloomStart = 6;
@@ -52,10 +54,10 @@ PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner)
     bloom.onClick = swell.onClick = [this] { updateSections(); };
     shimmerPanel.setClickingTogglesState(true);
     shimmerPanel.onClick = [this] { updateSections(); };
-    shimmerVoice.setTitle("Shimmer voice");
-    shimmerVoice.onChange = [this] { updateSections(); };
     addAndMakeVisible(shimmerPanel);
-    addAndMakeVisible(shimmerVoice);
+    voiceViewport.setViewedComponent(&voiceContent, false);
+    voiceViewport.setScrollBarsShown(true, false);
+    addAndMakeVisible(voiceViewport);
     const auto configureShimmerSlider = [this](juce::Slider& slider, const juce::String& name)
     {
         slider.setTitle(name);
@@ -76,23 +78,36 @@ PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner)
     for (std::size_t voice = 0; voice < Shimmer::voiceCount; ++voice)
     {
         const auto name = "Voice " + juce::String(static_cast<int>(voice + 1));
-        shimmerVoice.addItem(name, static_cast<int>(voice + 1));
+        auto& toggle = voiceToggles[voice];
+        toggle.setButtonText(name);
+        addAndMakeVisible(toggle);
+        voiceToggleAttachments[voice] = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
+            owner.state, parameters::voiceId(voice, parameters::voiceEnabled), toggle);
+        toggle.onStateChange = [this, voice, enabled = toggle.getToggleState()] () mutable
+        {
+            const auto current = voiceToggles[voice].getToggleState();
+            if (current != enabled)
+            {
+                enabled = current;
+                updateSections();
+            }
+        };
         for (std::size_t field = 0; field < parameters::voiceParameters.size(); ++field)
         {
             const auto& parameter = parameters::voiceParameters[field];
             const auto i = voice * parameters::voiceParameters.size() + field;
             configureShimmerSlider(voiceSliders[i], name + " " + parameter.label);
+            voiceContent.addAndMakeVisible(voiceSliders[i]);
             voiceAttachments[i] = std::make_unique<SliderAttachment>(
                 owner.state, parameters::voiceId(voice, parameter), voiceSliders[i]);
         }
     }
     for (std::size_t i = 0; i < voiceLabels.size(); ++i)
     {
-        voiceLabels[i].setText(parameters::voiceParameters[i].label, juce::dontSendNotification);
+        voiceLabels[i].setText(parameters::voiceParameters[i % parameters::voiceParameters.size()].label, juce::dontSendNotification);
         voiceLabels[i].setJustificationType(juce::Justification::centred);
-        addAndMakeVisible(voiceLabels[i]);
+        voiceContent.addAndMakeVisible(voiceLabels[i]);
     }
-    shimmerVoice.setSelectedId(1, juce::dontSendNotification);
     setSize(620, compactHeight);
     updateSections();
 }
@@ -108,18 +123,25 @@ void PluginEditor::updateSections()
         sliders[i].setVisible(visible);
     }
     const auto shimmerOpen = shimmerPanel.getToggleState();
-    shimmerVoice.setVisible(shimmerOpen);
+    int visibleRows = 0;
+    for (auto& toggle : voiceToggles)
+    {
+        toggle.setVisible(shimmerOpen);
+        visibleRows += static_cast<int>(toggle.getToggleState());
+    }
+    voiceViewport.setVisible(shimmerOpen && visibleRows > 0);
     for (auto& slider : shimmerGlobals)
         slider.setVisible(shimmerOpen);
     for (auto& label : shimmerGlobalLabels)
         label.setVisible(shimmerOpen);
-    for (auto& label : voiceLabels)
-        label.setVisible(shimmerOpen);
     for (std::size_t i = 0; i < voiceSliders.size(); ++i)
-        voiceSliders[i].setVisible(shimmerOpen
-            && static_cast<int>(i / voiceLabels.size()) == shimmerVoice.getSelectedItemIndex());
+    {
+        const auto visible = voiceToggles[i / parameters::voiceParameters.size()].getToggleState();
+        voiceSliders[i].setVisible(visible);
+        voiceLabels[i].setVisible(visible);
+    }
     setSize(getWidth(), compactHeight + sectionHeight * (static_cast<int>(bloomOpen) + static_cast<int>(swellOpen))
-        + (shimmerOpen ? 216 : 0));
+        + (shimmerOpen ? 128 + std::min(maxVoiceHeight, visibleRows * voiceRowHeight) : 0));
     resized();
 }
 
@@ -162,21 +184,38 @@ void PluginEditor::resized()
     if (shimmerPanel.getToggleState())
     {
         auto globals = controls.removeFromTop(100);
-        shimmerVoice.setBounds(globals.removeFromLeft(126).withSizeKeepingCentre(106, 28));
+
         for (std::size_t i = 0; i < shimmerGlobals.size(); ++i)
         {
             auto column = globals.removeFromLeft(110);
             shimmerGlobalLabels[i].setBounds(column.removeFromTop(22));
             shimmerGlobals[i].setBounds(column);
         }
-        auto row = controls.removeFromTop(116);
-        const auto width = row.getWidth() / static_cast<int>(voiceLabels.size());
-        for (std::size_t i = 0; i < voiceLabels.size(); ++i)
+        auto toggles = controls.removeFromTop(28);
+        for (auto& toggle : voiceToggles)
+            toggle.setBounds(toggles.removeFromLeft(105));
+        const auto enabledCount = std::count_if(voiceToggles.begin(), voiceToggles.end(),
+            [](const auto& toggle) { return toggle.getToggleState(); });
+        const auto height = static_cast<int>(enabledCount) * voiceRowHeight;
+        voiceViewport.setBounds(controls.removeFromTop(std::min(maxVoiceHeight, height)));
+        voiceContent.setSize(voiceViewport.getWidth() - voiceViewport.getScrollBarThickness(), height);
+        auto area = voiceContent.getLocalBounds();
+        constexpr auto fields = parameters::voiceParameters.size();
+        for (std::size_t voice = 0; voice < voiceToggles.size(); ++voice)
         {
-            auto column = row.removeFromLeft(width);
-            voiceLabels[i].setBounds(column.removeFromTop(24));
-            for (std::size_t voice = 0; voice < Shimmer::voiceCount; ++voice)
-                voiceSliders[voice * voiceLabels.size() + i].setBounds(column);
+            if (!voiceToggles[voice].getToggleState())
+                continue;
+            auto row = area.removeFromTop(voiceRowHeight);
+            const auto width = row.getWidth() / static_cast<int>(fields);
+            for (std::size_t field = 0; field < fields; ++field)
+            {
+                const auto i = voice * fields + field;
+                auto column = row.removeFromLeft(width);
+                voiceLabels[i].setText("V" + juce::String(static_cast<int>(voice + 1)) + " " + parameters::voiceParameters[field].label,
+                    juce::dontSendNotification);
+                voiceLabels[i].setBounds(column.removeFromTop(24));
+                voiceSliders[i].setBounds(column);
+            }
         }
     }
 }

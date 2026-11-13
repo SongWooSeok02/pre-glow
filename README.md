@@ -63,3 +63,5 @@ State schema 4 adds Shimmer parameters. Schemas 1–3 restore with Shimmer Mix a
 Verified Apple Silicon Release AU, VST3 and Standalone builds and DSP tests at 44.1, 48, 88.2 and 96 kHz. The tests check that feedback changes the active tail, fresh input and feedback changes leave the fully frozen tail intact, and output stays bounded on release. Listening and state restoration in a DAW remain to be checked.
 
 Verified the revised Shimmer gain and routing with Apple Silicon Release builds, DSP tests at all four sample rates, and validation of the installed AU. With every voice Send at zero, the Feedback knob leaves the rendered tail identical.
+
+Shimmer voice checkboxes independently enable the voice and reveal its controls. Scroll the voice rows when more than two are open. Schema 5 saves the checkboxes and enables voices with a positive saved Level when opening schema 4 projects. Apple Silicon Release AU, VST3 and Standalone builds and DSP tests passed.
