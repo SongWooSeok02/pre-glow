@@ -21,6 +21,11 @@ PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner)
         addAndMakeVisible(slider);
         attachments[i] = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(owner.state, ids[i], slider);
     }
+    character.setTitle("Reverb character");
+    character.addItemList(parameters::characterNames, 1);
+    addAndMakeVisible(character);
+    characterAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
+        owner.state, parameters::character, character);
     setResizable(true, true);
     setResizeLimits(360, 220, 900, 560);
     setSize(520, 290);
@@ -38,6 +43,8 @@ void PluginEditor::resized()
 {
     auto controls = getLocalBounds().reduced(16);
     controls.removeFromTop(56);
+    character.setBounds(controls.removeFromTop(28).withWidth(130));
+    controls.removeFromTop(8);
     const auto width = controls.getWidth() / static_cast<int>(sliders.size());
     for (std::size_t i = 0; i < sliders.size(); ++i)
     {

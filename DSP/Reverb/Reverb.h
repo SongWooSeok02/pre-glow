@@ -7,6 +7,8 @@
 
 namespace preglow
 {
+enum class ReverbCharacter { hall, room, plate };
+
 struct ReverbSettings
 {
     float decaySeconds = 3.0f;
@@ -17,20 +19,28 @@ struct ReverbSettings
 class Reverb
 {
 public:
-    void prepare(double sampleRate)
+    void prepare(double sampleRate, ReverbCharacter character = ReverbCharacter::hall)
     {
         constexpr std::array diffusionSeconds { 0.0031, 0.0047, 0.0061, 0.0083 };
         constexpr std::array delaySeconds { 0.0297, 0.0371, 0.0411, 0.0437 };
+        const auto room = character == ReverbCharacter::room;
+        const auto plate = character == ReverbCharacter::plate;
+        const auto delayScale = room ? 0.55 : plate ? 0.78 : 1.0;
+        const auto diffusionScale = plate ? 0.46 : 1.0;
+        const auto reflectionScale = room ? 0.58 : plate ? 0.75 : 1.0;
+        earlyLevel = room ? 1.35f : plate ? 0.20f : 1.0f;
         for (std::size_t i = 0; i < lines.size(); ++i)
         {
             auto& line = lines[i];
-            line.diffusion.samples.resize(static_cast<std::size_t>(std::max(1.0, std::round(sampleRate * diffusionSeconds[i]))));
-            line.samples.assign(static_cast<std::size_t>(std::max(1.0, std::round(sampleRate * delaySeconds[i]))), 0.0f);
+            line.diffusion.samples.resize(static_cast<std::size_t>(std::max(1.0, std::round(sampleRate * diffusionSeconds[i] * diffusionScale))));
+            line.samples.assign(static_cast<std::size_t>(std::max(1.0, std::round(sampleRate * delaySeconds[i] * delayScale))), 0.0f);
             line.seconds = static_cast<float>(static_cast<double>(line.samples.size()) / sampleRate);
         }
 
         for (std::size_t i = 0; i < reflections.size(); ++i)
-            reflectionDelays[i] = static_cast<std::size_t>(std::max(1.0, std::round(sampleRate * reflections[i].seconds)));
+            reflectionDelays[i] = static_cast<std::size_t>(std::max(1.0, std::round(sampleRate * reflections[i].seconds * reflectionScale)));
+        for (auto& line : lines)
+            line.diffusion.coefficient = room ? 0.40f : plate ? 0.73f : 0.60f;
         earlyHistory.resize(reflectionDelays.back() + 1);
 
         lastDecay = -1.0f;
@@ -112,8 +122,8 @@ public:
         if (++earlyPosition == earlyHistory.size())
             earlyPosition = 0;
 
-        left = (1.0f - mix) * left + mix * (early[0] + 0.45f * (a + b - c - d));
-        right = (1.0f - mix) * right + mix * (early[1] + 0.45f * (a - b + c - d));
+        left = (1.0f - mix) * left + mix * (earlyLevel * early[0] + 0.45f * (a + b - c - d));
+        right = (1.0f - mix) * right + mix * (earlyLevel * early[1] + 0.45f * (a - b + c - d));
     }
 
 private:
@@ -132,7 +142,6 @@ private:
 
         float process(float input) noexcept
         {
-            constexpr float coefficient = 0.6f;
             const auto delayed = samples[position];
             const auto output = delayed - coefficient * input;
             samples[position] = input + coefficient * output;
@@ -143,6 +152,7 @@ private:
 
         std::vector<float> samples;
         std::size_t position = 0;
+        float coefficient = 0.6f;
     };
 
     struct Line
@@ -173,6 +183,7 @@ private:
     std::vector<std::array<float, 2>> earlyHistory;
     std::size_t earlyPosition = 0;
     std::array<Line, 4> lines;
+    float earlyLevel = 1.0f;
     float lastDecay = -1.0f;
     float smoothing = 1.0f;
     float damping = 0.45f;

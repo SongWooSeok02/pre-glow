@@ -18,9 +18,49 @@ ReverbSettings PluginProcessor::readSettings() const noexcept
 
 void PluginProcessor::prepareToPlay(double sampleRate, int)
 {
-    reverb.prepare(sampleRate);
-    reverb.setTarget(readSettings());
-    reverb.reset();
+    constexpr std::array characters { ReverbCharacter::hall, ReverbCharacter::room, ReverbCharacter::plate };
+    const auto settings = readSettings();
+    for (std::size_t i = 0; i < engines.size(); ++i)
+    {
+        engines[i].prepare(sampleRate, characters[i]);
+        engines[i].setTarget(settings);
+    }
+    characterSmoothing = static_cast<float>(-std::expm1(-1.0 / (0.025 * sampleRate)));
+    reset();
+}
+
+std::size_t PluginProcessor::readCharacter() const noexcept
+{
+    const auto value = character->load(std::memory_order_relaxed);
+    return std::isfinite(value) ? static_cast<std::size_t>(std::clamp(value, 0.0f, 2.0f)) : 0;
+}
+
+void PluginProcessor::reset()
+{
+    for (auto& engine : engines)
+        engine.reset();
+    targetCharacter = readCharacter();
+    characterWeights.fill(0.0f);
+    characterWeights[targetCharacter] = 1.0f;
+}
+
+void PluginProcessor::processSample(float& left, float& right) noexcept
+{
+    float outputLeft = 0.0f;
+    float outputRight = 0.0f;
+    for (std::size_t i = 0; i < engines.size(); ++i)
+    {
+        auto l = left;
+        auto r = right;
+        engines[i].process(l, r);
+        auto& weight = characterWeights[i];
+        const auto target = i == targetCharacter ? 1.0f : 0.0f;
+        weight += characterSmoothing * (target - weight);
+        outputLeft += weight * l;
+        outputRight += weight * r;
+    }
+    left = outputLeft;
+    right = outputRight;
 }
 
 bool PluginProcessor::isBusesLayoutSupported(const BusesLayout& layout) const
@@ -37,14 +77,17 @@ void PluginProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiB
 {
     juce::ScopedNoDenormals noDenormals;
     upmixMonoInput(buffer);
-    reverb.setTarget(readSettings());
+    const auto settings = readSettings();
+    targetCharacter = readCharacter();
+    for (auto& engine : engines)
+        engine.setTarget(settings);
     auto* left = buffer.getWritePointer(0);
     if (getMainBusNumOutputChannels() == 1)
     {
         for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
         {
             auto right = left[sample];
-            reverb.process(left[sample], right);
+            processSample(left[sample], right);
             left[sample] = 0.5f * (left[sample] + right);
         }
         return;
@@ -52,7 +95,7 @@ void PluginProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiB
 
     auto* right = buffer.getWritePointer(1);
     for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
-        reverb.process(left[sample], right[sample]);
+        processSample(left[sample], right[sample]);
 }
 
 void PluginProcessor::processBlockBypassed(juce::AudioBuffer<float>& buffer, juce::MidiBuffer&)
@@ -84,7 +127,17 @@ void PluginProcessor::setStateInformation(const void* data, int size)
     const auto xml = getXmlFromBinary(data, size);
     if (xml != nullptr && xml->hasTagName(parameters::stateType)
         && xml->getIntAttribute("schemaVersion") == parameters::schemaVersion)
-        state.replaceState(juce::ValueTree::fromXml(*xml));
+    {
+        auto restored = juce::ValueTree::fromXml(*xml);
+        if (!restored.getChildWithProperty("id", parameters::character).isValid())
+        {
+            juce::ValueTree defaultCharacter { "PARAM" };
+            defaultCharacter.setProperty("id", parameters::character, nullptr);
+            defaultCharacter.setProperty("value", 0.0f, nullptr);
+            restored.appendChild(defaultCharacter, nullptr);
+        }
+        state.replaceState(restored);
+    }
 }
 }
 

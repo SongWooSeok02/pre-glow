@@ -6,6 +6,8 @@ namespace preglow::parameters
 inline constexpr auto decay = "decay";
 inline constexpr auto damping = "damping";
 inline constexpr auto mix = "mix";
+inline constexpr auto character = "character";
+inline const juce::StringArray characterNames { "Hall", "Room", "Plate" };
 inline constexpr auto stateType = "PreGlowState";
 inline constexpr int schemaVersion = 1;
 
@@ -18,6 +20,7 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
         juce::AudioParameterFloatAttributes().withLabel("s")));
     layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID { damping, 1 }, "Damping", 0.0f, 1.0f, 0.45f));
     layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID { mix, 1 }, "Mix", 0.0f, 1.0f, 0.35f));
+    layout.add(std::make_unique<juce::AudioParameterChoice>(juce::ParameterID { character, 2 }, "Character", characterNames, 0));
     return layout;
 }
 }

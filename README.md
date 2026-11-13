@@ -28,4 +28,6 @@ The user confirmed the AU loaded on a stereo track and produced audible reverb. 
 
 ## Phase 2 progress
 
-Stereo early reflections now precede the FDN tail. The standalone C++ DSP test passed on macOS at 44.1, 48, 88.2 and 96 kHz, including reflection timing, stereo separation and reset. Input diffusion adds arrivals between the first FDN taps. macOS Release builds passed for AU, VST3 and Standalone, and CTest verified diffusion at all four sample rates. Next, add distinct reverb characters and further stereo controls. Preserve the existing parameter IDs, state schema, and supported channel layouts. Validate changes with impulse tests and use Logic Pro to check the mono-to-stereo insert when testing the next AU build.
+Stereo early reflections now precede the FDN tail. The standalone C++ DSP test passed on macOS at 44.1, 48, 88.2 and 96 kHz, including reflection timing, stereo separation and reset. Input diffusion adds arrivals between the first FDN taps. macOS Release builds passed for AU, VST3 and Standalone, and CTest verified diffusion at all four sample rates. The Character menu selects Hall, Room or Plate. Hall is the default for older projects. Preserve the existing parameter IDs, state schema, and supported channel layouts. Validate changes with impulse tests and use Logic Pro to check the mono-to-stereo insert when testing the next AU build.
+
+macOS 0.1.2 built AU, VST3 and Standalone and passed CTest and auval. A 48 kHz host impulse test verified distinct Hall, Room and Plate responses in AU and VST3.

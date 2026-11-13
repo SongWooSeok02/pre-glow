@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.1.2
+
+- Added selectable Hall, Room and Plate reverb characters.
 
 - Added input diffusion for a denser start to the reverb tail.
 - Added stereo early reflections before the FDN tail.
