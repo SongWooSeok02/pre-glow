@@ -13,8 +13,8 @@ public:
 private:
     juce::ComboBox character;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> characterAttachment;
-    std::array<juce::Slider, 3> sliders;
-    std::array<juce::Label, 3> labels;
-    std::array<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>, 3> attachments;
+    std::array<juce::Slider, 5> sliders;
+    std::array<juce::Label, 5> labels;
+    std::array<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>, 5> attachments;
 };
 }

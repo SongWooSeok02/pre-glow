@@ -7,13 +7,15 @@
 
 namespace preglow
 {
-enum class ReverbCharacter { hall, room, plate };
+enum class ReverbCharacter { hall, room, plate, cloud, cathedral, voidSpace, count };
 
 struct ReverbSettings
 {
     float decaySeconds = 3.0f;
     float damping = 0.45f;
     float mix = 0.35f;
+    float earlyWidth = 1.0f;
+    float lateWidth = 1.0f;
 };
 
 class Reverb
@@ -23,24 +25,38 @@ public:
     {
         constexpr std::array diffusionSeconds { 0.0031, 0.0047, 0.0061, 0.0083 };
         constexpr std::array delaySeconds { 0.0297, 0.0371, 0.0411, 0.0437 };
-        const auto room = character == ReverbCharacter::room;
-        const auto plate = character == ReverbCharacter::plate;
-        const auto delayScale = room ? 0.55 : plate ? 0.78 : 1.0;
-        const auto diffusionScale = plate ? 0.46 : 1.0;
-        const auto reflectionScale = room ? 0.58 : plate ? 0.75 : 1.0;
-        earlyLevel = room ? 1.35f : plate ? 0.20f : 1.0f;
+        struct Profile
+        {
+            double delayScale, diffusionScale, reflectionScale;
+            float earlyLevel, diffusion, extraDiffusion, dampingScale;
+        };
+        constexpr std::array profiles {
+            Profile { 1.00, 1.00, 1.00, 1.00f, 0.60f, 0.0f, 1.0f }, // Hall
+            Profile { 0.55, 1.00, 0.58, 1.35f, 0.40f, 0.0f, 1.0f }, // Room
+            Profile { 0.78, 0.46, 0.75, 0.20f, 0.73f, 0.0f, 1.0f }, // Plate
+            Profile { 0.92, 1.71, 1.18, 0.25f, 0.78f, 0.64f, 1.45f }, // Cloud
+            Profile { 2.23, 1.24, 2.08, 0.90f, 0.57f, 0.0f, 1.2f }, // Cathedral
+            Profile { 1.64, 2.35, 1.51, 0.10f, 0.69f, -0.65f, 0.55f } // Void
+        };
+        static_assert(profiles.size() == static_cast<std::size_t>(ReverbCharacter::count));
+        const auto [delayScale, diffusionScale, reflectionScale, level, diffusion, extraDiffusion, profileDamping] =
+            profiles[std::min(static_cast<std::size_t>(character), profiles.size() - 1)];
+        earlyLevel = level;
+        dampingScale = profileDamping;
         for (std::size_t i = 0; i < lines.size(); ++i)
         {
             auto& line = lines[i];
             line.diffusion.samples.resize(static_cast<std::size_t>(std::max(1.0, std::round(sampleRate * diffusionSeconds[i] * diffusionScale))));
+            line.diffusion.coefficient = diffusion;
+            line.extraDiffusion.coefficient = extraDiffusion;
+            line.extraDiffusion.samples.resize(extraDiffusion == 0.0f ? 0 :
+                static_cast<std::size_t>(std::max(1.0, std::round(sampleRate * diffusionSeconds[3 - i] * 1.37))));
             line.samples.assign(static_cast<std::size_t>(std::max(1.0, std::round(sampleRate * delaySeconds[i] * delayScale))), 0.0f);
             line.seconds = static_cast<float>(static_cast<double>(line.samples.size()) / sampleRate);
         }
 
         for (std::size_t i = 0; i < reflections.size(); ++i)
             reflectionDelays[i] = static_cast<std::size_t>(std::max(1.0, std::round(sampleRate * reflections[i].seconds * reflectionScale)));
-        for (auto& line : lines)
-            line.diffusion.coefficient = room ? 0.40f : plate ? 0.73f : 0.60f;
         earlyHistory.resize(reflectionDelays.back() + 1);
 
         lastDecay = -1.0f;
@@ -56,6 +72,7 @@ public:
             std::fill(line.samples.begin(), line.samples.end(), 0.0f);
             line.position = 0;
             line.diffusion.reset();
+            line.extraDiffusion.reset();
             line.low = 0.0f;
             line.gain = line.targetGain;
         }
@@ -63,6 +80,8 @@ public:
         earlyPosition = 0;
         damping = targetDamping;
         mix = targetMix;
+        earlyWidth = targetEarlyWidth;
+        lateWidth = targetLateWidth;
     }
 
     void setTarget(ReverbSettings settings) noexcept
@@ -75,6 +94,8 @@ public:
             lastDecay = decay;
         }
         targetDamping = bounded(settings.damping, 0.0f, 1.0f, 0.45f);
+        targetEarlyWidth = bounded(settings.earlyWidth, 0.0f, 2.0f, 1.0f);
+        targetLateWidth = bounded(settings.lateWidth, 0.0f, 2.0f, 1.0f);
         targetMix = bounded(settings.mix, 0.0f, 1.0f, 0.35f);
     }
 
@@ -85,11 +106,14 @@ public:
         damping += smoothing * (targetDamping - damping);
         mix += smoothing * (targetMix - mix);
 
+        earlyWidth += smoothing * (targetEarlyWidth - earlyWidth);
+        lateWidth += smoothing * (targetLateWidth - lateWidth);
+        const auto dampingAmount = std::min(1.0f, damping * dampingScale);
         std::array<float, 4> taps {};
         for (std::size_t i = 0; i < lines.size(); ++i)
         {
             auto& line = lines[i];
-            line.low += (1.0f - 0.92f * damping) * (line.samples[line.position] - line.low);
+            line.low += (1.0f - 0.92f * dampingAmount) * (line.samples[line.position] - line.low);
             line.gain += smoothing * (line.targetGain - line.gain);
             taps[i] = line.low * line.gain;
         }
@@ -100,7 +124,10 @@ public:
         for (std::size_t i = 0; i < lines.size(); ++i)
         {
             auto& line = lines[i];
-            const auto value = 0.5f * mixed[i] + 0.22f * line.diffusion.process(std::clamp(input[i], -8.0f, 8.0f));
+            auto diffused = line.diffusion.process(std::clamp(input[i], -8.0f, 8.0f));
+            if (!line.extraDiffusion.samples.empty())
+                diffused = line.extraDiffusion.process(diffused);
+            const auto value = 0.5f * mixed[i] + 0.22f * diffused;
             line.samples[line.position] = std::isfinite(value) ? std::clamp(value, -8.0f, 8.0f) : 0.0f;
             if (++line.position == line.samples.size())
                 line.position = 0;
@@ -122,11 +149,23 @@ public:
         if (++earlyPosition == earlyHistory.size())
             earlyPosition = 0;
 
-        left = (1.0f - mix) * left + mix * (earlyLevel * early[0] + 0.45f * (a + b - c - d));
-        right = (1.0f - mix) * right + mix * (earlyLevel * early[1] + 0.45f * (a - b + c - d));
+        auto lateLeft = 0.45f * (a + b - c - d);
+        auto lateRight = 0.45f * (a - b + c - d);
+        applyWidth(early[0], early[1], earlyWidth);
+        applyWidth(lateLeft, lateRight, lateWidth);
+        left = (1.0f - mix) * left + mix * (earlyLevel * early[0] + lateLeft);
+        right = (1.0f - mix) * right + mix * (earlyLevel * early[1] + lateRight);
     }
 
 private:
+    static void applyWidth(float& left, float& right, float width) noexcept
+    {
+        const auto mid = 0.5f * (left + right);
+        const auto side = 0.5f * (left - right) * width;
+        left = mid + side;
+        right = mid - side;
+    }
+
     static float bounded(float value, float minimum, float maximum, float fallback) noexcept
     {
         return std::isfinite(value) ? std::clamp(value, minimum, maximum) : fallback;
@@ -164,6 +203,7 @@ private:
         float gain = 0.0f;
         float targetGain = 0.0f;
         Diffuser diffusion;
+        Diffuser extraDiffusion;
     };
 
     struct Reflection
@@ -183,6 +223,11 @@ private:
     std::vector<std::array<float, 2>> earlyHistory;
     std::size_t earlyPosition = 0;
     std::array<Line, 4> lines;
+    float dampingScale = 1.0f;
+    float earlyWidth = 1.0f;
+    float lateWidth = 1.0f;
+    float targetEarlyWidth = 1.0f;
+    float targetLateWidth = 1.0f;
     float earlyLevel = 1.0f;
     float lastDecay = -1.0f;
     float smoothing = 1.0f;

@@ -44,8 +44,11 @@ private:
     void processSample(float& left, float& right) noexcept;
     std::size_t readCharacter() const noexcept;
     const std::atomic<float>* const character = state.getRawParameterValue(parameters::character);
-    std::array<Reverb, 3> engines;
-    std::array<float, 3> characterWeights { 1.0f, 0.0f, 0.0f };
+    const std::atomic<float>* const earlyWidth = state.getRawParameterValue(parameters::earlyWidth);
+    const std::atomic<float>* const lateWidth = state.getRawParameterValue(parameters::lateWidth);
+    static constexpr auto characterCount = static_cast<std::size_t>(ReverbCharacter::count);
+    std::array<Reverb, characterCount> engines;
+    std::array<float, characterCount> characterWeights { 1.0f };
     std::size_t targetCharacter = 0;
     float characterSmoothing = 1.0f;
 };

@@ -13,16 +13,16 @@ PluginProcessor::PluginProcessor()
 ReverbSettings PluginProcessor::readSettings() const noexcept
 {
     return { decay->load(std::memory_order_relaxed), damping->load(std::memory_order_relaxed),
-             mix->load(std::memory_order_relaxed) };
+             mix->load(std::memory_order_relaxed), earlyWidth->load(std::memory_order_relaxed) * 0.01f,
+             lateWidth->load(std::memory_order_relaxed) * 0.01f };
 }
 
 void PluginProcessor::prepareToPlay(double sampleRate, int)
 {
-    constexpr std::array characters { ReverbCharacter::hall, ReverbCharacter::room, ReverbCharacter::plate };
     const auto settings = readSettings();
     for (std::size_t i = 0; i < engines.size(); ++i)
     {
-        engines[i].prepare(sampleRate, characters[i]);
+        engines[i].prepare(sampleRate, static_cast<ReverbCharacter>(i));
         engines[i].setTarget(settings);
     }
     characterSmoothing = static_cast<float>(-std::expm1(-1.0 / (0.025 * sampleRate)));
@@ -32,7 +32,7 @@ void PluginProcessor::prepareToPlay(double sampleRate, int)
 std::size_t PluginProcessor::readCharacter() const noexcept
 {
     const auto value = character->load(std::memory_order_relaxed);
-    return std::isfinite(value) ? static_cast<std::size_t>(std::clamp(value, 0.0f, 2.0f)) : 0;
+    return std::isfinite(value) ? static_cast<std::size_t>(std::clamp(value, 0.0f, static_cast<float>(characterCount - 1))) : 0;
 }
 
 void PluginProcessor::reset()
@@ -129,12 +129,16 @@ void PluginProcessor::setStateInformation(const void* data, int size)
         && xml->getIntAttribute("schemaVersion") == parameters::schemaVersion)
     {
         auto restored = juce::ValueTree::fromXml(*xml);
-        if (!restored.getChildWithProperty("id", parameters::character).isValid())
+        for (const auto& [id, value] : { std::pair { parameters::character, 0.0f },
+                                         std::pair { parameters::earlyWidth, 100.0f },
+                                         std::pair { parameters::lateWidth, 100.0f } })
         {
-            juce::ValueTree defaultCharacter { "PARAM" };
-            defaultCharacter.setProperty("id", parameters::character, nullptr);
-            defaultCharacter.setProperty("value", 0.0f, nullptr);
-            restored.appendChild(defaultCharacter, nullptr);
+            if (restored.getChildWithProperty("id", id).isValid())
+                continue;
+            juce::ValueTree parameter { "PARAM" };
+            parameter.setProperty("id", id, nullptr);
+            parameter.setProperty("value", value, nullptr);
+            restored.appendChild(parameter, nullptr);
         }
         state.replaceState(restored);
     }

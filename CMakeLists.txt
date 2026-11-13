@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(pre_glow VERSION 0.1.2 LANGUAGES C CXX)
+project(pre_glow VERSION 0.1.3 LANGUAGES C CXX)
 
 include(FetchContent)
 FetchContent_Declare(JUCE

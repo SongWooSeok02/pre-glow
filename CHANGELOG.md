@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.3
+
+- Added Cloud, Cathedral and Void to the Character menu.
+- Added independent stereo width controls for early reflections and the late tail.
+
 ## 0.1.2
 
 - Added selectable Hall, Room and Plate reverb characters.
