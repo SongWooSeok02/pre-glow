@@ -11,6 +11,7 @@ constexpr int controlsWidth = 620;
 constexpr int spectrumWidth = 376;
 constexpr int columnGap = 12;
 constexpr int compactHeight = 250;
+constexpr int characterRowHeight = 34;
 constexpr int sectionHeight = 136;
 constexpr std::size_t bloomStart = 6;
 constexpr std::size_t swellStart = 10;
@@ -43,6 +44,23 @@ PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner)
     addAndMakeVisible(character);
     characterAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
         owner.state, parameters::character, character);
+    character.setTitle("Reverb character A");
+    characterB.setTitle("Reverb character B");
+    characterB.addItemList(parameters::characterNames, 1);
+    addAndMakeVisible(characterB);
+    characterBAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
+        owner.state, parameters::characterB, characterB);
+    characterBlend.setTitle("Reverb A/B Blend");
+    characterBlend.setSliderStyle(juce::Slider::LinearHorizontal);
+    characterBlend.setTextBoxStyle(juce::Slider::TextBoxRight, false, 54, 22);
+    characterBlend.setTextValueSuffix("%");
+    addAndMakeVisible(characterBlend);
+    characterBlendAttachment = std::make_unique<SliderAttachment>(owner.state, parameters::characterBlend, characterBlend);
+    characterALabel.setText("A", juce::dontSendNotification);
+    characterBLabel.setText("B", juce::dontSendNotification);
+    characterBlendLabel.setText("A/B Blend", juce::dontSendNotification);
+    for (auto* label : { &characterALabel, &characterBLabel, &characterBlendLabel })
+        addAndMakeVisible(*label);
     addAndMakeVisible(freeze);
     freezeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
         owner.state, parameters::freeze, freeze);
@@ -139,7 +157,7 @@ PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner)
         voiceLabels[i].setJustificationType(juce::Justification::centred);
         voiceContent.addAndMakeVisible(voiceLabels[i]);
     }
-    setSize(controlsWidth + columnGap + spectrumWidth, compactHeight);
+    setSize(controlsWidth + columnGap + spectrumWidth, compactHeight + characterRowHeight);
     startTimerHz(30);
     updateSections();
 }
@@ -174,7 +192,7 @@ void PluginEditor::updateSections()
         voiceSliders[i].setVisible(visible);
         voiceLabels[i].setVisible(visible);
     }
-    setSize(getWidth(), compactHeight + sectionHeight * (static_cast<int>(bloomOpen) + static_cast<int>(swellOpen))
+    setSize(getWidth(), compactHeight + characterRowHeight + sectionHeight * (static_cast<int>(bloomOpen) + static_cast<int>(swellOpen))
         + (shimmerOpen ? 100 + std::min(maxVoiceHeight, static_cast<int>(voiceDetails.size()) * voiceHeaderHeight + expandedCount * voiceRowHeight) : 0));
     resized();
 }
@@ -287,9 +305,16 @@ void PluginEditor::resized()
     shimmerPanel.setBounds(titleRow.removeFromRight(96).withSizeKeepingCentre(96, 28));
     titleRow.removeFromRight(8);
     shimmerPower.setBounds(titleRow.removeFromRight(110).withSizeKeepingCentre(110, 28));
+    auto characters = controls.removeFromTop(characterRowHeight).reduced(0, 3);
+    characterALabel.setBounds(characters.removeFromLeft(22));
+    character.setBounds(characters.removeFromLeft(112));
+    characters.removeFromLeft(8);
+    characterBLabel.setBounds(characters.removeFromLeft(22));
+    characterB.setBounds(characters.removeFromLeft(112));
+    characters.removeFromLeft(12);
+    characterBlendLabel.setBounds(characters.removeFromLeft(78));
+    characterBlend.setBounds(characters);
     auto options = controls.removeFromTop(28);
-    character.setBounds(options.removeFromLeft(130));
-    options.removeFromLeft(12);
     freeze.setBounds(options.removeFromLeft(90));
     infinite.setBounds(options.removeFromLeft(140));
     bloom.setBounds(options.removeFromLeft(85));

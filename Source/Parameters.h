@@ -9,6 +9,8 @@ namespace preglow::parameters
 inline constexpr auto decay = "decay";
 inline constexpr auto damping = "damping";
 inline constexpr auto mix = "mix";
+inline constexpr auto characterB = "character_b";
+inline constexpr auto characterBlend = "character_blend";
 inline constexpr auto character = "character";
 inline const juce::StringArray characterNames { "Hall", "Room", "Plate", "Cloud", "Cathedral", "Void" };
 inline constexpr auto earlyWidth = "early_width";
@@ -119,6 +121,9 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
         juce::ParameterID { shimmerRouting, 11 }, "Shimmer Routing", shimmerRoutes, 0));
     layout.add(std::make_unique<juce::AudioParameterBool>(
         juce::ParameterID { shimmerEnabled, 12 }, "Shimmer Enabled", true));
+    layout.add(std::make_unique<juce::AudioParameterChoice>(juce::ParameterID { characterB, 13 }, "Character B", characterNames, 1));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID { characterBlend, 13 }, "Reverb A/B Blend",
+        juce::NormalisableRange<float> { 0.0f, 100.0f, 1.0f }, 0.0f));
     return layout;
 }
 }

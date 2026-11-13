@@ -64,10 +64,17 @@ void PluginProcessor::prepareToPlay(double sampleRate, int)
     reset();
 }
 
-std::size_t PluginProcessor::readCharacter() const noexcept
+void PluginProcessor::updateCharacterTargets() noexcept
 {
-    const auto value = character->load(std::memory_order_relaxed);
-    return std::isfinite(value) ? static_cast<std::size_t>(std::clamp(value, 0.0f, static_cast<float>(characterCount - 1))) : 0;
+    const auto readIndex = [](const std::atomic<float>& parameter)
+    {
+        const auto value = parameter.load(std::memory_order_relaxed);
+        return std::isfinite(value) ? static_cast<std::size_t>(std::clamp(value, 0.0f, static_cast<float>(characterCount - 1))) : 0;
+    };
+    const auto blend = characterBlend->load(std::memory_order_relaxed) * 0.01f;
+    targetCharacterWeights.fill(0.0f);
+    targetCharacterWeights[readIndex(*character)] = 1.0f - blend;
+    targetCharacterWeights[readIndex(*characterB)] += blend;
 }
 
 void PluginProcessor::reset()
@@ -75,9 +82,8 @@ void PluginProcessor::reset()
     for (auto& engine : engines)
         engine.reset();
     spectrumPosition = 0;
-    targetCharacter = readCharacter();
-    characterWeights.fill(0.0f);
-    characterWeights[targetCharacter] = 1.0f;
+    updateCharacterTargets();
+    characterWeights = targetCharacterWeights;
 }
 
 bool PluginProcessor::readSpectrum(SpectrumFrame& frame, double& sampleRate) noexcept
@@ -115,7 +121,7 @@ void PluginProcessor::processSample(float& left, float& right, bool mono) noexce
     {
         const auto output = engines[i].processSources(left, right);
         auto& weight = characterWeights[i];
-        const auto target = i == targetCharacter ? 1.0f : 0.0f;
+        const auto target = targetCharacterWeights[i];
         weight += characterSmoothing * (target - weight);
         for (std::size_t channel = 0; channel < 2; ++channel)
         {
@@ -148,7 +154,7 @@ void PluginProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiB
     juce::ScopedNoDenormals noDenormals;
     upmixMonoInput(buffer);
     const auto settings = readSettings();
-    targetCharacter = readCharacter();
+    updateCharacterTargets();
     for (auto& engine : engines)
         engine.setTarget(settings);
     updateShimmer();

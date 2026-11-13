@@ -61,7 +61,7 @@ private:
     std::atomic<bool> spectrumPending { false };
     std::size_t spectrumPosition = 0;
     double spectrumRate = 0.0, readySpectrumRate = 0.0;
-    std::size_t readCharacter() const noexcept;
+    void updateCharacterTargets() noexcept;
     const std::atomic<float>* const character = state.getRawParameterValue(parameters::character);
     const std::atomic<float>* const earlyWidth = state.getRawParameterValue(parameters::earlyWidth);
     const std::atomic<float>* const bloomEnabled = state.getRawParameterValue(parameters::bloomEnabled);
@@ -79,7 +79,9 @@ private:
     static constexpr auto characterCount = static_cast<std::size_t>(ReverbCharacter::count);
     std::array<Reverb, characterCount> engines;
     std::array<float, characterCount> characterWeights { 1.0f };
-    std::size_t targetCharacter = 0;
+    const std::atomic<float>* const characterB = state.getRawParameterValue(parameters::characterB);
+    const std::atomic<float>* const characterBlend = state.getRawParameterValue(parameters::characterBlend);
+    std::array<float, characterCount> targetCharacterWeights { 1.0f };
     float characterSmoothing = 1.0f;
 };
 }
