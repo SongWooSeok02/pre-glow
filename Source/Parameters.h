@@ -13,6 +13,7 @@ inline constexpr auto earlyWidth = "early_width";
 inline constexpr auto lateWidth = "late_width";
 inline constexpr auto dry = "dry";
 inline constexpr auto wet = "wet";
+inline constexpr auto freeze = "freeze";
 inline constexpr auto stateType = "PreGlowState";
 inline constexpr int schemaVersion = 2;
 
@@ -34,6 +35,7 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
         layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID { id, 4 }, name,
             juce::NormalisableRange<float> { 0.0f, 100.0f, 0.01f }, initial,
             juce::AudioParameterFloatAttributes().withLabel("%")));
+    layout.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID { freeze, 5 }, "Freeze", false));
     return layout;
 }
 }

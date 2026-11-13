@@ -11,6 +11,8 @@ public:
     void resized() override;
 
 private:
+    juce::ToggleButton freeze { "Freeze" };
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> freezeAttachment;
     juce::ComboBox character;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> characterAttachment;
     std::array<juce::Slider, 6> sliders;

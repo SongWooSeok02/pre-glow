@@ -26,6 +26,9 @@ PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner)
     addAndMakeVisible(character);
     characterAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
         owner.state, parameters::character, character);
+    addAndMakeVisible(freeze);
+    freezeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
+        owner.state, parameters::freeze, freeze);
     setResizable(true, true);
     setResizeLimits(560, 250, 900, 560);
     setSize(620, 290);
@@ -43,7 +46,10 @@ void PluginEditor::resized()
 {
     auto controls = getLocalBounds().reduced(16);
     controls.removeFromTop(56);
-    character.setBounds(controls.removeFromTop(28).withWidth(130));
+    auto options = controls.removeFromTop(28);
+    character.setBounds(options.removeFromLeft(130));
+    options.removeFromLeft(12);
+    freeze.setBounds(options.removeFromLeft(90));
     controls.removeFromTop(8);
     const auto width = controls.getWidth() / static_cast<int>(sliders.size());
     for (std::size_t i = 0; i < sliders.size(); ++i)

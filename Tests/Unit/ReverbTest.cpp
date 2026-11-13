@@ -89,6 +89,61 @@ int main()
         if (!std::isfinite(monoSideEnergy) || monoSideEnergy < 0.00001)
             return 3;
 
+        for (auto character : { preglow::ReverbCharacter::room, preglow::ReverbCharacter::cathedral })
+        {
+            preglow::Reverb held;
+            held.prepare(rate, character);
+            preglow::ReverbSettings settings { 2.0f, 0.35f, 1.0f, 1.0f, 1.0f, 0.0f };
+            held.setTarget(settings);
+            held.reset();
+            const auto render = [rate](auto& engine, double seconds, float input)
+            {
+                double energy = 0.0;
+                for (int i = 0; i < static_cast<int>(rate * seconds); ++i)
+                {
+                    auto left = i % 2 == 0 ? input : -input;
+                    auto right = input;
+                    engine.process(left, right);
+                    if (!std::isfinite(left) || !std::isfinite(right)
+                        || std::abs(left) > 2.0f || std::abs(right) > 2.0f)
+                        return -1.0;
+                    energy += left * left + right * right;
+                }
+                return energy;
+            };
+
+            if (render(held, 0.25, 0.5f) <= 0.0)
+                return 7;
+            for (int transition = 0; transition < 3; ++transition)
+            {
+                settings.freeze = true;
+                held.setTarget(settings);
+                if (render(held, 0.25, 0.0f) <= 0.0)
+                    return 8;
+                auto reference = held;
+                double firstEnergy = 0.0;
+                double lastEnergy = 0.0;
+                for (int second = 0; second < 5; ++second)
+                {
+                    lastEnergy = render(held, 1.0, 1.0f);
+                    if (lastEnergy != render(reference, 1.0, 0.0f) || lastEnergy <= 0.0)
+                        return 9;
+                    if (second == 0)
+                        firstEnergy = lastEnergy;
+                }
+                if (lastEnergy < firstEnergy * 0.5 || lastEnergy > firstEnergy * 2.0)
+                    return 10;
+                settings.freeze = false;
+                held.setTarget(settings);
+                const auto releaseEnergy = render(held, 3.0, 0.0f);
+                const auto remaining = render(held, 1.0, 0.0f);
+                if (releaseEnergy <= 0.0 || remaining < 0.0 || remaining > lastEnergy * 0.001)
+                    return 11;
+                if (render(held, 0.25, 0.5f) <= 0.0)
+                    return 12;
+            }
+        }
+
         std::cout << rate << " Hz passed\n";
     }
 }

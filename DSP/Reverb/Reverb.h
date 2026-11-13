@@ -17,6 +17,7 @@ struct ReverbSettings
     float earlyWidth = 1.0f;
     float lateWidth = 1.0f;
     float dry = 0.65f;
+    bool freeze = false;
 };
 
 class Reverb
@@ -65,6 +66,7 @@ public:
         lastDecay = -1.0f;
 
         smoothing = static_cast<float>(-std::expm1(-1.0 / (0.025 * sampleRate)));
+        freezeStep = static_cast<float>(1.0 / (0.10 * sampleRate));
         reset();
     }
 
@@ -82,6 +84,7 @@ public:
         std::fill(earlyHistory.begin(), earlyHistory.end(), std::array<float, 2> {});
         earlyPosition = 0;
         damping = targetDamping;
+        freeze = targetFreeze ? 1.0f : 0.0f;
         reflectionLow.fill(0.0f);
         dry = targetDry;
         wet = targetWet;
@@ -98,6 +101,7 @@ public:
                 line.targetGain = std::pow(0.001f, line.seconds / decay);
             lastDecay = decay;
         }
+        targetFreeze = settings.freeze;
         targetDamping = bounded(settings.damping, 0.0f, 1.0f, 0.45f);
         targetEarlyWidth = bounded(settings.earlyWidth, 0.0f, 2.0f, 1.0f);
         targetLateWidth = bounded(settings.lateWidth, 0.0f, 2.0f, 1.0f);
@@ -115,14 +119,17 @@ public:
 
         earlyWidth += smoothing * (targetEarlyWidth - earlyWidth);
         lateWidth += smoothing * (targetLateWidth - lateWidth);
-        const auto dampingAmount = std::min(1.0f, damping * dampingScale);
+        freeze = std::clamp(freeze + (targetFreeze ? freezeStep : -freezeStep), 0.0f, 1.0f);
+        const auto feed = 1.0f - freeze;
+        const auto dampingAmount = feed * std::min(1.0f, damping * dampingScale);
         std::array<float, 4> taps {};
         for (std::size_t i = 0; i < lines.size(); ++i)
         {
             auto& line = lines[i];
             line.low += (1.0f - 0.92f * dampingAmount) * (line.samples[line.position] - line.low);
             line.gain += smoothing * (line.targetGain - line.gain);
-            taps[i] = line.low * line.gain;
+            // At full Freeze the normalized Hadamard feedback is lossless.
+            taps[i] = line.low * (freeze + feed * line.gain);
         }
 
         const auto [a, b, c, d] = taps;
@@ -131,10 +138,10 @@ public:
         for (std::size_t i = 0; i < lines.size(); ++i)
         {
             auto& line = lines[i];
-            auto diffused = line.diffusion.process(std::clamp(input[i], -8.0f, 8.0f));
+            auto diffused = line.diffusion.process(feed * std::clamp(input[i], -8.0f, 8.0f));
             if (!line.extraDiffusion.samples.empty())
                 diffused = line.extraDiffusion.process(diffused);
-            const auto value = 0.5f * mixed[i] + 0.22f * diffused;
+            const auto value = 0.5f * mixed[i] + 0.22f * feed * diffused;
             line.samples[line.position] = std::isfinite(value) ? std::clamp(value, -8.0f, 8.0f) : 0.0f;
             if (++line.position == line.samples.size())
                 line.position = 0;
@@ -152,7 +159,7 @@ public:
             early[0] += direct * l + cross * r;
             early[1] += direct * r + cross * l;
         }
-        earlyHistory[earlyPosition] = { std::clamp(left, -8.0f, 8.0f), std::clamp(right, -8.0f, 8.0f) };
+        earlyHistory[earlyPosition] = { feed * std::clamp(left, -8.0f, 8.0f), feed * std::clamp(right, -8.0f, 8.0f) };
         if (++earlyPosition == earlyHistory.size())
             earlyPosition = 0;
 
@@ -246,6 +253,9 @@ private:
     float earlyLevel = 1.0f;
     float lastDecay = -1.0f;
     float smoothing = 1.0f;
+    float freeze = 0.0f;
+    float freezeStep = 1.0f;
+    bool targetFreeze = false;
     float damping = 0.45f;
     float targetDamping = damping;
     bool softenReflections = false;

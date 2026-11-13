@@ -47,6 +47,7 @@ private:
     std::size_t readCharacter() const noexcept;
     const std::atomic<float>* const character = state.getRawParameterValue(parameters::character);
     const std::atomic<float>* const earlyWidth = state.getRawParameterValue(parameters::earlyWidth);
+    const std::atomic<float>* const freeze = state.getRawParameterValue(parameters::freeze);
     const std::atomic<float>* const lateWidth = state.getRawParameterValue(parameters::lateWidth);
     static constexpr auto characterCount = static_cast<std::size_t>(ReverbCharacter::count);
     std::array<Reverb, characterCount> engines;

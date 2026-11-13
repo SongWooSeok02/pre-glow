@@ -16,7 +16,8 @@ ReverbSettings PluginProcessor::readSettings() const noexcept
     return { decay->load(std::memory_order_relaxed), damping->load(std::memory_order_relaxed),
              wet->load(std::memory_order_relaxed) * 0.02f * legacyMix, earlyWidth->load(std::memory_order_relaxed) * 0.01f,
              lateWidth->load(std::memory_order_relaxed) * 0.01f,
-             dry->load(std::memory_order_relaxed) * 0.02f * (1.0f - legacyMix) };
+             dry->load(std::memory_order_relaxed) * 0.02f * (1.0f - legacyMix),
+             freeze->load(std::memory_order_relaxed) >= 0.5f };
 }
 
 void PluginProcessor::prepareToPlay(double sampleRate, int)
@@ -141,6 +142,7 @@ void PluginProcessor::setStateInformation(const void* data, int size)
         for (const auto& [id, value] : { std::pair { parameters::character, 0.0f },
                                          std::pair { parameters::earlyWidth, 100.0f },
                                          std::pair { parameters::lateWidth, 100.0f },
+                                         std::pair { parameters::freeze, 0.0f },
                                          std::pair { parameters::mix, 0.5f },
                                          std::pair { parameters::dry, legacy ? 100.0f * (1.0f - oldWet) : 65.0f },
                                          std::pair { parameters::wet, legacy ? 100.0f * oldWet : 35.0f } })

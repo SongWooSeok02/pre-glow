@@ -29,3 +29,7 @@ The user confirmed the AU loaded on a stereo track and produced audible reverb. 
 ## Phase 2 complete
 
 The reverb engine includes stereo early reflections, input diffusion, six characters, independent Early and Late Width, and separate Dry and Wet controls. See the [Phase 2 handoff](docs/phase-2-handoff.md) for verification, listening feedback, and the Phase 3 starting point.
+
+Phase 3 starts with **Freeze**. It holds the current tail, fades new input out of the wet path, and leaves the dry signal live. Turning it off restores the current Decay and Damping settings. Older projects without the Freeze parameter load with it off.
+
+Verified on Apple Silicon: Release AU, VST3 and Standalone builds; DSP tests at 44.1, 48, 88.2 and 96 kHz; AU validation with `auval`; and AU/VST3 Freeze hold and release at 48 kHz in a plug-in host. Logic listening, project recall and automation playback remain to be checked.
