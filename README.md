@@ -53,3 +53,7 @@ Verified all 16 switch combinations for bounded DSP output and compared the froz
 ## Phase 3 implementation complete
 
 See the [Phase 3 handoff](docs/phase-3-handoff.md) for the original scope, implementation changes, compatibility, validation gaps, and the Phase 4 starting point.
+
+## Phase 4 in progress
+
+The standalone DSP pitch shifter uses two crossfaded delay taps and supports ±24 semitones. The pitch test checks frequency, output bounds, and reset at 44.1, 48, 88.2 and 96 kHz on Apple Silicon. Shimmer voices, feedback routing, and host listening tests are pending.

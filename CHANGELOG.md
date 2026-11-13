@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Started Shimmer development with a standalone pitch shifter and DSP verification (no plug-in controls yet).
+
 - Coordinated Freeze, Infinite Decay, Bloom and Swell so their switches can be combined without stacking wet gain fades.
 
 - Added Swell with Time, Sensitivity and Curve controls.
