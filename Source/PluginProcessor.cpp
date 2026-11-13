@@ -26,8 +26,11 @@ void PluginProcessor::prepareToPlay(double sampleRate, int)
 bool PluginProcessor::isBusesLayoutSupported(const BusesLayout& layout) const
 {
     const auto input = layout.getMainInputChannelSet();
-    return layout.getMainOutputChannelSet() == juce::AudioChannelSet::stereo()
-        && (input == juce::AudioChannelSet::mono() || input == juce::AudioChannelSet::stereo());
+    const auto output = layout.getMainOutputChannelSet();
+    const auto mono = juce::AudioChannelSet::mono();
+    const auto stereo = juce::AudioChannelSet::stereo();
+    return (input == mono && (output == mono || output == stereo))
+        || (input == stereo && output == stereo);
 }
 
 void PluginProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer&)
@@ -36,6 +39,17 @@ void PluginProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiB
     upmixMonoInput(buffer);
     reverb.setTarget(readSettings());
     auto* left = buffer.getWritePointer(0);
+    if (getMainBusNumOutputChannels() == 1)
+    {
+        for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
+        {
+            auto right = left[sample];
+            reverb.process(left[sample], right);
+            left[sample] = 0.5f * (left[sample] + right);
+        }
+        return;
+    }
+
     auto* right = buffer.getWritePointer(1);
     for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
         reverb.process(left[sample], right[sample]);
@@ -48,7 +62,7 @@ void PluginProcessor::processBlockBypassed(juce::AudioBuffer<float>& buffer, juc
 
 void PluginProcessor::upmixMonoInput(juce::AudioBuffer<float>& buffer) const noexcept
 {
-    if (getMainBusNumInputChannels() == 1)
+    if (getMainBusNumInputChannels() == 1 && getMainBusNumOutputChannels() == 2)
         buffer.copyFrom(1, 0, buffer, 0, 0, buffer.getNumSamples());
 }
 

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.1
+
+- Added a mono output option for hosts that filter mono inserts by channel layout.
+
+
 ## 0.1.0
 
 - Added JUCE/CMake targets for AU, VST3 and Standalone.
