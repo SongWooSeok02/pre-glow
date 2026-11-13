@@ -26,12 +26,6 @@ GitHub Actions passed the channel-layout update on Apple Silicon, Intel macOS, a
 
 The user confirmed the AU loaded on a stereo track and produced audible reverb. In the open Logic Pro project, an accessibility-driven check set Decay to 5.00, Damping to 0.45 and Mix to 0.35. Closing and reopening the plug-in editor preserved those values. The initial values (0.76, 1.00 and 1.00) were restored. Apple's auval passed after the mono output update and reported 1→1, 1→2, and 2→2 channel layouts. Logic Pro menu visibility for the updated Mono → Stereo variant, project save/reload, and automation playback remain pending.
 
-## Phase 2 progress
+## Phase 2 complete
 
-Stereo early reflections now precede the FDN tail. The standalone C++ DSP test passed on macOS at 44.1, 48, 88.2 and 96 kHz, including reflection timing, stereo separation and reset. Input diffusion adds arrivals between the first FDN taps. macOS Release builds passed for AU, VST3 and Standalone, and CTest verified diffusion at all four sample rates. The Character menu selects Hall, Room or Plate. Hall is the default for older projects. Preserve the existing parameter IDs, state schema, and supported channel layouts. Validate changes with impulse tests and use Logic Pro to check the mono-to-stereo insert when testing the next AU build.
-
-macOS 0.1.2 built AU, VST3 and Standalone and passed CTest and auval. A 48 kHz host impulse test verified distinct Hall, Room and Plate responses in AU and VST3.
-
-In 0.1.3, Character also offers Cloud, Cathedral and Void. Early Width and Late Width independently adjust the stereo image of the wet signal. The macOS Release build passed CTest and auval. A 48 kHz host test verified distinct responses for all six characters and independent width controls in both AU and VST3. Logic listening tests for 0.1.3 are pending.
-
-Hall and Room use softer early reflections and a second input diffuser. The editor provides separate Dry and Wet levels. On macOS, AU, VST3 and Standalone built successfully, CTest and auval passed, and AU and VST3 impulse checks verified dry-only, wet-only and muted output. Listening verification is pending.
+The reverb engine includes stereo early reflections, input diffusion, six characters, independent Early and Late Width, and separate Dry and Wet controls. See the [Phase 2 handoff](docs/phase-2-handoff.md) for verification, listening feedback, and the Phase 3 starting point.
