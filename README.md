@@ -49,3 +49,7 @@ Verified on Apple Silicon: Release AU, VST3 and Standalone builds; DSP at 44.1, 
 When combining switches, Freeze holds the tail and suspends Infinite Decay, Bloom and Swell without changing their settings. Releasing it resumes the selected decay mode and lets the wet contours respond to input again. Bloom and Swell use the lower of their two gains for each wet path rather than multiplying the gains.
 
 Verified all 16 switch combinations for bounded DSP output and compared the frozen combinations against Freeze alone at four sample rates. The all-on and release paths also passed in AU and VST3 at 48 kHz, and the AU passed Apple validation.
+
+## Phase 3 implementation complete
+
+See the [Phase 3 handoff](docs/phase-3-handoff.md) for the original scope, implementation changes, compatibility, validation gaps, and the Phase 4 starting point.
