@@ -37,6 +37,7 @@ public:
 
 private:
     std::array<const std::atomic<float>*, Shimmer::voiceCount> voiceEnabled {};
+    const std::atomic<float>* const shimmerRouting = state.getRawParameterValue(parameters::shimmerRouting);
     void updateShimmer() noexcept;
     std::array<std::array<const std::atomic<float>*, parameters::voiceParameters.size()>, Shimmer::voiceCount> shimmerVoices {};
     const std::atomic<float>* const shimmerMix = state.getRawParameterValue(parameters::shimmerMix);

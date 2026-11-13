@@ -56,6 +56,17 @@ PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner)
     shimmerPanel.setClickingTogglesState(true);
     shimmerPanel.onClick = [this] { updateSections(); };
     addAndMakeVisible(shimmerPanel);
+    shimmerRouting.setTitle("Shimmer Routing");
+    shimmerRouting.addItemList(parameters::shimmerRoutes, 1);
+    addAndMakeVisible(shimmerRouting);
+    shimmerRoutingAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
+        owner.state, parameters::shimmerRouting, shimmerRouting);
+    const auto updateFeedbackControl = [this]
+    {
+        shimmerGlobals[1].setEnabled(shimmerRouting.getSelectedId() == 1);
+    };
+    shimmerRouting.onChange = updateFeedbackControl;
+    updateFeedbackControl();
     voiceViewport.setViewedComponent(&voiceContent, false);
     voiceViewport.setScrollBarsShown(true, false);
     addAndMakeVisible(voiceViewport);
@@ -144,6 +155,7 @@ void PluginEditor::updateSections()
         details.setButtonText(expanded ? "Hide controls" : "Show controls");
         expandedCount += static_cast<int>(expanded);
     }
+    shimmerRouting.setVisible(shimmerOpen);
     voiceViewport.setVisible(shimmerOpen);
     for (auto& slider : shimmerGlobals)
         slider.setVisible(shimmerOpen);
@@ -199,6 +211,7 @@ void PluginEditor::resized()
     if (shimmerPanel.getToggleState())
     {
         auto globals = controls.removeFromTop(100);
+        shimmerRouting.setBounds(globals.removeFromRight(152).withSizeKeepingCentre(142, 28));
 
         for (std::size_t i = 0; i < shimmerGlobals.size(); ++i)
         {

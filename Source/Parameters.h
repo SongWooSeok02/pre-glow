@@ -28,6 +28,8 @@ inline constexpr auto swellSensitivity = "swell_sensitivity";
 inline constexpr auto swellCurve = "swell_curve";
 inline constexpr auto stateType = "PreGlowState";
 inline constexpr int schemaVersion = 5;
+inline constexpr auto shimmerRouting = "shimmer_routing";
+inline const juce::StringArray shimmerRoutes { "Feedback", "Post-Reverb" };
 inline constexpr auto shimmerMix = "shimmer_mix";
 inline constexpr auto shimmerFeedback = "shimmer_feedback";
 struct VoiceParameter
@@ -112,6 +114,8 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
         layout.add(std::make_unique<juce::AudioParameterBool>(
             juce::ParameterID { voiceId(voice, voiceEnabled), 10 },
             "Shimmer Voice " + juce::String(static_cast<int>(voice + 1)) + " Enabled", voice == 0));
+    layout.add(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID { shimmerRouting, 11 }, "Shimmer Routing", shimmerRoutes, 0));
     return layout;
 }
 }

@@ -26,7 +26,8 @@ void PluginProcessor::updateShimmer() noexcept
         voices[i] = { load(0), load(1), voiceEnabled[i]->load(std::memory_order_relaxed) >= 0.5f ? load(2) : 0.0f, load(3), load(4), load(5), load(6) };
     }
     const auto amount = shimmerMix->load(std::memory_order_relaxed) * 0.01f;
-    const auto feedback = shimmerFeedback->load(std::memory_order_relaxed) * 0.01f;
+    const auto feedback = shimmerRouting->load(std::memory_order_relaxed) < 0.5f
+        ? shimmerFeedback->load(std::memory_order_relaxed) * 0.01f : 0.0f;
     for (auto& engine : engines)
         engine.setShimmer(voices, amount, feedback);
 }
