@@ -56,4 +56,4 @@ See the [Phase 3 handoff](docs/phase-3-handoff.md) for the original scope, imple
 
 ## Phase 4 in progress
 
-The standalone DSP pitch shifter uses two crossfaded delay taps and supports ±24 semitones. The pitch test checks frequency, output bounds, and reset at 44.1, 48, 88.2 and 96 kHz on Apple Silicon. Shimmer voices, feedback routing, and host listening tests are pending.
+The standalone DSP pitch shifter uses two crossfaded delay taps and supports ±24 semitones. The pitch test checks frequency, output bounds, and reset at 44.1, 48, 88.2 and 96 kHz on Apple Silicon. The four-voice Shimmer DSP adds independent pitch, fine tune, level, pan, delay, tone, and feedback send. DSP tests at the same four rates cover voice summing, stereo placement, delay, and send isolation. Plug-in controls, reverb feedback routing, and host listening tests are pending.

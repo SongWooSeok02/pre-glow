@@ -1,4 +1,4 @@
-#include "../../DSP/Pitch/PitchShifter.h"
+#include "../../DSP/Pitch/Shimmer.h"
 
 #include <iostream>
 
@@ -41,5 +41,37 @@ int main()
                 if (shifter.process(0.0f) != 0.0f)
                     return 1;
         }
+        preglow::Shimmer shimmer;
+        shimmer.prepare(rate);
+        std::array<preglow::Shimmer::Voice, preglow::Shimmer::voiceCount> voices {};
+        voices[0] = { 12.0f, 0.0f, 0.5f, -1.0f, 0.0f, 1.0f };
+        voices[1] = voices[0];
+        voices[2] = { -12.0f, 0.0f, 0.5f, 1.0f, 125.0f, 0.0f };
+        voices[3] = voices[2];
+        shimmer.setVoices(voices);
+        shimmer.reset();
+        std::array<double, 2> inPhase {}, quadrature {};
+        for (int i = 0; i < rate; ++i)
+        {
+            const auto input = static_cast<float>(std::sin(twoPi * inputHz * i / rate));
+            const auto output = shimmer.process(input, input);
+            if (!std::isfinite(output.wet[0]) || !std::isfinite(output.wet[1])
+                || std::abs(output.feedback[0] - 0.25f * output.wet[0]) > 1e-6f
+                || output.feedback[1] != 0.0f
+                || (i < rate / 8 && output.wet[1] != 0.0f))
+                return 1;
+            if (i >= rate / 4)
+            {
+                for (std::size_t channel = 0; channel < 2; ++channel)
+                {
+                    const auto hz = channel == 0 ? 800.0 : 200.0;
+                    inPhase[channel] += output.wet[channel] * std::cos(twoPi * hz * i / rate);
+                    quadrature[channel] += output.wet[channel] * std::sin(twoPi * hz * i / rate);
+                }
+            }
+        }
+        for (std::size_t channel = 0; channel < 2; ++channel)
+            if (std::hypot(inPhase[channel], quadrature[channel]) < 0.3 * rate)
+                return 1;
     }
 }

@@ -184,8 +184,8 @@
 |---|---|---|
 | Phase 1–2 | JUCE/CMake 프로젝트, 기본 플러그인 UI와 파라미터, FDN 리버브, 입력 확산 및 초기 반사 구현 | [Phase 2 인수인계](phase-2-handoff.md) |
 | Phase 3 | 기존 Long Decay에 Freeze, Infinite Decay, Bloom, Swell을 더해 단계 범위 구현 완료 | Apple Silicon Release AU·VST3·Standalone 빌드, 4개 샘플레이트 DSP 테스트, AU 검증 통과. Logic 청취 및 프로젝트 저장·복원 검증은 남아 있다. 세부 구현 범위는 [Phase 3 인수인계](phase-3-handoff.md) 참조. |
-| Phase 4 | ±24반음 피치 시프터 DSP 구현. 최대 4보이스 Shimmer, Feedback Shimmer, 플러그인 제어 연결 예정 | Apple Silicon에서 44.1·48·88.2·96kHz의 목표 음정, 출력 범위, 리셋 테스트와 기존 리버브 테스트 통과. |
+| Phase 4 | ±24반음 피치 시프터와 독립적으로 조절할 수 있는 4보이스 Shimmer DSP 구현. 리버브 피드백 경로와 플러그인 제어 연결 예정 | Apple Silicon에서 44.1·48·88.2·96kHz의 목표 음정, 출력 범위, 리셋, 보이스 합산, 팬, 딜레이, 피드백 센드 분리 테스트와 기존 리버브 테스트 통과. |
 
-Phase 4에서는 피치 시프터를 Shimmer 보이스에 연결하고 리버브 피드백 경로를 추가한다. Freeze와 함께 사용할 때는 기존 Freeze 우선순위를 유지하고, 피드백이 누적되는 동안과 Freeze를 해제할 때 출력이 안정적인지 검증한다.
+Phase 4의 다음 작업은 Shimmer DSP를 플러그인에 연결하고 리버브 피드백 경로를 추가하는 것이다. Freeze와 함께 사용할 때는 기존 Freeze 우선순위를 유지하고, 피드백이 누적되는 동안과 Freeze를 해제할 때 출력이 안정적인지 검증한다.
 
 > **제품 방향:** 간편하게 사용할 수도 있지만, 원한다면 잔향의 내부 구조까지 직접 설계할 수 있는 앰비언트 사운드 디자인 플러그인.
