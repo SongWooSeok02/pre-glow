@@ -20,4 +20,8 @@ See [architecture](docs/architecture.md) for the DSP boundary and state contract
 
 On Apple Silicon with Xcode 27.2, Apple Clang 21, CMake 3.31.6 and Ninja, Release builds succeeded for AU, VST3 and Standalone. The Standalone process launched. CTest passed the stereo impulse test at 44.1, 48, 88.2 and 96 kHz, using decay settings of 0.1, 3 and 120 seconds. The test checks finite, bounded samples and stereo tail energy over four seconds per case.
 
-Windows x64 and Intel macOS jobs are defined in CI and await execution. Format validation, DAW loading, and listening tests remain pending. The current plugin accepts stereo input and output.
+Windows x64 and Intel macOS jobs are defined in CI and await execution. Formal format validation and compatibility checks in other DAWs remain pending. The current plugin accepts stereo input and output.
+
+### Logic Pro smoke test
+
+The user confirmed the AU loaded on a stereo track and produced audible reverb. In the open Logic Pro project, an accessibility-driven check set Decay to 5.00, Damping to 0.45 and Mix to 0.35. Closing and reopening the plug-in editor preserved those values. The initial values (0.76, 1.00 and 1.00) were restored. Project save/reload, automation playback and formal AU validation remain pending.
