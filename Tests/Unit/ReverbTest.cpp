@@ -245,6 +245,63 @@ int main()
               && curvedSwell[0] > 0.0 && curvedSwell[0] < swell[0]))
             return 19;
 
+        // Toggle every setting combination on a charged tail. At full
+        // Freeze, the other switches and new input must have no effect.
+        preglow::Reverb frozen;
+        frozen.prepare(rate);
+        preglow::ReverbSettings combined { 2.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f };
+        frozen.setTarget(combined);
+        frozen.reset();
+        const auto drive = [rate](auto& engine, float input)
+        {
+            for (int i = 0; i < static_cast<int>(rate * 0.25); ++i)
+            {
+                auto left = i % 2 == 0 ? input : -input;
+                auto right = input;
+                engine.process(left, right);
+                if (!std::isfinite(left) || !std::isfinite(right)
+                    || std::abs(left) > 2.0f || std::abs(right) > 2.0f)
+                    return false;
+            }
+            return true;
+        };
+        if (!drive(frozen, 0.3f))
+            return 20;
+        combined.freeze = true;
+        frozen.setTarget(combined);
+        if (!drive(frozen, 0.0f))
+            return 21;
+        for (int flags = 0; flags < 16; ++flags)
+        {
+            auto candidate = frozen;
+            auto reference = frozen;
+            combined.freeze = (flags & 1) != 0;
+            combined.infinite = (flags & 2) != 0;
+            combined.bloomAmount = (flags & 4) != 0 ? 0.75f : 0.0f;
+            combined.swell = (flags & 8) != 0;
+            candidate.setTarget(combined);
+            if (!combined.freeze)
+            {
+                if (!drive(candidate, 0.0f) || !drive(candidate, 0.3f))
+                    return 22;
+                continue;
+            }
+            double energy = 0.0;
+            for (int i = 0; i < static_cast<int>(rate * 0.25); ++i)
+            {
+                float left = 1.0f, right = -1.0f;
+                float refLeft = 0.0f, refRight = 0.0f;
+                candidate.process(left, right);
+                reference.process(refLeft, refRight);
+                if (!std::isfinite(left) || !std::isfinite(right)
+                    || std::abs(left - refLeft) > 1.0e-6f || std::abs(right - refRight) > 1.0e-6f)
+                    return 23;
+                energy += left * left + right * right;
+            }
+            if (energy <= 0.0)
+                return 24;
+        }
+
         std::cout << rate << " Hz passed\n";
     }
 }

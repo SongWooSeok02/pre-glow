@@ -45,3 +45,7 @@ Verified on Apple Silicon: Release AU, VST3 and Standalone builds, Bloom impulse
 **Bloom and Swell** each have a switch. Turning a switch on expands its settings; turning it off collapses the row and keeps its settings. Swell fades in the wet signal when input crosses the Sensitivity threshold. Time sets the rise duration and Curve shapes the fade. Both switches start off in new projects. Schema 1 and 2 projects with a positive saved Bloom Amount restore with Bloom on; Swell defaults off.
 
 Verified on Apple Silicon: Release AU, VST3 and Standalone builds; DSP at 44.1, 48, 88.2 and 96 kHz; AU validation with `auval`; both effects and off states in AU/VST3 at 48 kHz; and independent expansion and collapse in Standalone. Logic window behavior remains to be checked.
+
+When combining switches, Freeze holds the tail and suspends Infinite Decay, Bloom and Swell without changing their settings. Releasing it resumes the selected decay mode and lets the wet contours respond to input again. Bloom and Swell use the lower of their two gains for each wet path rather than multiplying the gains.
+
+Verified all 16 switch combinations for bounded DSP output and compared the frozen combinations against Freeze alone at four sample rates. The all-on and release paths also passed in AU and VST3 at 48 kHz, and the AU passed Apple validation.

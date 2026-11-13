@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Coordinated Freeze, Infinite Decay, Bloom and Swell so their switches can be combined without stacking wet gain fades.
+
 - Added Swell with Time, Sensitivity and Curve controls.
 - Added Bloom and Swell switches that expand or collapse their settings.
 

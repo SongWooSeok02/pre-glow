@@ -98,11 +98,11 @@ public:
         std::fill(earlyHistory.begin(), earlyHistory.end(), std::array<float, 2> {});
         earlyPosition = 0;
         damping = targetDamping;
-        bloomPeak = bloomEnvelope = 0.0f;
+        bloomPeak = bloomEnvelope = bloomContour = 0.0f;
         swellPeak = swellProgress = 0.0f;
         swellTriggered = swellInputActive = false;
         swellMix = targetSwellMix;
-        swellGain = 1.0f - swellMix;
+        swellGain = targetFreeze ? 1.0f : 1.0f - swellMix;
         swellCurve = targetSwellCurve;
         bloomAmount = targetBloomAmount;
         bloomShape = targetBloomShape;
@@ -156,32 +156,55 @@ public:
         const auto feed = 1.0f - freeze;
         bloomAmount += smoothing * (targetBloomAmount - bloomAmount);
         bloomShape += smoothing * (targetBloomShape - bloomShape);
-        const auto level = feed * std::min(1.0f, 4.0f * std::max(std::abs(left), std::abs(right)));
+        const auto level = std::min(1.0f, 4.0f * std::max(std::abs(left), std::abs(right)));
         // Charge on new input, then let the bloom fade with its own release.
-        bloomPeak = std::max(level, bloomPeak * (1.0f - bloomRelease));
-        bloomEnvelope += bloomAttack * (bloomPeak - bloomEnvelope);
+        if (targetFreeze)
+        {
+            bloomPeak = 0.0f;
+            bloomEnvelope = 1.0f;
+        }
+        else if (targetBloomAmount == 0.0f)
+            bloomPeak = bloomEnvelope = 0.0f;
+        else
+        {
+            bloomPeak = std::max(level, bloomPeak * (1.0f - bloomRelease));
+            bloomEnvelope += bloomAttack * (bloomPeak - bloomEnvelope);
+        }
         const auto contour = bloomEnvelope * (1.0f - bloomShape + bloomShape * bloomEnvelope);
+        bloomContour += smoothing * (contour - bloomContour);
         const auto bloom = feed * bloomAmount;
-        const auto earlyGain = 1.0f - bloom;
-        const auto lateGain = earlyGain + bloom * contour;
+        const auto bloomEarlyGain = 1.0f - bloom;
+        const auto bloomLateGain = bloomEarlyGain + bloom * bloomContour;
         swellMix += smoothing * (targetSwellMix - swellMix);
         swellCurve += smoothing * (targetSwellCurve - swellCurve);
-        swellPeak = std::max(feed * std::max(std::abs(left), std::abs(right)),
-                             swellPeak * (1.0f - swellDetectorRelease));
-        if (swellInputActive && swellPeak < swellThreshold * 0.5f)
-            swellInputActive = false;
-        // Re-arm after quiet input without cutting the outgoing tail.
-        if (!swellInputActive && swellPeak >= swellThreshold)
+        if (targetFreeze || targetSwellMix == 0.0f)
         {
-            swellInputActive = swellTriggered = true;
-            swellProgress = 0.0f;
+            swellPeak = 0.0f;
+            swellInputActive = swellTriggered = false;
+            // Releasing Freeze should not close the gate on the held tail.
+            swellProgress = targetFreeze ? 1.0f : 0.0f;
         }
-        if (swellTriggered)
-            swellProgress = std::min(1.0f, swellProgress + swellStep);
+        else
+        {
+            swellPeak = std::max(std::max(std::abs(left), std::abs(right)),
+                                 swellPeak * (1.0f - swellDetectorRelease));
+            if (swellInputActive && swellPeak < swellThreshold * 0.5f)
+                swellInputActive = false;
+            if (!swellInputActive && swellPeak >= swellThreshold)
+            {
+                swellInputActive = swellTriggered = true;
+                swellProgress = 0.0f;
+            }
+            if (swellTriggered)
+                swellProgress = std::min(1.0f, swellProgress + swellStep);
+        }
         const auto swellFade = swellProgress * (1.0f - swellCurve + swellCurve * swellProgress);
-        const auto swellTarget = 1.0f - feed * swellMix * (1.0f - swellFade);
+        const auto swellTarget = 1.0f - swellMix * (1.0f - swellFade);
         swellGain += swellGainSmoothing * (swellTarget - swellGain);
-        const auto wetWithSwell = wet * swellGain;
+        const auto swellWetGain = 1.0f - feed * (1.0f - swellGain);
+        // Share a single gain per wet path, so the two envelopes cannot compound.
+        const auto earlyGain = std::min(bloomEarlyGain, swellWetGain);
+        const auto lateGain = std::min(bloomLateGain, swellWetGain);
         const auto dampingAmount = feed * std::min(1.0f, damping * dampingScale);
         std::array<float, 4> taps {};
         for (std::size_t i = 0; i < lines.size(); ++i)
@@ -236,8 +259,8 @@ public:
         auto lateRight = 0.45f * (a - b + c - d);
         applyWidth(early[0], early[1], earlyWidth);
         applyWidth(lateLeft, lateRight, lateWidth);
-        left = dry * left + wetWithSwell * (earlyGain * earlyLevel * early[0] + lateGain * lateLeft);
-        right = dry * right + wetWithSwell * (earlyGain * earlyLevel * early[1] + lateGain * lateRight);
+        left = dry * left + wet * (earlyGain * earlyLevel * early[0] + lateGain * lateLeft);
+        right = dry * right + wet * (earlyGain * earlyLevel * early[1] + lateGain * lateRight);
     }
 
 private:
@@ -329,6 +352,7 @@ private:
     bool swellInputActive = false;
     float samplesPerMs = 48.0f;
     float bloomPeak = 0.0f;
+    float bloomContour = 0.0f;
     float bloomEnvelope = 0.0f;
     float bloomAmount = 0.0f;
     float targetBloomAmount = 0.0f;
