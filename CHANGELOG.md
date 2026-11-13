@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Added Pre-Reverb Shimmer with a smooth route transition and Freeze-aware input. Existing preset route indices are preserved.
+- Added an EQ-style spectrum display for the Dry and Reverb signals at their mix levels.
+
 - Added a Shimmer On switch that fades both Shimmer routes out without changing their settings. State schema 6 stores the switch; older sessions restore with Shimmer enabled.
 
 - Kept Shimmer voice value fields inside their cards with per-column spacing and bottom padding.

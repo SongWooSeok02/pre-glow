@@ -7,12 +7,13 @@ namespace
 constexpr int voiceRowHeight = 122;
 constexpr int voiceHeaderHeight = 48;
 constexpr int maxVoiceHeight = 4 * voiceHeaderHeight + voiceRowHeight;
+constexpr int spectrumHeight = 172;
 constexpr int compactHeight = 250;
 constexpr int sectionHeight = 136;
 constexpr std::size_t bloomStart = 6;
 constexpr std::size_t swellStart = 10;
 }
-PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner)
+PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner), ownerProcessor(owner)
 {
     constexpr std::array ids { parameters::decay, parameters::damping, parameters::dry, parameters::wet, parameters::earlyWidth, parameters::lateWidth,
                                parameters::bloomAmount, parameters::bloomAttack, parameters::bloomRelease, parameters::bloomShape,
@@ -136,7 +137,8 @@ PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner)
         voiceLabels[i].setJustificationType(juce::Justification::centred);
         voiceContent.addAndMakeVisible(voiceLabels[i]);
     }
-    setSize(620, compactHeight);
+    setSize(620, compactHeight + spectrumHeight);
+    startTimerHz(30);
     updateSections();
 }
 
@@ -170,14 +172,105 @@ void PluginEditor::updateSections()
         voiceSliders[i].setVisible(visible);
         voiceLabels[i].setVisible(visible);
     }
-    setSize(getWidth(), compactHeight + sectionHeight * (static_cast<int>(bloomOpen) + static_cast<int>(swellOpen))
+    setSize(getWidth(), compactHeight + spectrumHeight + sectionHeight * (static_cast<int>(bloomOpen) + static_cast<int>(swellOpen))
         + (shimmerOpen ? 100 + std::min(maxVoiceHeight, static_cast<int>(voiceDetails.size()) * voiceHeaderHeight + expandedCount * voiceRowHeight) : 0));
     resized();
+}
+
+void PluginEditor::timerCallback()
+{
+    constexpr auto size = PluginProcessor::spectrumSize;
+    const auto hasFrame = ownerProcessor.readSpectrum(spectrumFrame, spectrumSampleRate);
+    for (std::size_t source = 0; source < spectrum.size(); ++source)
+    {
+        std::array<float, size / 2 + 1> magnitude {};
+        if (hasFrame)
+        {
+            for (std::size_t channel = 0; channel < 2; ++channel)
+            {
+                fftWork.fill(0.0f);
+                const auto& samples = spectrumFrame[2 * source + channel];
+                std::copy(samples.begin(), samples.end(), fftWork.begin());
+                spectrumWindow.multiplyWithWindowingTable(fftWork.data(), size);
+                spectrumFFT.performFrequencyOnlyForwardTransform(fftWork.data(), true);
+                for (std::size_t bin = 0; bin < magnitude.size(); ++bin)
+                    magnitude[bin] = std::max(magnitude[bin], fftWork[bin] * (2.0f / size));
+            }
+        }
+        for (std::size_t bin = 0; bin < magnitude.size(); ++bin)
+            spectrum[source][bin] = std::max(magnitude[bin], spectrum[source][bin] * 0.89f);
+    }
+    repaint(spectrumBounds);
+}
+
+void PluginEditor::paintSpectrum(juce::Graphics& g)
+{
+    const auto bounds = spectrumBounds.toFloat();
+    const auto plot = bounds.withTrimmedLeft(39).withTrimmedRight(12)
+                            .withTrimmedTop(29).withTrimmedBottom(21);
+    constexpr float minHz = 20.0f, maxHz = 20000.0f, minDB = -90.0f, maxDB = 6.0f;
+    const auto xFor = [&](float hz) { return plot.getX() + plot.getWidth() * std::log(hz / minHz) / std::log(maxHz / minHz); };
+    const auto yFor = [&](float db) { return plot.getBottom() - plot.getHeight() * (db - minDB) / (maxDB - minDB); };
+    const std::array colours { juce::Colour(0xff60d8ee), juce::Colour(0xffc29bff) };
+
+    g.setColour(juce::Colour(0xff10111e));
+    g.fillRoundedRectangle(bounds, 6.0f);
+    g.setFont(juce::FontOptions(11.0f));
+    for (const auto db : { -90, -60, -30, 0 })
+    {
+        const auto y = yFor(static_cast<float>(db));
+        g.setColour(juce::Colour(0xff303247));
+        g.drawHorizontalLine(juce::roundToInt(y), plot.getX(), plot.getRight());
+        g.setColour(juce::Colour(0xffb7b5cd));
+        g.drawText(juce::String(db), juce::Rectangle<float>(bounds.getX(), y - 7, 33, 14), juce::Justification::centredRight);
+    }
+    for (const auto hz : { 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000 })
+    {
+        const auto x = xFor(static_cast<float>(hz));
+        g.setColour(juce::Colour(0xff303247));
+        g.drawVerticalLine(juce::roundToInt(x), plot.getY(), plot.getBottom());
+        g.setColour(juce::Colour(0xffb7b5cd));
+        const auto label = hz >= 1000 ? juce::String(hz / 1000) + "k" : juce::String(hz);
+        g.drawText(label, juce::Rectangle<float>(std::min(x - 15, bounds.getRight() - 30),
+                                               plot.getBottom() + 3, 30, 15), juce::Justification::centred);
+    }
+    g.drawText("dBFS", juce::Rectangle<float>(bounds.getX() + 8, bounds.getY() + 6, 35, 15), juce::Justification::centredLeft);
+    for (std::size_t source = 0; source < spectrum.size(); ++source)
+    {
+        g.setColour(colours[source]);
+        g.drawText(source == 0 ? "Dry" : "Reverb", juce::Rectangle<float>(bounds.getX() + 47 + 60 * static_cast<float>(source),
+                                               bounds.getY() + 6, 59, 15), juce::Justification::centredLeft);
+        if (spectrumSampleRate <= 0.0)
+            continue;
+
+        juce::Path path;
+        const auto width = juce::roundToInt(plot.getWidth());
+        for (int pixel = 0; pixel <= width; ++pixel)
+        {
+            const auto fraction = static_cast<float>(pixel) / static_cast<float>(width);
+            const auto hz = minHz * std::pow(maxHz / minHz, fraction);
+            const auto bin = static_cast<float>(hz * PluginProcessor::spectrumSize / spectrumSampleRate);
+            const auto index = static_cast<std::size_t>(bin);
+            if (index + 1 >= spectrum[source].size())
+                break;
+            const auto magnitude = juce::jmap(bin - static_cast<float>(index),
+                                              spectrum[source][index], spectrum[source][index + 1]);
+            const auto db = juce::Decibels::gainToDecibels(magnitude, minDB);
+            const auto x = plot.getX() + fraction * plot.getWidth();
+            const auto y = yFor(juce::jlimit(minDB, maxDB, db));
+            if (pixel == 0)
+                path.startNewSubPath(x, y);
+            else
+                path.lineTo(x, y);
+        }
+        g.strokePath(path, juce::PathStrokeType(1.4f));
+    }
 }
 
 void PluginEditor::paint(juce::Graphics& graphics)
 {
     graphics.fillAll(juce::Colour(0xff151627));
+    paintSpectrum(graphics);
     graphics.setColour(juce::Colour(0xfff0eaff));
     graphics.setFont(juce::FontOptions(30.0f));
     graphics.drawText(JucePlugin_Name, getLocalBounds().removeFromTop(68).reduced(24, 0), juce::Justification::centredLeft);
@@ -190,6 +283,7 @@ void PluginEditor::resized()
     shimmerPanel.setBounds(titleRow.removeFromRight(96).withSizeKeepingCentre(96, 28));
     titleRow.removeFromRight(8);
     shimmerPower.setBounds(titleRow.removeFromRight(110).withSizeKeepingCentre(110, 28));
+    spectrumBounds = controls.removeFromTop(spectrumHeight).reduced(4, 6);
     auto options = controls.removeFromTop(28);
     character.setBounds(options.removeFromLeft(130));
     options.removeFromLeft(12);

@@ -30,7 +30,7 @@ inline constexpr auto stateType = "PreGlowState";
 inline constexpr int schemaVersion = 6;
 inline constexpr auto shimmerEnabled = "shimmer_enabled";
 inline constexpr auto shimmerRouting = "shimmer_routing";
-inline const juce::StringArray shimmerRoutes { "Feedback", "Post-Reverb" };
+inline const juce::StringArray shimmerRoutes { "Feedback", "Post-Reverb", "Pre-Reverb" };
 inline constexpr auto shimmerMix = "shimmer_mix";
 inline constexpr auto shimmerFeedback = "shimmer_feedback";
 struct VoiceParameter

@@ -372,6 +372,38 @@ int main()
                 return 30;
         }
 
+        auto pre = shimmer;
+        auto bypass = shimmer;
+        pre.setShimmer(voices, 1.0f, 0.0f, true);
+        bypass.setShimmer(voices, 0.0f, 0.0f, true);
+        pre.reset();
+        bypass.reset();
+        double preDifference = 0.0;
+        for (int i = 0; i < rate; ++i)
+        {
+            const auto input = i % 257 == 0 ? 0.5f : 0.0f;
+            const auto pitched = pre.processSources(input, input);
+            const auto plain = bypass.processSources(input, input);
+            if (pitched.dry != plain.dry || !std::isfinite(pitched.wet[0]))
+                return 31;
+            preDifference += std::abs(pitched.wet[0] - plain.wet[0]);
+        }
+        if (preDifference < 0.01)
+            return 32;
+
+        shimmerSettings.freeze = true;
+        pre.setTarget(shimmerSettings);
+        if (!drive(pre, 0.0f))
+            return 33;
+        auto silentInput = pre;
+        for (int i = 0; i < rate; ++i)
+        {
+            const auto pitched = pre.processSources(0.5f, 0.5f);
+            const auto reference = silentInput.processSources(0.0f, 0.0f);
+            if (pitched.wet != reference.wet)
+                return 34;
+        }
+
         std::cout << rate << " Hz passed\n";
     }
 }

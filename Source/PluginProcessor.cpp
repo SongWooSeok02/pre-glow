@@ -28,10 +28,11 @@ void PluginProcessor::updateShimmer() noexcept
     // The reverb smooths the effective mix for both the wet layer and feedback send.
     const auto amount = shimmerEnabled->load(std::memory_order_relaxed) > 0.5f
         ? shimmerMix->load(std::memory_order_relaxed) * 0.01f : 0.0f;
-    const auto feedback = shimmerRouting->load(std::memory_order_relaxed) < 0.5f
+    const auto route = shimmerRouting->load(std::memory_order_relaxed);
+    const auto feedback = route < 0.5f
         ? shimmerFeedback->load(std::memory_order_relaxed) * 0.01f : 0.0f;
     for (auto& engine : engines)
-        engine.setShimmer(voices, amount, feedback);
+        engine.setShimmer(voices, amount, feedback, route >= 1.5f);
 }
 
 ReverbSettings PluginProcessor::readSettings() const noexcept
@@ -57,6 +58,7 @@ void PluginProcessor::prepareToPlay(double sampleRate, int)
         engines[i].prepare(sampleRate, static_cast<ReverbCharacter>(i));
         engines[i].setTarget(settings);
     }
+    spectrumRate = sampleRate;
     characterSmoothing = static_cast<float>(-std::expm1(-1.0 / (0.025 * sampleRate)));
     updateShimmer();
     reset();
@@ -72,28 +74,63 @@ void PluginProcessor::reset()
 {
     for (auto& engine : engines)
         engine.reset();
+    spectrumPosition = 0;
     targetCharacter = readCharacter();
     characterWeights.fill(0.0f);
     characterWeights[targetCharacter] = 1.0f;
 }
 
-void PluginProcessor::processSample(float& left, float& right) noexcept
+bool PluginProcessor::readSpectrum(SpectrumFrame& frame, double& sampleRate) noexcept
 {
-    float outputLeft = 0.0f;
-    float outputRight = 0.0f;
+    if (!spectrumPending.load(std::memory_order_acquire))
+        return false;
+    frame = spectrumReady;
+    sampleRate = readySpectrumRate;
+    spectrumPending.store(false, std::memory_order_release);
+    return true;
+}
+
+void PluginProcessor::captureSpectrum(const Reverb::Output& output) noexcept
+{
+    spectrumWrite[0][spectrumPosition] = output.dry[0];
+    spectrumWrite[1][spectrumPosition] = output.dry[1];
+    spectrumWrite[2][spectrumPosition] = output.wet[0];
+    spectrumWrite[3][spectrumPosition] = output.wet[1];
+    if (++spectrumPosition != spectrumSize)
+        return;
+
+    spectrumPosition = 0;
+    if (!spectrumPending.load(std::memory_order_acquire))
+    {
+        spectrumReady = spectrumWrite;
+        readySpectrumRate = spectrumRate;
+        spectrumPending.store(true, std::memory_order_release);
+    }
+}
+
+void PluginProcessor::processSample(float& left, float& right, bool mono) noexcept
+{
+    Reverb::Output mixed {};
     for (std::size_t i = 0; i < engines.size(); ++i)
     {
-        auto l = left;
-        auto r = right;
-        engines[i].process(l, r);
+        const auto output = engines[i].processSources(left, right);
         auto& weight = characterWeights[i];
         const auto target = i == targetCharacter ? 1.0f : 0.0f;
         weight += characterSmoothing * (target - weight);
-        outputLeft += weight * l;
-        outputRight += weight * r;
+        for (std::size_t channel = 0; channel < 2; ++channel)
+        {
+            mixed.dry[channel] += weight * output.dry[channel];
+            mixed.wet[channel] += weight * output.wet[channel];
+        }
     }
-    left = outputLeft;
-    right = outputRight;
+    left = mixed.dry[0] + mixed.wet[0];
+    right = mixed.dry[1] + mixed.wet[1];
+    if (mono)
+    {
+        mixed.dry.fill(0.5f * (mixed.dry[0] + mixed.dry[1]));
+        mixed.wet.fill(0.5f * (mixed.wet[0] + mixed.wet[1]));
+    }
+    captureSpectrum(mixed);
 }
 
 bool PluginProcessor::isBusesLayoutSupported(const BusesLayout& layout) const
@@ -121,7 +158,7 @@ void PluginProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiB
         for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
         {
             auto right = left[sample];
-            processSample(left[sample], right);
+            processSample(left[sample], right, true);
             left[sample] = 0.5f * (left[sample] + right);
         }
         return;
@@ -129,12 +166,16 @@ void PluginProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiB
 
     auto* right = buffer.getWritePointer(1);
     for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
-        processSample(left[sample], right[sample]);
+        processSample(left[sample], right[sample], false);
 }
 
 void PluginProcessor::processBlockBypassed(juce::AudioBuffer<float>& buffer, juce::MidiBuffer&)
 {
     upmixMonoInput(buffer);
+    const auto* left = buffer.getReadPointer(0);
+    const auto* right = buffer.getReadPointer(getMainBusNumOutputChannels() - 1);
+    for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
+        captureSpectrum({ { left[sample], right[sample] }, {} });
 }
 
 void PluginProcessor::upmixMonoInput(juce::AudioBuffer<float>& buffer) const noexcept

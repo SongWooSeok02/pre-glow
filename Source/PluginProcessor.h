@@ -33,6 +33,11 @@ public:
     void getStateInformation(juce::MemoryBlock&) override;
     void setStateInformation(const void*, int) override;
 
+    static constexpr int spectrumOrder = 11;
+    static constexpr int spectrumSize = 1 << spectrumOrder;
+    using SpectrumFrame = std::array<std::array<float, spectrumSize>, 4>;
+    bool readSpectrum(SpectrumFrame& frame, double& sampleRate) noexcept;
+
     juce::AudioProcessorValueTreeState state;
 
 private:
@@ -50,7 +55,12 @@ private:
     const std::atomic<float>* const mix = state.getRawParameterValue(parameters::mix);
     const std::atomic<float>* const dry = state.getRawParameterValue(parameters::dry);
     const std::atomic<float>* const wet = state.getRawParameterValue(parameters::wet);
-    void processSample(float& left, float& right) noexcept;
+    void processSample(float& left, float& right, bool mono) noexcept;
+    void captureSpectrum(const Reverb::Output& output) noexcept;
+    SpectrumFrame spectrumWrite {}, spectrumReady {};
+    std::atomic<bool> spectrumPending { false };
+    std::size_t spectrumPosition = 0;
+    double spectrumRate = 0.0, readySpectrumRate = 0.0;
     std::size_t readCharacter() const noexcept;
     const std::atomic<float>* const character = state.getRawParameterValue(parameters::character);
     const std::atomic<float>* const earlyWidth = state.getRawParameterValue(parameters::earlyWidth);

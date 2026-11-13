@@ -35,11 +35,13 @@ class Reverb
 public:
     static constexpr float infiniteDecaySeconds = 600.0f;
 
-    void setShimmer(const std::array<Shimmer::Voice, Shimmer::voiceCount>& voices, float mix, float feedback) noexcept
+    void setShimmer(const std::array<Shimmer::Voice, Shimmer::voiceCount>& voices, float mix, float feedback, bool pre = false) noexcept
     {
         shimmer.setVoices(voices);
         targetShimmerMix = mix;
         targetShimmerFeedback = feedback;
+        targetPreRoute = pre ? 1.0f : 0.0f;
+        preShimmer.setVoices(voices);
     }
 
     void prepare(double sampleRate, ReverbCharacter character = ReverbCharacter::hall)
@@ -89,6 +91,7 @@ public:
         swellGainSmoothing = 1.0f / (1.0f + 5.0f * samplesPerMs);
         swellDetectorRelease = 1.0f / (1.0f + 40.0f * samplesPerMs);
         shimmer.prepare(sampleRate);
+        preShimmer.prepare(sampleRate);
         freezeStep = static_cast<float>(1.0 / (0.10 * sampleRate));
         reset();
     }
@@ -116,6 +119,8 @@ public:
         bloomAmount = targetBloomAmount;
         bloomShape = targetBloomShape;
         shimmer.reset();
+        preShimmer.reset();
+        preRoute = targetPreRoute;
         shimmerMix = targetShimmerMix;
         shimmerFeedback = targetShimmerFeedback;
         freeze = targetFreeze ? 1.0f : 0.0f;
@@ -154,7 +159,16 @@ public:
         targetDry = bounded(settings.dry, 0.0f, 1.0f, 0.65f);
     }
 
+    struct Output { std::array<float, 2> dry, wet; };
+
     void process(float& left, float& right) noexcept
+    {
+        const auto output = processSources(left, right);
+        left = output.dry[0] + output.wet[0];
+        right = output.dry[1] + output.wet[1];
+    }
+
+    Output processSources(float left, float right) noexcept
     {
         left = std::isfinite(left) ? left : 0.0f;
         right = std::isfinite(right) ? right : 0.0f;
@@ -233,25 +247,30 @@ public:
         shimmerFeedback += smoothing * (targetShimmerFeedback - shimmerFeedback);
         const auto lateLeftRaw = 0.45f * (a + b - c - d);
         const auto lateRightRaw = 0.45f * (a - b + c - d);
-        Shimmer::Output shifted;
-        if (targetShimmerMix > 0.0f || shimmerMix > 0.00001f)
-            shifted = shimmer.process(lateLeftRaw, lateRightRaw);
-        else if (shimmerMix > 0.0f)
-        {
+        preRoute += smoothing * (targetPreRoute - preRoute);
+        if (std::abs(preRoute - targetPreRoute) < 0.00001f)
+            preRoute = targetPreRoute;
+        if (targetShimmerMix == 0.0f && shimmerMix < 0.00001f)
             shimmerMix = 0.0f;
-            shimmer.reset();
-        }
+
+        const auto preMix = shimmerMix * preRoute;
+        const auto lateMix = shimmerMix * (1.0f - preRoute);
+        const auto shifted = processShimmer(shimmer, lateShimmerRunning, lateMix, lateLeftRaw, lateRightRaw);
+        const auto pre = processShimmer(preShimmer, preShimmerRunning, preMix,
+                                       feed * left, feed * right);
+        const auto reverbLeft = left + preMix * pre.wet[0];
+        const auto reverbRight = right + preMix * pre.wet[1];
         // Reserve part of the normal loop's loss for the pitch-shifted return.
         // This preserves the original feedback coefficient at every setting.
         float loopGain = 0.0f;
         for (const auto& line : lines)
             loopGain = std::max(loopGain, line.gain);
-        const auto feedbackGain = feed * shimmerMix * shimmerFeedback
+        const auto feedbackGain = feed * lateMix * shimmerFeedback
             * std::min(0.25f, 2.0f * (1.0f - loopGain));
         const auto [sendLeft, sendRight] = shifted.feedback;
         const std::array shimmerReturn { sendLeft, sendRight, -sendLeft, -sendRight };
         const std::array mixed { a + b + c + d, a - b + c - d, a + b - c - d, a - b - c + d };
-        const std::array input { left, right, -left, -right };
+        const std::array input { reverbLeft, reverbRight, -reverbLeft, -reverbRight };
         for (std::size_t i = 0; i < lines.size(); ++i)
         {
             auto& line = lines[i];
@@ -277,7 +296,7 @@ public:
             early[0] += direct * l + cross * r;
             early[1] += direct * r + cross * l;
         }
-        earlyHistory[earlyPosition] = { feed * std::clamp(left, -8.0f, 8.0f), feed * std::clamp(right, -8.0f, 8.0f) };
+        earlyHistory[earlyPosition] = { feed * std::clamp(reverbLeft, -8.0f, 8.0f), feed * std::clamp(reverbRight, -8.0f, 8.0f) };
         if (++earlyPosition == earlyHistory.size())
             earlyPosition = 0;
 
@@ -289,16 +308,35 @@ public:
                 early[channel] = reflectionLow[channel];
             }
         }
-        auto lateLeft = lateLeftRaw + shimmerMix * shifted.wet[0];
-        auto lateRight = lateRightRaw + shimmerMix * shifted.wet[1];
+        auto lateLeft = lateLeftRaw + lateMix * shifted.wet[0];
+        auto lateRight = lateRightRaw + lateMix * shifted.wet[1];
         applyWidth(early[0], early[1], earlyWidth);
         applyWidth(lateLeft, lateRight, lateWidth);
-        left = dry * left + wet * (earlyGain * earlyLevel * early[0] + lateGain * lateLeft);
-        right = dry * right + wet * (earlyGain * earlyLevel * early[1] + lateGain * lateRight);
+        return { { dry * left, dry * right },
+                 { wet * (earlyGain * earlyLevel * early[0] + lateGain * lateLeft),
+                   wet * (earlyGain * earlyLevel * early[1] + lateGain * lateRight) } };
     }
 
 private:
-    Shimmer shimmer;
+    static Shimmer::Output processShimmer(Shimmer& processor, bool& running, float mix,
+                                         float left, float right) noexcept
+    {
+        if (mix > 0.0f)
+        {
+            running = true;
+            return processor.process(left, right);
+        }
+        if (running)
+        {
+            processor.reset();
+            running = false;
+        }
+        return {};
+    }
+
+    Shimmer shimmer, preShimmer;
+    bool lateShimmerRunning = false, preShimmerRunning = false;
+    float preRoute = 0.0f, targetPreRoute = 0.0f;
     float shimmerMix = 0.0f, shimmerFeedback = 0.0f;
     float targetShimmerMix = 0.0f, targetShimmerFeedback = 0.0f;
 

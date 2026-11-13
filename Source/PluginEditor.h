@@ -1,9 +1,10 @@
 #pragma once
 #include "PluginProcessor.h"
+#include <juce_dsp/juce_dsp.h>
 
 namespace preglow
 {
-class PluginEditor final : public juce::AudioProcessorEditor
+class PluginEditor final : public juce::AudioProcessorEditor, private juce::Timer
 {
 public:
     explicit PluginEditor(PluginProcessor&);
@@ -12,6 +13,17 @@ public:
 
 private:
     void updateSections();
+    void timerCallback() override;
+    void paintSpectrum(juce::Graphics&);
+    PluginProcessor& ownerProcessor;
+    juce::Rectangle<int> spectrumBounds;
+    juce::dsp::FFT spectrumFFT { PluginProcessor::spectrumOrder };
+    juce::dsp::WindowingFunction<float> spectrumWindow {
+        PluginProcessor::spectrumSize, juce::dsp::WindowingFunction<float>::hann };
+    PluginProcessor::SpectrumFrame spectrumFrame {};
+    std::array<float, 2 * PluginProcessor::spectrumSize> fftWork {};
+    std::array<std::array<float, PluginProcessor::spectrumSize / 2 + 1>, 2> spectrum {};
+    double spectrumSampleRate = 0.0;
     juce::TextButton shimmerPanel { "Shimmer" };
     juce::ToggleButton shimmerPower { "Shimmer On" };
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> shimmerPowerAttachment;
