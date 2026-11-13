@@ -47,6 +47,10 @@ private:
     std::size_t readCharacter() const noexcept;
     const std::atomic<float>* const character = state.getRawParameterValue(parameters::character);
     const std::atomic<float>* const earlyWidth = state.getRawParameterValue(parameters::earlyWidth);
+    const std::atomic<float>* const bloomAmount = state.getRawParameterValue(parameters::bloomAmount);
+    const std::atomic<float>* const bloomAttack = state.getRawParameterValue(parameters::bloomAttack);
+    const std::atomic<float>* const bloomRelease = state.getRawParameterValue(parameters::bloomRelease);
+    const std::atomic<float>* const bloomShape = state.getRawParameterValue(parameters::bloomShape);
     const std::atomic<float>* const infinite = state.getRawParameterValue(parameters::infinite);
     const std::atomic<float>* const freeze = state.getRawParameterValue(parameters::freeze);
     const std::atomic<float>* const lateWidth = state.getRawParameterValue(parameters::lateWidth);

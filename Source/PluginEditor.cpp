@@ -4,8 +4,10 @@ namespace preglow
 {
 PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner)
 {
-    constexpr std::array ids { parameters::decay, parameters::damping, parameters::dry, parameters::wet, parameters::earlyWidth, parameters::lateWidth };
-    constexpr std::array names { "Decay", "Damping", "Dry", "Wet", "Early Width", "Late Width" };
+    constexpr std::array ids { parameters::decay, parameters::damping, parameters::dry, parameters::wet, parameters::earlyWidth, parameters::lateWidth,
+                               parameters::bloomAmount, parameters::bloomAttack, parameters::bloomRelease, parameters::bloomShape };
+    constexpr std::array names { "Decay", "Damping", "Dry", "Wet", "Early Width", "Late Width",
+                                 "Bloom Amount", "Bloom Attack", "Bloom Release", "Bloom Shape" };
     for (std::size_t i = 0; i < sliders.size(); ++i)
     {
         auto& slider = sliders[i];
@@ -33,8 +35,8 @@ PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner)
     infiniteAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
         owner.state, parameters::infinite, infinite);
     setResizable(true, true);
-    setResizeLimits(560, 250, 900, 560);
-    setSize(620, 290);
+    setResizeLimits(560, 354, 900, 640);
+    setSize(620, 400);
 }
 
 void PluginEditor::paint(juce::Graphics& graphics)
@@ -55,12 +57,18 @@ void PluginEditor::resized()
     freeze.setBounds(options.removeFromLeft(90));
     infinite.setBounds(options.removeFromLeft(140));
     controls.removeFromTop(8);
-    const auto width = controls.getWidth() / static_cast<int>(sliders.size());
-    for (std::size_t i = 0; i < sliders.size(); ++i)
+    const auto layoutRow = [&](juce::Rectangle<int> row, std::size_t start, std::size_t count)
     {
-        auto column = controls.removeFromLeft(width).reduced(6);
-        labels[i].setBounds(column.removeFromTop(24));
-        sliders[i].setBounds(column);
-    }
+        const auto width = row.getWidth() / static_cast<int>(count);
+        for (auto i = start; i < start + count; ++i)
+        {
+            auto column = row.removeFromLeft(width).reduced(6);
+            labels[i].setBounds(column.removeFromTop(24));
+            sliders[i].setBounds(column);
+        }
+    };
+    auto mainRow = controls.removeFromTop(controls.getHeight() / 2);
+    layoutRow(mainRow, 0, 6);
+    layoutRow(controls, 6, 4);
 }
 }

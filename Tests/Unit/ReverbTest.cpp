@@ -180,6 +180,37 @@ int main()
         if (released < 0.0 || released > later * 0.001)
             return 17;
 
+        const auto bloomEnergy = [rate](float amount, float attack, float release, float shape)
+        {
+            preglow::Reverb engine;
+            engine.prepare(rate);
+            engine.setTarget({ 5.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+                               false, false, amount, attack, release, shape });
+            engine.reset();
+            std::array<double, 3> energy {};
+            for (int i = 0; i < static_cast<int>(rate * 1.5); ++i)
+            {
+                auto left = i == 0 ? 0.5f : 0.0f;
+                auto right = 0.0f;
+                engine.process(left, right);
+                if (!std::isfinite(left) || !std::isfinite(right))
+                    return std::array<double, 3> {};
+                const auto time = i / rate;
+                auto& window = energy[time < 0.1 ? 0 : time < 0.5 ? 1 : 2];
+                window += left * left + right * right;
+            }
+            return energy;
+        };
+        const auto plain = bloomEnergy(0.0f, 250, 1500, 0.0f);
+        const auto bloom = bloomEnergy(1.0f, 250, 1500, 0.0f);
+        const auto fast = bloomEnergy(1.0f, 25, 1500, 0.0f);
+        const auto shortRelease = bloomEnergy(1.0f, 250, 100, 0.0f);
+        const auto curved = bloomEnergy(1.0f, 250, 1500, 1.0f);
+        if (!(bloom[0] > 0.0 && bloom[0] < plain[0] * 0.1 && fast[0] > bloom[0] * 2
+              && bloom[1] / plain[1] > bloom[0] / plain[0]
+              && bloom[2] > shortRelease[2] * 4 && curved[1] > 0.0 && curved[1] < bloom[1]))
+            return 18;
+
         std::cout << rate << " Hz passed\n";
     }
 }

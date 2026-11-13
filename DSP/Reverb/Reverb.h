@@ -19,6 +19,10 @@ struct ReverbSettings
     float dry = 0.65f;
     bool freeze = false;
     bool infinite = false;
+    float bloomAmount = 0.0f;
+    float bloomAttackMs = 250.0f;
+    float bloomReleaseMs = 1500.0f;
+    float bloomShape = 0.5f;
 };
 
 class Reverb
@@ -69,6 +73,7 @@ public:
         lastDecay = -1.0f;
 
         smoothing = static_cast<float>(-std::expm1(-1.0 / (0.025 * sampleRate)));
+        samplesPerMs = static_cast<float>(sampleRate * 0.001);
         freezeStep = static_cast<float>(1.0 / (0.10 * sampleRate));
         reset();
     }
@@ -87,6 +92,9 @@ public:
         std::fill(earlyHistory.begin(), earlyHistory.end(), std::array<float, 2> {});
         earlyPosition = 0;
         damping = targetDamping;
+        bloomPeak = bloomEnvelope = 0.0f;
+        bloomAmount = targetBloomAmount;
+        bloomShape = targetBloomShape;
         freeze = targetFreeze ? 1.0f : 0.0f;
         reflectionLow.fill(0.0f);
         dry = targetDry;
@@ -107,6 +115,10 @@ public:
             lastDecay = decay;
         }
         targetFreeze = settings.freeze;
+        targetBloomAmount = bounded(settings.bloomAmount, 0.0f, 1.0f, 0.0f);
+        targetBloomShape = bounded(settings.bloomShape, 0.0f, 1.0f, 0.5f);
+        bloomAttack = 1.0f / (1.0f + samplesPerMs * bounded(settings.bloomAttackMs, 10.0f, 2000.0f, 250.0f));
+        bloomRelease = 1.0f / (1.0f + samplesPerMs * bounded(settings.bloomReleaseMs, 100.0f, 10000.0f, 1500.0f));
         targetDamping = bounded(settings.damping, 0.0f, 1.0f, 0.45f);
         targetEarlyWidth = bounded(settings.earlyWidth, 0.0f, 2.0f, 1.0f);
         targetLateWidth = bounded(settings.lateWidth, 0.0f, 2.0f, 1.0f);
@@ -126,6 +138,16 @@ public:
         lateWidth += smoothing * (targetLateWidth - lateWidth);
         freeze = std::clamp(freeze + (targetFreeze ? freezeStep : -freezeStep), 0.0f, 1.0f);
         const auto feed = 1.0f - freeze;
+        bloomAmount += smoothing * (targetBloomAmount - bloomAmount);
+        bloomShape += smoothing * (targetBloomShape - bloomShape);
+        const auto level = feed * std::min(1.0f, 4.0f * std::max(std::abs(left), std::abs(right)));
+        // Charge on new input, then let the bloom fade with its own release.
+        bloomPeak = std::max(level, bloomPeak * (1.0f - bloomRelease));
+        bloomEnvelope += bloomAttack * (bloomPeak - bloomEnvelope);
+        const auto contour = bloomEnvelope * (1.0f - bloomShape + bloomShape * bloomEnvelope);
+        const auto bloom = feed * bloomAmount;
+        const auto earlyGain = 1.0f - bloom;
+        const auto lateGain = earlyGain + bloom * contour;
         const auto dampingAmount = feed * std::min(1.0f, damping * dampingScale);
         std::array<float, 4> taps {};
         for (std::size_t i = 0; i < lines.size(); ++i)
@@ -180,8 +202,8 @@ public:
         auto lateRight = 0.45f * (a - b + c - d);
         applyWidth(early[0], early[1], earlyWidth);
         applyWidth(lateLeft, lateRight, lateWidth);
-        left = dry * left + wet * (earlyLevel * early[0] + lateLeft);
-        right = dry * right + wet * (earlyLevel * early[1] + lateRight);
+        left = dry * left + wet * (earlyGain * earlyLevel * early[0] + lateGain * lateLeft);
+        right = dry * right + wet * (earlyGain * earlyLevel * early[1] + lateGain * lateRight);
     }
 
 private:
@@ -258,6 +280,15 @@ private:
     float earlyLevel = 1.0f;
     float lastDecay = -1.0f;
     float smoothing = 1.0f;
+    float samplesPerMs = 48.0f;
+    float bloomPeak = 0.0f;
+    float bloomEnvelope = 0.0f;
+    float bloomAmount = 0.0f;
+    float targetBloomAmount = 0.0f;
+    float bloomShape = 0.5f;
+    float targetBloomShape = 0.5f;
+    float bloomAttack = 1.0f;
+    float bloomRelease = 1.0f;
     float freeze = 0.0f;
     float freezeStep = 1.0f;
     bool targetFreeze = false;

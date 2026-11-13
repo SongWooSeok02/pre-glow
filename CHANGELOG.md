@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added Bloom Amount, Attack, Release and Shape to bring in the late tail gradually.
+
 - Added Infinite Decay for extended tails that continue to accept input.
 
 - Added an automatable Freeze switch that holds the reverb tail while keeping the dry signal live.

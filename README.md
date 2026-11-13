@@ -37,3 +37,7 @@ Verified on Apple Silicon: Release AU, VST3 and Standalone builds; DSP tests at 
 **Infinite Decay** keeps the wet input live and sets the feedback decay to 600 seconds before damping. The Damping control still shapes the tail, and Freeze takes precedence while engaged. Switching Infinite Decay off brings back the Decay knob setting. Older projects default to off.
 
 Verified on Apple Silicon: Release AU, VST3 and Standalone builds; DSP tests at 44.1, 48, 88.2 and 96 kHz; AU validation with `auval`; and AU/VST3 input, persistence and release at 48 kHz in a plug-in host.
+
+**Bloom** softens early reflections and lets the late tail grow in response to input. Amount blends in the effect (0% leaves the original response); Attack sets how quickly it rises, Release sets how long it lingers, and higher Shape values soften the start further. Freeze gradually takes over the tail level while engaged. Older projects load Bloom at 0%.
+
+Verified on Apple Silicon: Release AU, VST3 and Standalone builds, Bloom impulse tests at 44.1, 48, 88.2 and 96 kHz, AU validation with `auval`, and AU/VST3 Bloom response at 48 kHz in a plug-in host. Logic listening remains to be checked.

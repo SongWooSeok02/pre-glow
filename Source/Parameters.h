@@ -15,6 +15,10 @@ inline constexpr auto dry = "dry";
 inline constexpr auto wet = "wet";
 inline constexpr auto freeze = "freeze";
 inline constexpr auto infinite = "infinite";
+inline constexpr auto bloomAmount = "bloom_amount";
+inline constexpr auto bloomAttack = "bloom_attack";
+inline constexpr auto bloomRelease = "bloom_release";
+inline constexpr auto bloomShape = "bloom_shape";
 inline constexpr auto stateType = "PreGlowState";
 inline constexpr int schemaVersion = 2;
 
@@ -38,6 +42,20 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
             juce::AudioParameterFloatAttributes().withLabel("%")));
     layout.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID { freeze, 5 }, "Freeze", false));
     layout.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID { infinite, 6 }, "Infinite Decay", false));
+    for (const auto& [id, name, initial] : { std::tuple { bloomAmount, "Bloom Amount", 0.0f },
+                                           std::tuple { bloomShape, "Bloom Shape", 50.0f } })
+        layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID { id, 7 }, name,
+            juce::NormalisableRange<float> { 0.0f, 100.0f, 1.0f }, initial,
+            juce::AudioParameterFloatAttributes().withLabel("%")));
+    for (const auto& [id, name, minimum, maximum, initial] :
+         { std::tuple { bloomAttack, "Bloom Attack", 10.0f, 2000.0f, 250.0f },
+           std::tuple { bloomRelease, "Bloom Release", 100.0f, 10000.0f, 1500.0f } })
+    {
+        juce::NormalisableRange<float> range { minimum, maximum, 1.0f };
+        range.setSkewForCentre(initial);
+        layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID { id, 7 }, name, range,
+            initial, juce::AudioParameterFloatAttributes().withLabel("ms")));
+    }
     return layout;
 }
 }

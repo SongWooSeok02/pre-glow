@@ -17,8 +17,8 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> freezeAttachment;
     juce::ComboBox character;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> characterAttachment;
-    std::array<juce::Slider, 6> sliders;
-    std::array<juce::Label, 6> labels;
-    std::array<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>, 6> attachments;
+    std::array<juce::Slider, 10> sliders;
+    std::array<juce::Label, 10> labels;
+    std::array<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>, 10> attachments;
 };
 }
