@@ -11,7 +11,8 @@ const juce::Colour surface { 0xffffffff };
 const juce::Colour border { 0xffe2e8f0 };
 const juce::Colour screen { 0xffeef2f6 };
 const juce::Colour coral { 0xffff5e7e };
-const juce::Colour cyan { 0xff007e9a };
+const juce::Colour cyan { 0xff00e5ff };
+const juce::Colour cyanInk { 0xff006b80 };
 const juce::Colour text { 0xff1e293b };
 const juce::Colour muted { 0xff64748b };
 const juce::Colour peach { 0xffff8c42 };
@@ -141,10 +142,10 @@ void PluginEditor::MorphPad::mouseDoubleClick(const juce::MouseEvent&)
 PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner), morphPad(owner), ownerProcessor(owner)
 {
     using namespace PreGlowColors;
-    lookAndFeel.setColourScheme({ canvas, surface, surface, grid, text, cyan, surface, cyan, text });
+    lookAndFeel.setColourScheme({ canvas, surface, surface, grid, text, cyan, text, cyan, text });
     lookAndFeel.setColour(juce::Slider::backgroundColourId, border);
     lookAndFeel.setColour(juce::Slider::trackColourId, cyan);
-    lookAndFeel.setColour(juce::Slider::thumbColourId, cyan.darker(0.25f));
+    lookAndFeel.setColour(juce::Slider::thumbColourId, cyanInk);
     lookAndFeel.setDefaultSansSerifTypefaceName("Arial");
     freeze.setColour(juce::ToggleButton::tickColourId, peach);
 
@@ -798,7 +799,7 @@ void PluginEditor::paintSpectrum(juce::Graphics& g)
     constexpr float minHz = 20.0f, maxHz = 20000.0f, minDB = -90.0f, maxDB = 6.0f;
     const auto xFor = [&](float hz) { return plot.getX() + plot.getWidth() * std::log(hz / minHz) / std::log(maxHz / minHz); };
     const auto yFor = [&](float db) { return plot.getBottom() - plot.getHeight() * (db - minDB) / (maxDB - minDB); };
-    const std::array colours { PreGlowColors::coral, PreGlowColors::cyan };
+    const std::array colours { PreGlowColors::coral, PreGlowColors::cyanInk };
 
     g.setColour(PreGlowColors::screen);
     g.fillRoundedRectangle(bounds, 6.0f);
