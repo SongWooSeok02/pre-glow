@@ -192,7 +192,19 @@ PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner)
     characterBlend.setSliderStyle(juce::Slider::LinearHorizontal);
     characterBlend.setTextBoxStyle(juce::Slider::TextBoxRight, true, 124, 22);
     addAndMakeVisible(characterBlend);
-    bindMorphSlider(characterBlend, parameters::characterBlend, parameters::morphX, characterBlendAttachment);
+    characterBlend.setRange(0.0, 100.0, 1.0);
+    characterBlendAttachment = std::make_unique<juce::ParameterAttachment>(*owner.state.getParameter(parameters::morphX),
+        [this](float) { updateMorphControls(); });
+    characterBlend.onDragStart = [this] { characterBlendAttachment->beginGesture(); };
+    characterBlend.onDragEnd = [this] { characterBlendAttachment->endGesture(); };
+    characterBlend.onValueChange = [this]
+    {
+        const auto x = static_cast<float>(characterBlend.getValue() * 0.02 - 1.0);
+        if (characterBlend.isMouseButtonDown())
+            characterBlendAttachment->setValueAsPartOfGesture(x);
+        else
+            characterBlendAttachment->setValueAsCompleteGesture(x);
+    };
     bindMorphSlider(sliders[wetSliderIndex], parameters::wet, parameters::morphY, wetMorphAttachment);
     characterBlend.textFromValueFunction = [](double value)
     {

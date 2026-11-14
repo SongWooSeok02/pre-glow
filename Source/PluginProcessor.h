@@ -91,7 +91,6 @@ private:
     bool livePathStarted = false;
     std::array<float, characterCount> characterWeights { 1.0f };
     const std::atomic<float>* const characterB = state.getRawParameterValue(parameters::characterB);
-    const std::atomic<float>* const characterBlend = state.getRawParameterValue(parameters::characterBlend);
     std::array<float, characterCount> targetCharacterWeights { 1.0f };
     float characterSmoothing = 1.0f;
 };

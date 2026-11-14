@@ -97,8 +97,8 @@ static float morphValue(float base, float axis) noexcept
 
 float PluginProcessor::effectiveBlend() const noexcept
 {
-    return morphValue(characterBlend->load(std::memory_order_relaxed) * 0.01f,
-                      morphX->load(std::memory_order_relaxed));
+    const auto x = morphX->load(std::memory_order_relaxed);
+    return std::isfinite(x) ? 0.5f * (1.0f + std::clamp(x, -1.0f, 1.0f)) : 0.5f;
 }
 
 float PluginProcessor::effectiveWet() const noexcept
@@ -307,6 +307,7 @@ void PluginProcessor::setStateInformation(const void* data, int size)
             || xml->getIntAttribute("schemaVersion") == 3
             || xml->getIntAttribute("schemaVersion") == 4
             || xml->getIntAttribute("schemaVersion") == 5
+            || xml->getIntAttribute("schemaVersion") == 6
             || xml->getIntAttribute("schemaVersion") == parameters::schemaVersion))
     {
         auto restored = juce::ValueTree::fromXml(*xml);
@@ -363,6 +364,15 @@ void PluginProcessor::setStateInformation(const void* data, int size)
             node.setProperty("id", ranged->getParameterID(), nullptr);
             node.setProperty("value", ranged->convertFrom0to1(ranged->getDefaultValue()), nullptr);
             restored.appendChild(node, nullptr);
+        }
+        if (xml->getIntAttribute("schemaVersion") < 7)
+        {
+            auto x = restored.getChildWithProperty("id", parameters::morphX);
+            const auto blend = restored.getChildWithProperty("id", parameters::characterBlend);
+            const auto base = std::clamp(static_cast<float>(blend.getProperty("value", 0.0f)) * 0.01f, 0.0f, 1.0f);
+            // Missing axes have already been filled with the new default. Legacy axes defaulted to zero.
+            const auto original = juce::ValueTree::fromXml(*xml).getChildWithProperty("id", parameters::morphX);
+            x.setProperty("value", 2.0f * morphValue(base, static_cast<float>(original.getProperty("value", 0.0f))) - 1.0f, nullptr);
         }
         restored.setProperty("schemaVersion", parameters::schemaVersion, nullptr);
         state.replaceState(restored);

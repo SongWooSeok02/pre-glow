@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Centered XY Morph X at an even A/B mix. Schema 7 migrates saved mixes to Morph X. Use Morph X for A/B automation.
+
 - Added a show/hide button for XY Morph that collapses the pad column.
 
 - Moved XY Morph beside the spectrum and linked the Wet and A/B controls to the pad.
