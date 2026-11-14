@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Improve Shimmer dial contrast and use warm gold for the header controls.
+
 - Add cyan accents, visible inactive slider tracks, and more space inside editor sections.
 
 - Use a light editor palette with coral and lavender accents and updated typography.

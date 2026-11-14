@@ -150,6 +150,16 @@ PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner)
     lookAndFeel.setColour(juce::Slider::trackColourId, cyan);
     lookAndFeel.setColour(juce::Slider::thumbColourId, cyanInk);
     lookAndFeel.setDefaultSansSerifTypefaceName("Arial");
+    const juce::Colour goldTint { 0xfffff4d7 };
+    const juce::Colour goldActive { 0xffe3bc62 };
+    const juce::Colour goldInk { 0xff76521b };
+    for (auto* button : { &advancedMode, &duckPanel, &bandPanel, &shimmerPanel })
+    {
+        button->setColour(juce::TextButton::buttonColourId, goldTint);
+        button->setColour(juce::TextButton::buttonOnColourId, goldActive);
+        button->setColour(juce::TextButton::textColourOffId, goldInk);
+    }
+    shimmerPower.setColour(juce::ToggleButton::tickColourId, goldInk);
     freeze.setColour(juce::ToggleButton::tickColourId, peach);
 
     constexpr std::array ids { parameters::decay, parameters::damping, parameters::dry, parameters::wet, parameters::earlyWidth, parameters::lateWidth,
@@ -324,6 +334,8 @@ PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner)
         slider.setTitle(name);
         slider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
         slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 64, 22);
+        slider.setColour(juce::Slider::rotarySliderFillColourId, PreGlowColors::cyanInk);
+        slider.setColour(juce::Slider::rotarySliderOutlineColourId, PreGlowColors::grid);
         addAndMakeVisible(slider);
     };
     constexpr std::array globalIds { parameters::shimmerMix, parameters::shimmerFeedback };
