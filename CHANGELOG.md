@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added feedback damping for the Low, Mid, and High bands in Band Decay.
+
 - Added adjustable band crossover frequencies and bordered control sections.
 
 - Added Low, Mid, and High decay multipliers with fixed 250 Hz and 4 kHz crossover points.

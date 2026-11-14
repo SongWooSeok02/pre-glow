@@ -20,7 +20,7 @@ See [architecture](docs/architecture.md) for the DSP boundary and state contract
 
 On Apple Silicon with Xcode 27.2, Apple Clang 21, CMake 3.31.6 and Ninja, Release builds succeeded for AU, VST3 and Standalone. The Standalone process launched. CTest passed the stereo impulse test at 44.1, 48, 88.2 and 96 kHz, using decay settings of 0.1, 3 and 120 seconds. The test checks finite, bounded samples and stereo tail energy over four seconds per case.
 
-Band Decay with adjustable crossovers and bordered sections built locally on macOS in Standalone, AU, and VST3 formats. Both existing DSP tests passed.
+Band Decay and Feedback Damping with adjustable crossovers and bordered sections built locally on macOS in Standalone, AU, and VST3 formats. Both existing DSP tests passed.
 
 Low Cut placement built locally on macOS in Standalone, AU, and VST3 formats. Both existing DSP tests passed.
 

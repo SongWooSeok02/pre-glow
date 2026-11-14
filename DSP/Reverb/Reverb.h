@@ -55,6 +55,8 @@ public:
         targetHighSplit = -std::expm1(-6.2831853f * highHz / filterSampleRate);
     }
 
+    void setBandDamping(const std::array<float, 3>& amounts) noexcept { targetBandDamping = amounts; }
+
     void setBandDecay(const std::array<float, 3>& amounts) noexcept
     {
         if (amounts == cachedBandDecay && std::abs(lastDecay - cachedBandBaseDecay) < 0.000001f)
@@ -154,6 +156,7 @@ public:
         bloomShape = targetBloomShape;
         shimmer.reset();
         preShimmer.reset();
+        bandDamping = targetBandDamping;
         lowSplit = targetLowSplit;
         highSplit = targetHighSplit;
         inputLow.fill(0.0f);
@@ -279,6 +282,8 @@ public:
         const auto dampingAmount = feed * std::min(1.0f, damping * dampingScale);
         lowSplit += smoothing * (targetLowSplit - lowSplit);
         highSplit += smoothing * (targetHighSplit - highSplit);
+        for (std::size_t band = 0; band < bandDamping.size(); ++band)
+            bandDamping[band] += smoothing * (targetBandDamping[band] - bandDamping[band]);
         std::array<float, 4> taps {};
         for (std::size_t i = 0; i < lines.size(); ++i)
         {
@@ -293,9 +298,9 @@ public:
 
             const auto mid = line.belowHigh - line.lowBand;
             const auto high = line.low - line.belowHigh;
-            const auto correction = line.lowBand * (line.bandGain[0] - line.gain)
-                                  + mid * (line.bandGain[1] - line.gain)
-                                  + high * (line.bandGain[2] - line.gain);
+            const auto correction = line.lowBand * (line.bandGain[0] * (1.0f - bandDamping[0]) - line.gain)
+                                  + mid * (line.bandGain[1] * (1.0f - bandDamping[1]) - line.gain)
+                                  + high * (line.bandGain[2] * (1.0f - bandDamping[2]) - line.gain);
             taps[i] = line.low * (freeze + feed * line.gain) + feed * correction;
         }
 
@@ -389,6 +394,7 @@ private:
     }
 
     std::array<float, 2> inputLow {}, outputLow {};
+    std::array<float, 3> bandDamping {}, targetBandDamping {};
     std::array<float, 2> crossoverHz {};
     float targetLowSplit = 0.0f, targetHighSplit = 0.0f;
     float lowSplit = 0.0f, highSplit = 0.0f;

@@ -12,7 +12,7 @@ constexpr int spectrumWidth = 376;
 constexpr int columnGap = 12;
 constexpr int compactHeight = 250;
 constexpr int characterRowHeight = 34;
-constexpr int bandRowHeight = 120;
+constexpr int bandRowHeight = 174;
 constexpr int sectionHeight = 136;
 constexpr std::size_t bloomStart = 6;
 constexpr std::size_t swellStart = 10;
@@ -53,6 +53,14 @@ PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner)
         slider.setTextValueSuffix("x");
         addAndMakeVisible(slider);
         addAndMakeVisible(bandLabels[band]);
+        auto& dampingSlider = bandDamping[band];
+        dampingSlider.setTitle(parameters::bandDampingNames[band]);
+        dampingSlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 56, 22);
+        bandDampingLabels[band].setText(parameters::bandDampingNames[band], juce::dontSendNotification);
+        bandDampingAttachments[band] = std::make_unique<SliderAttachment>(owner.state, parameters::bandDampingIds[band], dampingSlider);
+        dampingSlider.setTextValueSuffix("%");
+        addAndMakeVisible(dampingSlider);
+        addAndMakeVisible(bandDampingLabels[band]);
     }
     for (std::size_t i = 0; i < crossovers.size(); ++i)
     {
@@ -241,6 +249,8 @@ void PluginEditor::updateSections()
     {
         bandDecay[band].setVisible(bandsOpen);
         bandLabels[band].setVisible(bandsOpen);
+        bandDamping[band].setVisible(bandsOpen);
+        bandDampingLabels[band].setVisible(bandsOpen);
     }
     for (std::size_t i = 0; i < crossovers.size(); ++i)
     {
@@ -418,7 +428,9 @@ void PluginEditor::resized()
         {
             auto cell = bandRow.removeFromLeft(width).reduced(6, 2);
             bandLabels[band].setBounds(cell.removeFromTop(22));
-            bandDecay[band].setBounds(cell);
+            bandDecay[band].setBounds(cell.removeFromTop(28));
+            bandDampingLabels[band].setBounds(cell.removeFromTop(22));
+            bandDamping[band].setBounds(cell);
         }
     }
     if (bloom.getToggleState())

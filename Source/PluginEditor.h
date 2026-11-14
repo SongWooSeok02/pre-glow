@@ -53,9 +53,9 @@ private:
     std::array<juce::Label, 2> crossoverLabels;
     std::array<std::unique_ptr<SliderAttachment>, 2> crossoverAttachments;
     juce::TextButton bandPanel { "Band Decay" };
-    std::array<juce::Slider, 3> bandDecay;
-    std::array<juce::Label, 3> bandLabels;
-    std::array<std::unique_ptr<SliderAttachment>, 3> bandAttachments;
+    std::array<juce::Slider, 3> bandDecay, bandDamping;
+    std::array<juce::Label, 3> bandLabels, bandDampingLabels;
+    std::array<std::unique_ptr<SliderAttachment>, 3> bandAttachments, bandDampingAttachments;
     juce::ComboBox filterPlacement;
     juce::Slider lowCut;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> filterPlacementAttachment;
