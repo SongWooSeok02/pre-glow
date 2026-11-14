@@ -277,13 +277,13 @@ PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner)
         const auto route = shimmerRouting.getSelectedItemIndex();
         shimmerGlobals[1].setEnabled(route == 0);
         const std::array<juce::String, 4> paths {
-            "Input → Reverb → Wet   •   Reverb → Shimmer → Reverb",
-            "Input → Reverb → Wet   •   Reverb → Shimmer → Wet",
-            "Input → Reverb → Wet   •   Input → Shimmer → Reverb",
-            "Input → Reverb → Wet   •   Input → Shimmer → Wet"
+            juce::String::fromUTF8("Input → Reverb → Wet   •   Reverb → Shimmer → Reverb"),
+            juce::String::fromUTF8("Input → Reverb → Wet   •   Reverb → Shimmer → Wet"),
+            juce::String::fromUTF8("Input → Reverb → Wet   •   Input → Shimmer → Reverb"),
+            juce::String::fromUTF8("Input → Reverb → Wet   •   Input → Shimmer → Wet")
         };
         shimmerSignalPath.setText(shimmerPower.getToggleState() && juce::isPositiveAndBelow(route, 4)
-                                      ? paths[static_cast<std::size_t>(route)] : "Input → Reverb → Wet",
+                                      ? paths[static_cast<std::size_t>(route)] : juce::String::fromUTF8("Input → Reverb → Wet"),
                                   juce::dontSendNotification);
     };
     shimmerRouting.onChange = shimmerPower.onStateChange = updateRouting;

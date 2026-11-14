@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Fixed garbled arrows and separators in the Shimmer signal path.
+
 - Added a wet signal path display to the Advanced Shimmer section.
 
 - Smoothed the stereo correlation display and replaced its moving dot with a centered bar.
