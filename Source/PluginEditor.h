@@ -32,6 +32,7 @@ private:
                          std::unique_ptr<juce::ParameterAttachment>&);
     void updateMorphControls();
     void updateSections();
+    juce::TextButton morphPanel { "Show XY Morph" };
     juce::Label morphReadout;
     MorphPad morphPad;
     void timerCallback() override;
