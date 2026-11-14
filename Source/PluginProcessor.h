@@ -59,15 +59,9 @@ private:
     void upmixMonoInput(juce::AudioBuffer<float>&) const noexcept;
     const std::atomic<float>* const morphX = state.getRawParameterValue(parameters::morphX);
     const std::atomic<float>* const morphY = state.getRawParameterValue(parameters::morphY);
-    void updateModulation() noexcept;
-    struct ModSlot
-    {
-        const std::atomic<float>* source;
-        const std::atomic<float>* destination;
-        const std::atomic<float>* depth;
-    };
-    std::array<ModSlot, parameters::modulationSlots> modSlots {};
-    std::array<float, 4> modulationOffsets {};
+    std::array<const std::atomic<float>*, 4> duckParameters {};
+    float duckGain = 1.0f, duckAmount = 0.0f, duckThreshold = 1.0f;
+    float duckAttack = 1.0f, duckRelease = 1.0f;
     ReverbSettings readSettings() const noexcept;
     const std::atomic<float>* const decay = state.getRawParameterValue(parameters::decay);
     const std::atomic<float>* const damping = state.getRawParameterValue(parameters::damping);

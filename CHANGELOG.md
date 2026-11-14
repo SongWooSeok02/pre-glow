@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Added eight modulation slots for routing XY axes to Wet, Damping, Shimmer Mix, or Late Width with signed depth.
+- Replaced Mod Matrix with input-triggered Ducking for the wet output.
 
 - Place XY Morph below the spectrum when Multiband or Shimmer is open.
 

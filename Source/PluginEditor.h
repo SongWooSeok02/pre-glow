@@ -33,16 +33,10 @@ private:
     void updateMorphControls();
     void updateSections();
     juce::TextButton morphPanel { "Show XY Morph" };
-    juce::TextButton matrixPanel { "Mod Matrix" };
-    struct MatrixRow
-    {
-        juce::Label number;
-        juce::ComboBox source, destination;
-        juce::Slider depth;
-        std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> sourceBinding, destinationBinding;
-        std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> depthBinding;
-    };
-    std::array<MatrixRow, parameters::modulationSlots> matrixRows;
+    juce::TextButton duckPanel { "Ducking" };
+    std::array<juce::Slider, 4> duckSliders;
+    std::array<juce::Label, 4> duckLabels;
+    std::array<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>, 4> duckAttachments;
     juce::Label morphReadout;
     MorphPad morphPad;
     void timerCallback() override;

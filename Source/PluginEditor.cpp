@@ -10,8 +10,7 @@ constexpr int maxVoiceHeight = 4 * voiceHeaderHeight + voiceRowHeight;
 constexpr int controlsWidth = 620;
 constexpr int spectrumWidth = 376;
 constexpr int columnGap = 12;
-constexpr int matrixRowHeight = 32;
-constexpr int matrixHeight = 16 + matrixRowHeight * static_cast<int>(parameters::modulationSlots);
+constexpr int duckPanelHeight = 76;
 constexpr int compactHeight = 250;
 constexpr int morphSize = 220;
 constexpr int morphReadoutHeight = 28;
@@ -305,29 +304,21 @@ PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner)
         voiceLabels[i].setJustificationType(juce::Justification::centred);
         voiceContent.addAndMakeVisible(voiceLabels[i]);
     }
-    matrixPanel.setClickingTogglesState(true);
-    matrixPanel.onClick = [this] { updateSections(); };
-    addAndMakeVisible(matrixPanel);
-    for (std::size_t i = 0; i < matrixRows.size(); ++i)
+    duckPanel.setClickingTogglesState(true);
+    duckPanel.onClick = [this] { updateSections(); };
+    addAndMakeVisible(duckPanel);
+    constexpr std::array suffixes { " dB", "%", " ms", " ms" };
+    for (std::size_t i = 0; i < duckSliders.size(); ++i)
     {
-        auto& row = matrixRows[i];
-        row.number.setText(juce::String(static_cast<int>(i + 1)), juce::dontSendNotification);
-        row.source.setTitle("Modulation Source");
-        row.destination.setTitle("Modulation Destination");
-        row.source.addItemList(parameters::modSources, 1);
-        row.destination.addItemList(parameters::modDestinations, 1);
-        row.depth.setTitle("Modulation Depth");
-        row.depth.setSliderStyle(juce::Slider::LinearHorizontal);
-        row.depth.setTextBoxStyle(juce::Slider::TextBoxRight, false, 58, 22);
-        addChildComponent(row.number);
-        addChildComponent(row.source);
-        addChildComponent(row.destination);
-        addChildComponent(row.depth);
-        using ComboBinding = juce::AudioProcessorValueTreeState::ComboBoxAttachment;
-        row.sourceBinding = std::make_unique<ComboBinding>(owner.state, parameters::modId(i, "source"), row.source);
-        row.destinationBinding = std::make_unique<ComboBinding>(owner.state, parameters::modId(i, "destination"), row.destination);
-        row.depthBinding = std::make_unique<SliderAttachment>(owner.state, parameters::modId(i, "depth"), row.depth);
-        row.depth.setTextValueSuffix("%");
+        auto& slider = duckSliders[i];
+        slider.setTitle(juce::String("Ducking ") + parameters::duckNames[i]);
+        slider.setSliderStyle(juce::Slider::LinearHorizontal);
+        slider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 64, 22);
+        duckLabels[i].setText(parameters::duckNames[i], juce::dontSendNotification);
+        duckAttachments[i] = std::make_unique<SliderAttachment>(owner.state, parameters::duckIds[i], slider);
+        slider.setTextValueSuffix(suffixes[i]);
+        addChildComponent(slider);
+        addChildComponent(duckLabels[i]);
     }
     morphPanel.setClickingTogglesState(true);
     morphPanel.onClick = [this] { updateSections(); };
@@ -394,17 +385,15 @@ void PluginEditor::updateSections()
     morphPanel.setButtonText(morphOpen ? "Hide XY Morph" : "Show XY Morph");
     morphPad.setVisible(morphOpen);
     morphReadout.setVisible(morphOpen);
-    const auto matrixOpen = matrixPanel.getToggleState();
-    for (auto& row : matrixRows)
+    const auto duckOpen = duckPanel.getToggleState();
+    for (std::size_t i = 0; i < duckSliders.size(); ++i)
     {
-        row.number.setVisible(matrixOpen);
-        row.source.setVisible(matrixOpen);
-        row.destination.setVisible(matrixOpen);
-        row.depth.setVisible(matrixOpen);
+        duckSliders[i].setVisible(duckOpen);
+        duckLabels[i].setVisible(duckOpen);
     }
-    const auto morphBelow = bandsOpen || shimmerOpen || matrixOpen;
+    const auto morphBelow = bandsOpen || shimmerOpen;
     const auto width = controlsWidth + columnGap + spectrumWidth + (morphOpen && !morphBelow ? columnGap + morphSize : 0);
-    setSize(width, std::max(morphOpen ? (morphBelow ? stackedMorphHeight : morphColumnHeight) : 0, (matrixOpen ? matrixHeight : 0) + (bandsOpen ? bandRowHeight : 0) + compactHeight + characterRowHeight + sectionHeight * (static_cast<int>(bloomOpen) + static_cast<int>(swellOpen))
+    setSize(width, std::max(morphOpen ? (morphBelow ? stackedMorphHeight : morphColumnHeight) : 0, (duckOpen ? duckPanelHeight : 0) + (bandsOpen ? bandRowHeight : 0) + compactHeight + characterRowHeight + sectionHeight * (static_cast<int>(bloomOpen) + static_cast<int>(swellOpen))
         + (shimmerOpen ? 100 + shimmerBottomPadding + std::min(maxVoiceHeight, static_cast<int>(voiceDetails.size()) * voiceHeaderHeight + expandedCount * voiceRowHeight) : 0)));
     resized();
 }
@@ -551,7 +540,7 @@ void PluginEditor::resized()
 {
     auto controls = getLocalBounds().reduced(16);
     const auto morphOpen = morphPanel.getToggleState();
-    const auto morphBelow = bandPanel.getToggleState() || shimmerPanel.getToggleState() || matrixPanel.getToggleState();
+    const auto morphBelow = bandPanel.getToggleState() || shimmerPanel.getToggleState();
     juce::Rectangle<int> morphColumn;
     if (morphOpen && !morphBelow)
     {
@@ -575,7 +564,7 @@ void PluginEditor::resized()
     titleRow.removeFromRight(8);
     shimmerPower.setBounds(titleRow.removeFromRight(110).withSizeKeepingCentre(110, 28));
     bandPanel.setBounds(titleRow.removeFromRight(96).withSizeKeepingCentre(88, 28));
-    matrixPanel.setBounds(titleRow.removeFromRight(100).withSizeKeepingCentre(90, 28));
+    duckPanel.setBounds(titleRow.removeFromRight(90).withSizeKeepingCentre(82, 28));
     sectionBounds.fill({});
     sectionBounds[0] = controls.withHeight(characterRowHeight + 28);
     auto characters = controls.removeFromTop(characterRowHeight).reduced(0, 3);
@@ -644,17 +633,16 @@ void PluginEditor::resized()
         sectionBounds[4] = controls.removeFromTop(sectionHeight);
         layoutRow(sectionBounds[4].reduced(4, 5), swellStart, sliders.size() - swellStart);
     }
-    if (matrixPanel.getToggleState())
+    if (duckPanel.getToggleState())
     {
-        sectionBounds[6] = controls.removeFromTop(matrixHeight);
-        auto rows = sectionBounds[6].reduced(10, 8);
-        for (auto& row : matrixRows)
+        sectionBounds[6] = controls.removeFromTop(duckPanelHeight);
+        auto row = sectionBounds[6].reduced(8, 8);
+        const auto width = row.getWidth() / static_cast<int>(duckSliders.size());
+        for (std::size_t i = 0; i < duckSliders.size(); ++i)
         {
-            auto bounds = rows.removeFromTop(matrixRowHeight).reduced(0, 3);
-            row.number.setBounds(bounds.removeFromLeft(32));
-            row.source.setBounds(bounds.removeFromLeft(120).reduced(4, 0));
-            row.destination.setBounds(bounds.removeFromLeft(150).reduced(4, 0));
-            row.depth.setBounds(bounds.reduced(4, 0));
+            auto cell = row.removeFromLeft(width).reduced(5, 0);
+            duckLabels[i].setBounds(cell.removeFromTop(22));
+            duckSliders[i].setBounds(cell);
         }
     }
     if (shimmerPanel.getToggleState())
