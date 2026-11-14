@@ -216,6 +216,8 @@ public:
         targetDry = bounded(settings.dry, 0.0f, 1.0f, 0.65f);
     }
 
+    float freezeAmount() const noexcept { return freeze; }
+
     struct Output { std::array<float, 2> dry, wet; };
 
     void process(float& left, float& right) noexcept

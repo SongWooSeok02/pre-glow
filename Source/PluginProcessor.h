@@ -83,7 +83,8 @@ private:
     const std::atomic<float>* const freeze = state.getRawParameterValue(parameters::freeze);
     const std::atomic<float>* const lateWidth = state.getRawParameterValue(parameters::lateWidth);
     static constexpr auto characterCount = static_cast<std::size_t>(ReverbCharacter::count);
-    std::array<Reverb, characterCount> engines;
+    std::array<Reverb, characterCount> engines, liveEngines;
+    bool livePathStarted = false;
     std::array<float, characterCount> characterWeights { 1.0f };
     const std::atomic<float>* const characterB = state.getRawParameterValue(parameters::characterB);
     const std::atomic<float>* const characterBlend = state.getRawParameterValue(parameters::characterBlend);

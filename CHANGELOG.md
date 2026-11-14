@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Freeze now layers live reverb over the held tail using the current settings.
+
 - Added Low, Mid, and High Shimmer Sends to shape the signal entering the pitch shifter.
 
 - Added per-band Wet Level controls and extra padding below the Shimmer voices.

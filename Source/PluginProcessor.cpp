@@ -41,23 +41,25 @@ void PluginProcessor::updateBandDecay() noexcept
     }
     const auto lowHz = crossoverParameters[0]->load(std::memory_order_relaxed);
     const auto highHz = crossoverParameters[1]->load(std::memory_order_relaxed);
-    for (auto& engine : engines)
-    {
-        engine.setBandDecay(amounts);
-        engine.setBandDamping(dampingAmounts);
-        engine.setBandLevel(levels);
-        engine.setBandSend(sends);
-        engine.setBandCrossovers(std::isfinite(lowHz) ? lowHz : 250.0f,
-                                 std::isfinite(highHz) ? highHz : 4000.0f);
-    }
+    for (auto* bank : { &engines, &liveEngines })
+        for (auto& engine : *bank)
+        {
+            engine.setBandDecay(amounts);
+            engine.setBandDamping(dampingAmounts);
+            engine.setBandLevel(levels);
+            engine.setBandSend(sends);
+            engine.setBandCrossovers(std::isfinite(lowHz) ? lowHz : 250.0f,
+                                     std::isfinite(highHz) ? highHz : 4000.0f);
+        }
 }
 
 void PluginProcessor::updateLowCut() noexcept
 {
     const auto placement = filterPlacement->load(std::memory_order_relaxed);
     const auto cutoff = lowCut->load(std::memory_order_relaxed);
-    for (auto& engine : engines)
-        engine.setLowCut(placement >= 1.5f ? 2 : placement >= 0.5f ? 1 : 0,
+    for (auto* bank : { &engines, &liveEngines })
+        for (auto& engine : *bank)
+            engine.setLowCut(placement >= 1.5f ? 2 : placement >= 0.5f ? 1 : 0,
                          std::isfinite(cutoff) ? std::clamp(cutoff, 20.0f, 2000.0f) : 120.0f);
 }
 
@@ -76,8 +78,9 @@ void PluginProcessor::updateShimmer() noexcept
     const auto route = shimmerRouting->load(std::memory_order_relaxed);
     const auto feedback = route < 0.5f
         ? shimmerFeedback->load(std::memory_order_relaxed) * 0.01f : 0.0f;
-    for (auto& engine : engines)
-        engine.setShimmer(voices, amount, feedback, route >= 1.5f && route < 2.5f, route >= 2.5f);
+    for (auto* bank : { &engines, &liveEngines })
+        for (auto& engine : *bank)
+            engine.setShimmer(voices, amount, feedback, route >= 1.5f && route < 2.5f, route >= 2.5f);
 }
 
 ReverbSettings PluginProcessor::readSettings() const noexcept
@@ -98,10 +101,14 @@ ReverbSettings PluginProcessor::readSettings() const noexcept
 void PluginProcessor::prepareToPlay(double sampleRate, int)
 {
     const auto settings = readSettings();
+    auto liveSettings = settings;
+    liveSettings.freeze = false;
     for (std::size_t i = 0; i < engines.size(); ++i)
     {
         engines[i].prepare(sampleRate, static_cast<ReverbCharacter>(i));
         engines[i].setTarget(settings);
+        liveEngines[i].prepare(sampleRate, static_cast<ReverbCharacter>(i));
+        liveEngines[i].setTarget(liveSettings);
     }
     spectrumRate = sampleRate;
     characterSmoothing = static_cast<float>(-std::expm1(-1.0 / (0.025 * sampleRate)));
@@ -128,6 +135,9 @@ void PluginProcessor::reset()
 {
     for (auto& engine : engines)
         engine.reset();
+    for (auto& engine : liveEngines)
+        engine.reset();
+    livePathStarted = false;
     spectrumPosition = 0;
     updateCharacterTargets();
     characterWeights = targetCharacterWeights;
@@ -166,7 +176,14 @@ void PluginProcessor::processSample(float& left, float& right, bool mono) noexce
     Reverb::Output mixed {};
     for (std::size_t i = 0; i < engines.size(); ++i)
     {
-        const auto output = engines[i].processSources(left, right);
+        auto output = engines[i].processSources(left, right);
+        if (livePathStarted)
+        {
+            const auto amount = engines[i].freezeAmount();
+            const auto live = liveEngines[i].processSources(amount * left, amount * right);
+            for (std::size_t channel = 0; channel < output.wet.size(); ++channel)
+                output.wet[channel] += live.wet[channel];
+        }
         auto& weight = characterWeights[i];
         const auto target = targetCharacterWeights[i];
         weight += characterSmoothing * (target - weight);
@@ -201,9 +218,14 @@ void PluginProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiB
     juce::ScopedNoDenormals noDenormals;
     upmixMonoInput(buffer);
     const auto settings = readSettings();
+    auto liveSettings = settings;
+    liveSettings.freeze = false;
     updateCharacterTargets();
     for (auto& engine : engines)
         engine.setTarget(settings);
+    for (auto& engine : liveEngines)
+        engine.setTarget(liveSettings);
+    livePathStarted |= settings.freeze;
     updateShimmer();
     updateLowCut();
     updateBandDecay();
