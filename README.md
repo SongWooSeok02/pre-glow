@@ -111,3 +111,5 @@ Input and output peak meters display dBFS below the spectrum in both editor mode
 The Tail meter shows the wet signal entering the output mix in both editor modes. macOS Release builds, both DSP tests, and installed AU validation passed.
 
 The Stereo meter shows output correlation from −1 to +1. macOS Release builds, both DSP tests, and installed AU validation passed.
+
+The smoothed Stereo display passed macOS Release builds, both DSP tests, and installed AU validation.

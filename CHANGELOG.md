@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Smoothed the stereo correlation display and replaced its moving dot with a centered bar.
+
 - Added an output stereo correlation meter.
 
 - Added a Tail peak meter for the wet signal at the output mix.
