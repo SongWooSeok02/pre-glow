@@ -34,6 +34,8 @@ public:
     void changeProgramName(int, const juce::String&) override {}
     void getStateInformation(juce::MemoryBlock&) override;
     void setStateInformation(const void*, int) override;
+    bool loadPreset(const juce::MemoryBlock&);
+    void loadFactoryPreset(int characterIndex, float decaySeconds, float wetPercent);
 
     static constexpr int spectrumOrder = 11;
     static constexpr int spectrumSize = 1 << spectrumOrder;
@@ -43,6 +45,7 @@ public:
     juce::AudioProcessorValueTreeState state;
 
 private:
+    bool restoreState(const void*, int, bool validatePreset);
     std::array<const std::atomic<float>*, Shimmer::voiceCount> voiceEnabled {};
     const std::atomic<float>* const shimmerEnabled = state.getRawParameterValue(parameters::shimmerEnabled);
     const std::atomic<float>* const shimmerRouting = state.getRawParameterValue(parameters::shimmerRouting);

@@ -1,5 +1,7 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include <cstdlib>
+#include <limits>
 
 namespace preglow
 {
@@ -356,6 +358,51 @@ void PluginProcessor::getStateInformation(juce::MemoryBlock& destination)
 
 void PluginProcessor::setStateInformation(const void* data, int size)
 {
+    restoreState(data, size, false);
+}
+
+bool PluginProcessor::loadPreset(const juce::MemoryBlock& data)
+{
+    const auto size = data.getSize();
+    if (size < 9 || size > static_cast<std::size_t>(std::numeric_limits<int>::max()))
+        return false;
+    const auto* bytes = static_cast<const char*>(data.getData());
+    if (juce::ByteOrder::littleEndianInt(bytes + 4) != size - 9 || bytes[size - 1] != 0)
+        return false;
+    return restoreState(bytes, static_cast<int>(size), true);
+}
+
+void PluginProcessor::loadFactoryPreset(int characterIndex, float decaySeconds, float wetPercent)
+{
+    juce::ValueTree snapshot { parameters::stateType };
+    snapshot.setProperty("schemaVersion", parameters::schemaVersion, nullptr);
+    for (const auto* parameter : getParameters())
+    {
+        const auto* ranged = dynamic_cast<const juce::RangedAudioParameter*>(parameter);
+        if (ranged == nullptr)
+            continue;
+        const auto id = ranged->getParameterID();
+        auto value = ranged->convertFrom0to1(ranged->getDefaultValue());
+        if (id == parameters::character)
+            value = static_cast<float>(characterIndex);
+        else if (id == parameters::decay)
+            value = decaySeconds;
+        else if (id == parameters::morphY)
+            value = wetPercent * 0.02f - 1.0f;
+        else if (id == parameters::dry)
+            value = 100.0f - wetPercent;
+        juce::ValueTree node { "PARAM" };
+        node.setProperty("id", id, nullptr);
+        node.setProperty("value", value, nullptr);
+        snapshot.appendChild(node, nullptr);
+    }
+    juce::MemoryBlock data;
+    copyXmlToBinary(*snapshot.createXml(), data);
+    loadPreset(data);
+}
+
+bool PluginProcessor::restoreState(const void* data, int size, bool validatePreset)
+{
     const auto xml = getXmlFromBinary(data, size);
     if (xml != nullptr && xml->hasTagName(parameters::stateType)
         && (xml->getIntAttribute("schemaVersion") == 1
@@ -368,6 +415,29 @@ void PluginProcessor::setStateInformation(const void* data, int size)
             || xml->getIntAttribute("schemaVersion") == parameters::schemaVersion))
     {
         auto restored = juce::ValueTree::fromXml(*xml);
+        if (validatePreset)
+        {
+            if (restored.getNumChildren() == 0)
+                return false;
+            juce::StringArray seen;
+            for (const auto child : restored)
+            {
+                const auto id = child.getProperty("id").toString();
+                const auto value = child.getProperty("value").toString().toStdString();
+                char* end = nullptr;
+                const auto number = std::strtod(value.c_str(), &end);
+                if (!child.hasType("PARAM") || id.isEmpty() || seen.contains(id)
+                    || end == value.c_str() || *end != '\0' || !std::isfinite(number)
+                    || std::abs(number) > std::numeric_limits<float>::max())
+                    return false;
+                seen.add(id);
+            }
+            if (xml->getIntAttribute("schemaVersion") == parameters::schemaVersion)
+                for (const auto* parameter : getParameters())
+                    if (const auto* ranged = dynamic_cast<const juce::RangedAudioParameter*>(parameter);
+                        ranged != nullptr && !seen.contains(ranged->getParameterID()))
+                        return false;
+        }
         const auto oldY = static_cast<float>(restored.getChildWithProperty("id", parameters::morphY).getProperty("value", 0.0f));
         const auto legacy = xml->getIntAttribute("schemaVersion") == 1;
         const auto oldBloom = restored.getChildWithProperty("id", parameters::bloomAmount);
@@ -442,7 +512,9 @@ void PluginProcessor::setStateInformation(const void* data, int size)
         }
         restored.setProperty("schemaVersion", parameters::schemaVersion, nullptr);
         state.replaceState(restored);
+        return true;
     }
+    return false;
 }
 }
 

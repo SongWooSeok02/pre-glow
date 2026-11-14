@@ -32,6 +32,21 @@ private:
                          std::unique_ptr<juce::ParameterAttachment>&);
     void updateMorphControls();
     void updateSections();
+    void configurePresets();
+    void refreshPresets();
+    void loadSelectedPreset();
+    void editPresetName(bool rename);
+    void deleteSelectedPreset();
+    void showPresetStatus(const juce::String&);
+    juce::File selectedUserPreset() const;
+    juce::TextButton presetButton { "Presets" };
+    juce::Component presetPanel;
+    juce::TextEditor presetSearch;
+    juce::ComboBox presetCategory, presetChoices;
+    juce::TextButton presetLoad { "Load" }, presetSave { "Save As" },
+                     presetRename { "Rename" }, presetDelete { "Delete" };
+    juce::Label presetStatus;
+    juce::Array<juce::File> listedUserPresets;
     juce::TextButton advancedMode { "Basic / Advanced" };
     juce::TextButton morphPanel { "Show XY Morph" };
     juce::ToggleButton duckOn { "Ducking On" }, reverseOn { "Reverse-like" };

@@ -4,6 +4,33 @@ namespace preglow
 {
 namespace
 {
+struct FactoryPreset
+{
+    const char* name;
+    int character;
+    float decay;
+    float wet;
+};
+
+constexpr FactoryPreset factoryPresets[] {
+    { "Hall", 0, 3.0f, 35.0f },
+    { "Room", 1, 0.8f, 22.0f },
+    { "Plate", 2, 2.4f, 38.0f },
+    { "Cloud", 3, 14.0f, 65.0f }
+};
+constexpr int firstUserPreset = 100;
+constexpr int maxPresetBytes = 256 * 1024;
+constexpr auto presetExtension = ".preglowpreset";
+
+juce::File presetDirectory()
+{
+    auto directory = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory);
+   #if JUCE_MAC
+    directory = directory.getChildFile("Application Support");
+   #endif
+    return directory.getChildFile("pre-glow").getChildFile("Presets");
+}
+
 constexpr int voiceRowHeight = 122;
 constexpr int voiceHeaderHeight = 48;
 constexpr int maxVoiceHeight = 4 * voiceHeaderHeight + voiceRowHeight;
@@ -341,10 +368,207 @@ PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner)
     addChildComponent(morphPad);
     morphReadout.setJustificationType(juce::Justification::centred);
     addChildComponent(morphReadout);
+    configurePresets();
     updateMorphControls();
     setSize(controlsWidth + columnGap + spectrumWidth, compactHeight + characterRowHeight + 30);
     startTimerHz(30);
     updateSections();
+}
+
+void PluginEditor::configurePresets()
+{
+    addAndMakeVisible(presetButton);
+    addChildComponent(presetPanel);
+    for (auto* component : std::initializer_list<juce::Component*> {
+             &presetCategory, &presetSearch, &presetChoices, &presetLoad, &presetSave,
+             &presetRename, &presetDelete, &presetStatus })
+        presetPanel.addAndMakeVisible(*component);
+
+    presetCategory.setTitle("Preset category");
+    presetCategory.addItemList({ "All Presets", "Factory", "User" }, 1);
+    presetCategory.setSelectedId(1, juce::dontSendNotification);
+    presetCategory.onChange = [this] { refreshPresets(); };
+    presetSearch.setTitle("Search presets");
+    presetSearch.setTextToShowWhenEmpty("Search presets", juce::Colours::lightgrey);
+    presetSearch.onTextChange = [this] { refreshPresets(); };
+    presetChoices.setTitle("Preset");
+    presetChoices.setTextWhenNothingSelected("Select a preset");
+    presetChoices.onChange = [this]
+    {
+        const auto user = selectedUserPreset() != juce::File {};
+        presetLoad.setEnabled(presetChoices.getSelectedId() != 0);
+        presetRename.setEnabled(user);
+        presetDelete.setEnabled(user);
+    };
+    presetLoad.onClick = [this] { loadSelectedPreset(); };
+    presetSave.onClick = [this] { editPresetName(false); };
+    presetRename.onClick = [this] { editPresetName(true); };
+    presetDelete.onClick = [this] { deleteSelectedPreset(); };
+    presetButton.onClick = [this]
+    {
+        const auto opening = !presetPanel.isVisible();
+        if (opening)
+            refreshPresets();
+        presetPanel.setVisible(opening);
+        presetButton.setToggleState(opening, juce::dontSendNotification);
+        repaint(spectrumBounds);
+    };
+}
+
+void PluginEditor::refreshPresets()
+{
+    const auto previous = presetChoices.getText();
+    const auto query = presetSearch.getText().trim();
+    const auto category = presetCategory.getSelectedId();
+    presetChoices.clear(juce::dontSendNotification);
+    listedUserPresets.clear();
+    if (category != 3)
+        for (std::size_t i = 0; i < std::size(factoryPresets); ++i)
+        {
+            const juce::String label = juce::String(factoryPresets[i].name) + " (Factory)";
+            if (query.isEmpty() || label.containsIgnoreCase(query))
+                presetChoices.addItem(label, static_cast<int>(i) + 1);
+        }
+    if (category != 2)
+    {
+        auto files = presetDirectory().findChildFiles(juce::File::findFiles | juce::File::ignoreHiddenFiles,
+                                                      false, "*" + juce::String(presetExtension));
+        files.sort();
+        for (const auto& file : files)
+        {
+            const auto label = file.getFileNameWithoutExtension() + " (User)";
+            if (query.isNotEmpty() && !label.containsIgnoreCase(query))
+                continue;
+            presetChoices.addItem(label, firstUserPreset + listedUserPresets.size());
+            listedUserPresets.add(file);
+        }
+    }
+    for (int i = 0; i < presetChoices.getNumItems(); ++i)
+        if (presetChoices.getItemText(i) == previous)
+            presetChoices.setSelectedItemIndex(i, juce::dontSendNotification);
+    presetChoices.onChange();
+    showPresetStatus(presetChoices.getNumItems() == 0 ? "No matching presets." : "");
+}
+
+juce::File PluginEditor::selectedUserPreset() const
+{
+    const auto index = presetChoices.getSelectedId() - firstUserPreset;
+    return juce::isPositiveAndBelow(index, listedUserPresets.size())
+        ? listedUserPresets[index] : juce::File {};
+}
+
+void PluginEditor::loadSelectedPreset()
+{
+    const auto id = presetChoices.getSelectedId();
+    if (id == 0)
+        return;
+    if (id < firstUserPreset)
+    {
+        const auto& preset = factoryPresets[id - 1];
+        ownerProcessor.loadFactoryPreset(preset.character, preset.decay, preset.wet);
+    }
+    else
+    {
+        const auto file = selectedUserPreset();
+        juce::FileInputStream stream(file);
+        const auto size = stream.getTotalLength();
+        juce::MemoryBlock data;
+        if (!stream.openedOk() || size <= 0 || size > maxPresetBytes
+            || stream.readIntoMemoryBlock(data, static_cast<ssize_t>(size)) != static_cast<std::size_t>(size)
+            || !ownerProcessor.loadPreset(data))
+        {
+            showPresetStatus("Could not load this preset.");
+            return;
+        }
+    }
+    updateSections();
+    showPresetStatus("Loaded " + presetChoices.getText());
+}
+
+void PluginEditor::editPresetName(bool rename)
+{
+    const auto original = selectedUserPreset();
+    if (rename && original == juce::File {})
+        return;
+    auto dialog = std::make_unique<juce::AlertWindow>(rename ? "Rename Preset" : "Save Preset",
+                                                     "Enter a user preset name.", juce::MessageBoxIconType::NoIcon, this);
+    dialog->addTextEditor("name", rename ? original.getFileNameWithoutExtension() : juce::String {}, "Name");
+    dialog->addButton(rename ? "Rename" : "Save", 1, juce::KeyPress { juce::KeyPress::returnKey });
+    dialog->addButton("Cancel", 0, juce::KeyPress { juce::KeyPress::escapeKey });
+    auto* window = dialog.release();
+    window->enterModalState(true, juce::ModalCallbackFunction::create(
+        [editor = juce::Component::SafePointer<PluginEditor>(this),
+         alert = juce::Component::SafePointer<juce::AlertWindow>(window), original, rename](int result)
+        {
+            if (result != 1 || editor == nullptr || alert == nullptr)
+                return;
+            const auto name = alert->getTextEditorContents("name").trim();
+            if (name.isEmpty() || name.startsWithChar('.') || name.endsWithChar('.')
+                || name.getNumBytesAsUTF8() > 120 || juce::File::createLegalFileName(name) != name
+                || name.containsAnyOf("\t\r\n"))
+            {
+                editor->showPresetStatus("Choose a valid preset name.");
+                return;
+            }
+
+            const auto directory = presetDirectory();
+            const auto target = directory.getChildFile(name + presetExtension);
+            if (rename && target == original && name == original.getFileNameWithoutExtension())
+                return;
+            if (target.exists())
+            {
+                editor->showPresetStatus("A preset with that name already exists.");
+                return;
+            }
+            if (rename)
+            {
+                if (!original.existsAsFile() || !original.moveFileTo(target))
+                {
+                    editor->showPresetStatus("Could not rename this preset.");
+                    return;
+                }
+            }
+            else
+            {
+                juce::MemoryBlock data;
+                editor->ownerProcessor.getStateInformation(data);
+                if (directory.createDirectory().failed() || data.isEmpty()
+                    || !target.replaceWithData(data.getData(), data.getSize()))
+                {
+                    editor->showPresetStatus("Could not save this preset.");
+                    return;
+                }
+            }
+            editor->presetCategory.setSelectedId(3, juce::dontSendNotification);
+            editor->presetSearch.clear();
+            editor->refreshPresets();
+            const auto index = editor->listedUserPresets.indexOf(target);
+            if (index >= 0)
+                editor->presetChoices.setSelectedId(firstUserPreset + index, juce::sendNotificationSync);
+            editor->showPresetStatus((rename ? "Renamed " : "Saved ") + name);
+        }), true);
+}
+
+void PluginEditor::deleteSelectedPreset()
+{
+    const auto file = selectedUserPreset();
+    if (file == juce::File {})
+        return;
+    juce::AlertWindow::showOkCancelBox(juce::MessageBoxIconType::WarningIcon, "Delete Preset",
+        "Delete " + file.getFileNameWithoutExtension() + "?", "Delete", "Cancel", this,
+        juce::ModalCallbackFunction::create([editor = juce::Component::SafePointer<PluginEditor>(this), file](int result)
+        {
+            if (result != 1 || editor == nullptr)
+                return;
+            const auto deleted = file.existsAsFile() && file.moveToTrash();
+            editor->refreshPresets();
+            editor->showPresetStatus(deleted ? "Preset moved to Trash." : "Could not delete this preset.");
+        }));
+}
+
+void PluginEditor::showPresetStatus(const juce::String& message)
+{
+    presetStatus.setText(message, juce::dontSendNotification);
 }
 
 void PluginEditor::updateSections()
@@ -551,7 +775,13 @@ void PluginEditor::paintSpectrum(juce::Graphics& g)
 void PluginEditor::paint(juce::Graphics& graphics)
 {
     graphics.fillAll(juce::Colour(0xff151627));
-    paintSpectrum(graphics);
+    if (presetPanel.isVisible())
+    {
+        graphics.setColour(juce::Colour(0xff1c1e31));
+        graphics.fillRoundedRectangle(spectrumBounds.toFloat(), 8.0f);
+    }
+    else
+        paintSpectrum(graphics);
     for (const auto bounds : sectionBounds)
     {
         if (bounds.isEmpty())
@@ -584,6 +814,19 @@ void PluginEditor::resized()
     spectrumBounds = spectrumColumn.removeFromTop(compactHeight - 32);
     auto spectrumActions = spectrumColumn.removeFromTop(morphButtonRowHeight);
     advancedMode.setBounds(spectrumActions.removeFromRight(112).withSizeKeepingCentre(104, 26));
+    presetButton.setBounds(spectrumActions.removeFromRight(100).withSizeKeepingCentre(92, 26));
+    presetPanel.setBounds(spectrumBounds);
+    auto presetArea = presetPanel.getLocalBounds().reduced(14);
+    presetCategory.setBounds(presetArea.removeFromTop(28));
+    presetArea.removeFromTop(8);
+    presetSearch.setBounds(presetArea.removeFromTop(28));
+    presetArea.removeFromTop(8);
+    presetChoices.setBounds(presetArea.removeFromTop(28));
+    presetArea.removeFromTop(8);
+    auto presetActions = presetArea.removeFromTop(28);
+    for (auto* button : { &presetLoad, &presetSave, &presetRename, &presetDelete })
+        button->setBounds(presetActions.removeFromLeft(87).reduced(2, 0));
+    presetStatus.setBounds(presetArea.removeFromTop(44));
     morphPanel.setBounds(spectrumActions.removeFromLeft(144).withSizeKeepingCentre(128, 26));
     if (morphOpen)
     {

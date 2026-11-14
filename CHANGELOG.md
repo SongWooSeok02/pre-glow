@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added a preset browser with four Factory presets and User preset search, save, load, rename, and deletion.
+
 - Added Basic and Advanced editor modes with shared parameter controls.
 
 ## Phase 5 implementation complete (2026-11-14)
