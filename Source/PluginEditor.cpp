@@ -72,6 +72,9 @@ constexpr int stackedMorphHeight = morphColumnHeight + compactHeight - 32 + morp
 constexpr std::size_t drySliderIndex = 2;
 constexpr std::size_t wetSliderIndex = 3;
 constexpr int characterRowHeight = 34;
+constexpr int advancedCardPadding = 10;
+constexpr int advancedCardRowGap = 6;
+constexpr int advancedCardExtraHeight = 2 * advancedCardPadding + advancedCardRowGap;
 constexpr int bandRowHeight = 340;
 constexpr int shimmerBottomPadding = 12;
 constexpr int sectionHeight = 148;
@@ -703,7 +706,7 @@ void PluginEditor::updateSections()
         repaint();
         return;
     }
-    setSize(width, std::max(morphOpen && morphBelow ? stackedMorphHeight : meterColumnHeight, (duckOpen ? duckPanelHeight : 0) + (bandsOpen ? bandRowHeight : 0) + compactHeight + characterRowHeight + 30 + (headerHeight - 56) + sectionHeight * (static_cast<int>(bloomOpen) + static_cast<int>(swellOpen))
+    setSize(width, std::max(morphOpen && morphBelow ? stackedMorphHeight : meterColumnHeight, (duckOpen ? duckPanelHeight : 0) + (bandsOpen ? bandRowHeight : 0) + compactHeight + characterRowHeight + advancedCardExtraHeight + 30 + (headerHeight - 56) + sectionHeight * (static_cast<int>(bloomOpen) + static_cast<int>(swellOpen))
         + (shimmerOpen ? 132 + shimmerBottomPadding + std::min(maxVoiceHeight, static_cast<int>(voiceDetails.size()) * voiceHeaderHeight + expandedCount * voiceRowHeight) : 0)));
     resized();
     repaint();
@@ -1032,7 +1035,8 @@ void PluginEditor::resized()
     shimmerPower.setBounds(titleRow.removeFromRight(110).withSizeKeepingCentre(110, 28));
     bandPanel.setBounds(titleRow.removeFromRight(96).withSizeKeepingCentre(88, 28));
     duckPanel.setBounds(titleRow.removeFromRight(90).withSizeKeepingCentre(82, 28));
-    sectionBounds[0] = controls.withHeight(characterRowHeight + 28);
+    sectionBounds[0] = controls.withHeight(characterRowHeight + 28 + advancedCardExtraHeight);
+    controls.removeFromTop(advancedCardPadding);
     auto characters = controls.removeFromTop(characterRowHeight).reduced(10, 4);
     characterALabel.setBounds(characters.removeFromLeft(22));
     character.setBounds(characters.removeFromLeft(112));
@@ -1041,6 +1045,7 @@ void PluginEditor::resized()
     characterB.setBounds(characters.removeFromLeft(112));
     characters.removeFromLeft(12);
     characterBlend.setBounds(characters);
+    controls.removeFromTop(advancedCardRowGap);
     auto options = controls.removeFromTop(28).reduced(10, 2);
     freeze.setBounds(options.removeFromLeft(78));
     infinite.setBounds(options.removeFromLeft(123));
@@ -1048,7 +1053,7 @@ void PluginEditor::resized()
     swell.setBounds(options.removeFromLeft(72));
     filterPlacement.setBounds(options.removeFromLeft(115));
     lowCut.setBounds(options);
-    controls.removeFromTop(8);
+    controls.removeFromTop(advancedCardPadding + 8);
     const auto layoutRow = [&](juce::Rectangle<int> row, std::size_t start, std::size_t count)
     {
         const auto width = row.getWidth() / static_cast<int>(count);
