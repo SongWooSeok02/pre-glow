@@ -137,6 +137,10 @@ void PluginProcessor::prepareToPlay(double sampleRate, int)
         liveEngines[i].setTarget(liveSettings);
     }
     spectrumRate = sampleRate;
+    reverseFastRelease = static_cast<float>(-std::expm1(-1.0 / (0.006 * sampleRate)));
+    reverseSlowRate = static_cast<float>(-std::expm1(-1.0 / (0.032 * sampleRate)));
+    reverseGainRate = static_cast<float>(-std::expm1(-1.0 / (0.003 * sampleRate)));
+    reverseHoldoffSamples = std::max(1, static_cast<int>(0.025 * sampleRate));
     characterSmoothing = static_cast<float>(-std::expm1(-1.0 / (0.025 * sampleRate)));
     updateShimmer();
     updateLowCut();
@@ -165,9 +169,11 @@ void PluginProcessor::reset()
         engine.reset();
     livePathStarted = false;
     duckGain = 1.0f;
-    reverseMix = reverseTarget = reverseDetector = 0.0f;
+    reverseMix = reverseTarget = reverseFast = reverseSlow = 0.0f;
+    reverseGain = 1.0f;
+    reverseHoldoff = 0;
     reversePhase = 1.0f;
-    reverseInputActive = false;
+    reverseOnsetReady = true;
     spectrumPosition = 0;
     updateCharacterTargets();
     characterWeights = targetCharacterWeights;
@@ -225,19 +231,26 @@ void PluginProcessor::processSample(float& left, float& right, bool mono) noexce
     }
     const auto peak = std::max(std::abs(left), std::abs(right));
     const auto inputLevel = std::isfinite(peak) ? peak : 0.0f;
-    const auto detectorRelease = 1.0f / (1.0f + 0.04f * static_cast<float>(spectrumRate));
-    reverseDetector = std::max(inputLevel, reverseDetector * (1.0f - detectorRelease));
-    if (!reverseInputActive && reverseDetector >= 0.01f)
+    reverseFast = std::max(inputLevel, reverseFast * (1.0f - reverseFastRelease));
+    reverseSlow += reverseSlowRate * (reverseFast - reverseSlow);
+    if (reverseHoldoff > 0)
+        --reverseHoldoff;
+    // Detect a new attack above the recent input level, even over a ringing note.
+    const auto attack = reverseFast - reverseSlow;
+    if (attack < std::max(0.002f, 0.12f * reverseSlow))
+        reverseOnsetReady = true;
+    if (reverseOnsetReady && reverseHoldoff == 0 && reverseFast >= 0.01f
+        && attack > std::max(0.007f, 0.35f * reverseSlow))
     {
-        reverseInputActive = true;
+        reverseOnsetReady = false;
+        reverseHoldoff = reverseHoldoffSamples;
         reversePhase = 0.0f;
     }
-    else if (reverseDetector < 0.003f)
-        reverseInputActive = false;
 
     reversePhase = std::min(1.0f, reversePhase + reverseStep);
     reverseMix += characterSmoothing * (reverseTarget - reverseMix);
-    const auto reverseGain = 1.0f - reverseMix * (1.0f - reversePhase * reversePhase);
+    const auto targetReverseGain = 1.0f - reverseMix * (1.0f - reversePhase * reversePhase);
+    reverseGain += reverseGainRate * (targetReverseGain - reverseGain);
     const auto over = std::isfinite(peak) && peak > duckThreshold ? 1.0f - duckThreshold / peak : 0.0f;
     const auto targetDuckGain = 1.0f - duckAmount * over;
     duckGain += (targetDuckGain < duckGain ? duckAttack : duckRelease) * (targetDuckGain - duckGain);

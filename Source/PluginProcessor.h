@@ -64,8 +64,10 @@ private:
     const std::atomic<float>* const reverseEnabled = state.getRawParameterValue(parameters::reverseEnabled);
     const std::atomic<float>* const reverseRise = state.getRawParameterValue(parameters::reverseRise);
     float reverseMix = 0.0f, reverseTarget = 0.0f, reversePhase = 1.0f, reverseStep = 1.0f;
-    float reverseDetector = 0.0f;
-    bool reverseInputActive = false;
+    float reverseFast = 0.0f, reverseSlow = 0.0f, reverseGain = 1.0f;
+    float reverseFastRelease = 0.0f, reverseSlowRate = 0.0f, reverseGainRate = 0.0f;
+    int reverseHoldoff = 0, reverseHoldoffSamples = 1;
+    bool reverseOnsetReady = true;
     float duckGain = 1.0f, duckAmount = 0.0f, duckThreshold = 1.0f;
     float duckAttack = 1.0f, duckRelease = 1.0f;
     ReverbSettings readSettings() const noexcept;

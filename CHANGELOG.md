@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Retrigger Reverse-like from fresh attacks over sustained input and smooth gain changes.
+
 - Added a Ducking bypass and a Reverse-like wet swell with adjustable rise time.
 
 - Replaced Mod Matrix with input-triggered Ducking for the wet output.
