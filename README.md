@@ -117,3 +117,7 @@ The smoothed Stereo display passed macOS Release builds, both DSP tests, and ins
 The Advanced Shimmer signal path display passed macOS Release builds, both DSP tests, and installed AU validation.
 
 The Multiband spectrum overlay passed macOS Release builds, both DSP tests, and installed AU validation.
+
+## Phase 6 implementation complete
+
+See the [Phase 6 handoff](docs/phase-6-handoff.md) for the implementation checkpoint, verification gaps, and Phase 7 performance baseline.
