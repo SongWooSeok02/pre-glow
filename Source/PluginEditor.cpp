@@ -192,20 +192,9 @@ PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner)
     characterBlend.setSliderStyle(juce::Slider::LinearHorizontal);
     characterBlend.setTextBoxStyle(juce::Slider::TextBoxRight, true, 124, 22);
     addAndMakeVisible(characterBlend);
-    characterBlend.setRange(0.0, 100.0, 1.0);
-    characterBlendAttachment = std::make_unique<juce::ParameterAttachment>(*owner.state.getParameter(parameters::morphX),
-        [this](float) { updateMorphControls(); });
-    characterBlend.onDragStart = [this] { characterBlendAttachment->beginGesture(); };
-    characterBlend.onDragEnd = [this] { characterBlendAttachment->endGesture(); };
-    characterBlend.onValueChange = [this]
-    {
-        const auto x = static_cast<float>(characterBlend.getValue() * 0.02 - 1.0);
-        if (characterBlend.isMouseButtonDown())
-            characterBlendAttachment->setValueAsPartOfGesture(x);
-        else
-            characterBlendAttachment->setValueAsCompleteGesture(x);
-    };
-    bindMorphSlider(sliders[wetSliderIndex], parameters::wet, parameters::morphY, wetMorphAttachment);
+    bindMorphSlider(characterBlend, parameters::morphX, characterBlendAttachment);
+    bindMorphSlider(sliders[wetSliderIndex], parameters::morphY, wetMorphAttachment);
+    sliders[wetSliderIndex].setTextValueSuffix("%");
     characterBlend.textFromValueFunction = [](double value)
     {
         const auto b = juce::roundToInt(value);
@@ -410,30 +399,22 @@ void PluginEditor::timerCallback()
     repaint(spectrumBounds);
 }
 
-void PluginEditor::bindMorphSlider(juce::Slider& slider, const char* baseId, const char* axisId,
+void PluginEditor::bindMorphSlider(juce::Slider& slider, const char* axisId,
                                   std::unique_ptr<juce::ParameterAttachment>& attachment)
 {
-    auto& axis = *ownerProcessor.state.getParameter(axisId);
-    attachment = std::make_unique<juce::ParameterAttachment>(*ownerProcessor.state.getParameter(baseId),
-        [this](float) { updateMorphControls(); });
-    auto* base = attachment.get();
     slider.setRange(0.0, 100.0, 1.0);
-    slider.onDragStart = [base] { base->beginGesture(); };
-    slider.onDragEnd = [base] { base->endGesture(); };
-    slider.onValueChange = [&slider, &axis, base]
+    attachment = std::make_unique<juce::ParameterAttachment>(*ownerProcessor.state.getParameter(axisId),
+        [this](float) { updateMorphControls(); });
+    auto* axis = attachment.get();
+    slider.onDragStart = [axis] { axis->beginGesture(); };
+    slider.onDragEnd = [axis] { axis->endGesture(); };
+    slider.onValueChange = [&slider, axis]
     {
-        const auto value = static_cast<float>(slider.getValue());
-        const auto centre = axis.convertTo0to1(0.0f);
-        if (std::abs(axis.getValue() - centre) > 0.000001f)
-        {
-            axis.beginChangeGesture();
-            axis.setValueNotifyingHost(centre);
-            axis.endChangeGesture();
-        }
+        const auto position = static_cast<float>(slider.getValue() * 0.02 - 1.0);
         if (slider.isMouseButtonDown())
-            base->setValueAsPartOfGesture(value);
+            axis->setValueAsPartOfGesture(position);
         else
-            base->setValueAsCompleteGesture(value);
+            axis->setValueAsCompleteGesture(position);
     };
 }
 

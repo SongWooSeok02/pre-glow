@@ -103,8 +103,8 @@ float PluginProcessor::effectiveBlend() const noexcept
 
 float PluginProcessor::effectiveWet() const noexcept
 {
-    return morphValue(wet->load(std::memory_order_relaxed) * 0.01f,
-                      morphY->load(std::memory_order_relaxed));
+    const auto y = morphY->load(std::memory_order_relaxed);
+    return std::isfinite(y) ? 0.5f * (1.0f + std::clamp(y, -1.0f, 1.0f)) : 0.35f;
 }
 
 ReverbSettings PluginProcessor::readSettings() const noexcept
@@ -308,9 +308,11 @@ void PluginProcessor::setStateInformation(const void* data, int size)
             || xml->getIntAttribute("schemaVersion") == 4
             || xml->getIntAttribute("schemaVersion") == 5
             || xml->getIntAttribute("schemaVersion") == 6
+            || xml->getIntAttribute("schemaVersion") == 7
             || xml->getIntAttribute("schemaVersion") == parameters::schemaVersion))
     {
         auto restored = juce::ValueTree::fromXml(*xml);
+        const auto oldY = static_cast<float>(restored.getChildWithProperty("id", parameters::morphY).getProperty("value", 0.0f));
         const auto legacy = xml->getIntAttribute("schemaVersion") == 1;
         const auto oldBloom = restored.getChildWithProperty("id", parameters::bloomAmount);
         const auto storedBloom = static_cast<float>(oldBloom.getProperty("value", 0.0f));
@@ -373,6 +375,14 @@ void PluginProcessor::setStateInformation(const void* data, int size)
             // Missing axes have already been filled with the new default. Legacy axes defaulted to zero.
             const auto original = juce::ValueTree::fromXml(*xml).getChildWithProperty("id", parameters::morphX);
             x.setProperty("value", 2.0f * morphValue(base, static_cast<float>(original.getProperty("value", 0.0f))) - 1.0f, nullptr);
+        }
+        if (xml->getIntAttribute("schemaVersion") < 8)
+        {
+            auto y = restored.getChildWithProperty("id", parameters::morphY);
+            const auto wetNode = restored.getChildWithProperty("id", parameters::wet);
+            const auto savedWet = static_cast<float>(wetNode.getProperty("value", 35.0f));
+            const auto base = std::isfinite(savedWet) ? std::clamp(savedWet * 0.01f, 0.0f, 1.0f) : 0.35f;
+            y.setProperty("value", 2.0f * morphValue(base, oldY) - 1.0f, nullptr);
         }
         restored.setProperty("schemaVersion", parameters::schemaVersion, nullptr);
         state.replaceState(restored);

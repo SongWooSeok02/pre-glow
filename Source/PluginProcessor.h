@@ -64,7 +64,6 @@ private:
     const std::atomic<float>* const damping = state.getRawParameterValue(parameters::damping);
     const std::atomic<float>* const mix = state.getRawParameterValue(parameters::mix);
     const std::atomic<float>* const dry = state.getRawParameterValue(parameters::dry);
-    const std::atomic<float>* const wet = state.getRawParameterValue(parameters::wet);
     void processSample(float& left, float& right, bool mono) noexcept;
     void captureSpectrum(const Reverb::Output& output) noexcept;
     SpectrumFrame spectrumWrite {}, spectrumReady {};

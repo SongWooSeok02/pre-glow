@@ -46,7 +46,7 @@ inline constexpr auto swellTime = "swell_time";
 inline constexpr auto swellSensitivity = "swell_sensitivity";
 inline constexpr auto swellCurve = "swell_curve";
 inline constexpr auto stateType = "PreGlowState";
-inline constexpr int schemaVersion = 7;
+inline constexpr int schemaVersion = 8;
 inline constexpr auto shimmerEnabled = "shimmer_enabled";
 inline constexpr auto shimmerRouting = "shimmer_routing";
 inline const juce::StringArray shimmerRoutes { "Feedback", "Post-Reverb", "Pre-Reverb", "Parallel" };
@@ -167,7 +167,7 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
     layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID { morphX, 21 },
         "Morph X (A/B)", juce::NormalisableRange<float> { -1.0f, 1.0f }, -1.0f));
     layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID { morphY, 21 },
-        "Morph Y (Wet)", juce::NormalisableRange<float> { -1.0f, 1.0f }, 0.0f));
+        "Morph Y (Wet)", juce::NormalisableRange<float> { -1.0f, 1.0f }, -0.3f));
     return layout;
 }
 }

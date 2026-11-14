@@ -28,7 +28,7 @@ private:
         juce::ParameterAttachment xAttachment, yAttachment;
     };
 
-    void bindMorphSlider(juce::Slider&, const char* baseId, const char* axisId,
+    void bindMorphSlider(juce::Slider&, const char* axisId,
                          std::unique_ptr<juce::ParameterAttachment>&);
     void updateMorphControls();
     void updateSections();
