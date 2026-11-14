@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added per-band modulation depth for slow movement in the Wet output.
+
 - Freeze now layers live reverb over the held tail using the current settings.
 
 - Added Low, Mid, and High Shimmer Sends to shape the signal entering the pitch shifter.

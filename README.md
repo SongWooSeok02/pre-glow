@@ -22,7 +22,7 @@ On Apple Silicon with Xcode 27.2, Apple Clang 21, CMake 3.31.6 and Ninja, Releas
 
 Freeze with live reverb built locally on macOS in Standalone, AU, and VST3 formats. Both existing DSP tests passed.
 
-Band Decay, Feedback Damping, Wet Level, and Shimmer Send with adjustable crossovers and bordered sections built locally on macOS in Standalone, AU, and VST3 formats. Both existing DSP tests passed.
+Band Decay, Feedback Damping, Wet Level, Shimmer Send, and Modulation Depth with adjustable crossovers and bordered sections built locally on macOS in Standalone, AU, and VST3 formats. Both existing DSP tests passed.
 
 Low Cut placement built locally on macOS in Standalone, AU, and VST3 formats. Both existing DSP tests passed.
 

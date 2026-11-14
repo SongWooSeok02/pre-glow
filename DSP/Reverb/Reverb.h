@@ -55,6 +55,8 @@ public:
         targetHighSplit = -std::expm1(-6.2831853f * highHz / filterSampleRate);
     }
 
+    void setBandModulation(const std::array<float, 3>& depth) noexcept { targetBandModulation = depth; }
+
     void setBandSend(const std::array<float, 3>& sends) noexcept { targetBandSend = sends; }
 
     void setBandLevel(const std::array<float, 3>& levels) noexcept { targetBandLevel = levels; }
@@ -163,6 +165,8 @@ public:
         bandDamping = targetBandDamping;
         bandLevel = targetBandLevel;
         bandSend = targetBandSend;
+        bandModulation = targetBandModulation;
+        bandPhases.fill(0.0f);
         shimmerSendFilters = {};
         wetLow.fill(0.0f);
         wetBelowHigh.fill(0.0f);
@@ -296,6 +300,7 @@ public:
         for (std::size_t band = 0; band < bandDamping.size(); ++band)
         {
             bandDamping[band] += smoothing * (targetBandDamping[band] - bandDamping[band]);
+            bandModulation[band] += smoothing * (targetBandModulation[band] - bandModulation[band]);
             bandSend[band] += smoothing * (targetBandSend[band] - bandSend[band]);
             bandLevel[band] += smoothing * (targetBandLevel[band] - bandLevel[band]);
         }
@@ -400,6 +405,17 @@ public:
             earlyGain * earlyLevel * early[0] + lateGain * lateLeft + feed * parallelMix * pre.wet[0],
             earlyGain * earlyLevel * early[1] + lateGain * lateRight + feed * parallelMix * pre.wet[1]
         };
+        constexpr std::array rates { 0.25f, 0.4f, 0.6f };
+        std::array<float, 3> levels {};
+        for (std::size_t band = 0; band < levels.size(); ++band)
+        {
+            auto& phase = bandPhases[band];
+            const auto triangle = 1.0f - 4.0f * std::abs(phase - 0.5f);
+            levels[band] = bandLevel[band] * (1.0f + 0.4f * bandModulation[band] * triangle);
+            phase += rates[band] / filterSampleRate;
+            if (phase >= 1.0f)
+                phase -= 1.0f;
+        }
         Output output { { dry * left, dry * right }, {} };
         for (std::size_t channel = 0; channel < wetSignal.size(); ++channel)
         {
@@ -408,9 +424,9 @@ public:
             auto& belowHigh = wetBelowHigh[channel];
             low += lowSplit * (sample - low);
             belowHigh += highSplit * (sample - belowHigh);
-            output.wet[channel] = wet * (sample + low * (bandLevel[0] - 1.0f)
-                + (belowHigh - low) * (bandLevel[1] - 1.0f)
-                + (sample - belowHigh) * (bandLevel[2] - 1.0f));
+            output.wet[channel] = wet * (sample + low * (levels[0] - 1.0f)
+                + (belowHigh - low) * (levels[1] - 1.0f)
+                + (sample - belowHigh) * (levels[2] - 1.0f));
         }
         return output;
     }
@@ -423,6 +439,7 @@ private:
     }
 
     std::array<float, 2> inputLow {}, outputLow {};
+    std::array<float, 3> bandModulation {}, targetBandModulation {}, bandPhases {};
     std::array<float, 2> wetLow {}, wetBelowHigh {};
     std::array<float, 3> bandLevel { 1, 1, 1 }, targetBandLevel { 1, 1, 1 };
     std::array<float, 3> bandDamping {}, targetBandDamping {};

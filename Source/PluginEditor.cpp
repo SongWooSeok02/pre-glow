@@ -12,7 +12,7 @@ constexpr int spectrumWidth = 376;
 constexpr int columnGap = 12;
 constexpr int compactHeight = 250;
 constexpr int characterRowHeight = 34;
-constexpr int bandRowHeight = 274;
+constexpr int bandRowHeight = 324;
 constexpr int shimmerBottomPadding = 12;
 constexpr int sectionHeight = 136;
 constexpr std::size_t bloomStart = 6;
@@ -78,6 +78,14 @@ PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner)
         sendSlider.setTextValueSuffix("%");
         addAndMakeVisible(sendSlider);
         addAndMakeVisible(bandSendLabels[band]);
+        auto& modSlider = bandMod[band];
+        modSlider.setTitle(parameters::bandModNames[band]);
+        modSlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 56, 22);
+        bandModLabels[band].setText(parameters::bandModNames[band], juce::dontSendNotification);
+        bandModAttachments[band] = std::make_unique<SliderAttachment>(owner.state, parameters::bandModIds[band], modSlider);
+        modSlider.setTextValueSuffix("%");
+        addAndMakeVisible(modSlider);
+        addAndMakeVisible(bandModLabels[band]);
     }
     for (std::size_t i = 0; i < crossovers.size(); ++i)
     {
@@ -272,6 +280,8 @@ void PluginEditor::updateSections()
         bandLevelLabels[band].setVisible(bandsOpen);
         bandSend[band].setVisible(bandsOpen);
         bandSendLabels[band].setVisible(bandsOpen);
+        bandMod[band].setVisible(bandsOpen);
+        bandModLabels[band].setVisible(bandsOpen);
     }
     for (std::size_t i = 0; i < crossovers.size(); ++i)
     {
@@ -455,7 +465,9 @@ void PluginEditor::resized()
             bandLevelLabels[band].setBounds(cell.removeFromTop(22));
             bandLevel[band].setBounds(cell.removeFromTop(28));
             bandSendLabels[band].setBounds(cell.removeFromTop(22));
-            bandSend[band].setBounds(cell);
+            bandSend[band].setBounds(cell.removeFromTop(28));
+            bandModLabels[band].setBounds(cell.removeFromTop(22));
+            bandMod[band].setBounds(cell);
         }
     }
     if (bloom.getToggleState())
