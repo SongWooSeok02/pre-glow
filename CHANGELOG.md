@@ -2,11 +2,15 @@
 
 ## Unreleased
 
+## Phase 5 implementation complete (2026-11-14)
+
+See the [Phase 5 handoff](docs/phase-5-handoff.md).
+
 - Retrigger Reverse-like from fresh attacks over sustained input and smooth gain changes.
 
 - Added a Ducking bypass and a Reverse-like wet swell with adjustable rise time.
 
-- Replaced Mod Matrix with input-triggered Ducking for the wet output.
+- Added input-triggered Ducking for the wet output. Mod Matrix was removed from the Phase 5 scope.
 
 - Place XY Morph below the spectrum when Multiband or Shimmer is open.
 
@@ -52,6 +56,8 @@
 - Added an EQ-style spectrum display for the Dry and Reverb signals at their mix levels.
 
 - Added a Shimmer On switch that fades both Shimmer routes out without changing their settings. State schema 6 stores the switch; older sessions restore with Shimmer enabled.
+
+## Phase 4
 
 - Kept Shimmer voice value fields inside their cards with per-column spacing and bottom padding.
 

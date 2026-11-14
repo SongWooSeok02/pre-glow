@@ -164,7 +164,7 @@
 | Phase 2 | FDN, Diffusion, Early Reflections, Decay, Damping, Stereo 리버브 엔진 |
 | Phase 3 | Long Decay, Freeze, Infinite, Bloom, Swell |
 | Phase 4 | 피치 시프터, 최대 4보이스 Shimmer, Feedback Shimmer |
-| Phase 5 | Flexible Routing, Multiband, XY Morph, Modulation Matrix, Ducking, Reverse-like |
+| Phase 5 | Flexible Routing, Multiband, XY Morph, Ducking, Reverse-like (Modulation Matrix 제외) |
 | Phase 6 | Basic/Advanced GUI, 프리셋 브라우저, 시각화 |
 | Phase 7 | DSP 테스트, 성능 최적화, AU/VST3 검증, DAW별 QA |
 | Phase 8 | macOS/Windows 설치·배포 패키징, 문서화 |

@@ -1,6 +1,6 @@
 # pre-glow
 
-Stereo reverb plugin. Phase 2 is in progress. Decay, Damping and Mix support host automation and session recall.
+Stereo reverb plugin. Phase 5 implementation is complete. Decay, Damping and Mix support host automation and session recall.
 
 ## Build
 
@@ -87,3 +87,7 @@ Each Shimmer voice has its own card. On enables the voice and opens its controls
 Phase 4 includes Shimmer Routing with Feedback and Post-Reverb modes. Feedback is the default for existing projects. Post-Reverb keeps the pitch layer in the wet output and fades its return into the reverb loop to zero. Apple Silicon AU, VST3 and Standalone builds and DSP tests passed. Logic listening and project recall checks are pending.
 
 See the [Phase 4 handoff](docs/phase-4-handoff.md) for the Phase 5 starting point.
+
+## Phase 5 implementation complete
+
+See the [Phase 5 handoff](docs/phase-5-handoff.md) for the completed scope, validation results, and the Phase 6 starting point.
