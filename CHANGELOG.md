@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added Low, Mid, and High Shimmer Sends to shape the signal entering the pitch shifter.
+
 - Added per-band Wet Level controls and extra padding below the Shimmer voices.
 
 - Added feedback damping for the Low, Mid, and High bands in Band Decay.

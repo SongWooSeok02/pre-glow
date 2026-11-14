@@ -12,7 +12,7 @@ constexpr int spectrumWidth = 376;
 constexpr int columnGap = 12;
 constexpr int compactHeight = 250;
 constexpr int characterRowHeight = 34;
-constexpr int bandRowHeight = 224;
+constexpr int bandRowHeight = 274;
 constexpr int shimmerBottomPadding = 12;
 constexpr int sectionHeight = 136;
 constexpr std::size_t bloomStart = 6;
@@ -70,6 +70,14 @@ PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner)
         levelSlider.setTextValueSuffix("%");
         addAndMakeVisible(levelSlider);
         addAndMakeVisible(bandLevelLabels[band]);
+        auto& sendSlider = bandSend[band];
+        sendSlider.setTitle(parameters::bandSendNames[band]);
+        sendSlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 56, 22);
+        bandSendLabels[band].setText(parameters::bandSendNames[band], juce::dontSendNotification);
+        bandSendAttachments[band] = std::make_unique<SliderAttachment>(owner.state, parameters::bandSendIds[band], sendSlider);
+        sendSlider.setTextValueSuffix("%");
+        addAndMakeVisible(sendSlider);
+        addAndMakeVisible(bandSendLabels[band]);
     }
     for (std::size_t i = 0; i < crossovers.size(); ++i)
     {
@@ -262,6 +270,8 @@ void PluginEditor::updateSections()
         bandDampingLabels[band].setVisible(bandsOpen);
         bandLevel[band].setVisible(bandsOpen);
         bandLevelLabels[band].setVisible(bandsOpen);
+        bandSend[band].setVisible(bandsOpen);
+        bandSendLabels[band].setVisible(bandsOpen);
     }
     for (std::size_t i = 0; i < crossovers.size(); ++i)
     {
@@ -443,7 +453,9 @@ void PluginEditor::resized()
             bandDampingLabels[band].setBounds(cell.removeFromTop(22));
             bandDamping[band].setBounds(cell.removeFromTop(28));
             bandLevelLabels[band].setBounds(cell.removeFromTop(22));
-            bandLevel[band].setBounds(cell);
+            bandLevel[band].setBounds(cell.removeFromTop(28));
+            bandSendLabels[band].setBounds(cell.removeFromTop(22));
+            bandSend[band].setBounds(cell);
         }
     }
     if (bloom.getToggleState())

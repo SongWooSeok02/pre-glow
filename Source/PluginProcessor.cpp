@@ -13,6 +13,7 @@ PluginProcessor::PluginProcessor()
     for (std::size_t band = 0; band < bandDecayParameters.size(); ++band)
     {
         bandDecayParameters[band] = state.getRawParameterValue(parameters::bandDecayIds[band]);
+        bandSendParameters[band] = state.getRawParameterValue(parameters::bandSendIds[band]);
         bandLevelParameters[band] = state.getRawParameterValue(parameters::bandLevelIds[band]);
         bandDampingParameters[band] = state.getRawParameterValue(parameters::bandDampingIds[band]);
     }
@@ -26,10 +27,12 @@ PluginProcessor::PluginProcessor()
 
 void PluginProcessor::updateBandDecay() noexcept
 {
-    std::array<float, 3> amounts {}, dampingAmounts {}, levels {};
+    std::array<float, 3> amounts {}, dampingAmounts {}, levels {}, sends {};
     for (std::size_t band = 0; band < amounts.size(); ++band)
     {
         const auto value = bandDecayParameters[band]->load(std::memory_order_relaxed);
+        const auto send = bandSendParameters[band]->load(std::memory_order_relaxed);
+        sends[band] = std::isfinite(send) ? std::clamp(send, 0.0f, 100.0f) * 0.01f : 1.0f;
         const auto level = bandLevelParameters[band]->load(std::memory_order_relaxed);
         levels[band] = std::isfinite(level) ? std::clamp(level, 0.0f, 200.0f) * 0.01f : 1.0f;
         const auto dampingValue = bandDampingParameters[band]->load(std::memory_order_relaxed);
@@ -43,6 +46,7 @@ void PluginProcessor::updateBandDecay() noexcept
         engine.setBandDecay(amounts);
         engine.setBandDamping(dampingAmounts);
         engine.setBandLevel(levels);
+        engine.setBandSend(sends);
         engine.setBandCrossovers(std::isfinite(lowHz) ? lowHz : 250.0f,
                                  std::isfinite(highHz) ? highHz : 4000.0f);
     }

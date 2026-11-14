@@ -55,6 +55,8 @@ public:
         targetHighSplit = -std::expm1(-6.2831853f * highHz / filterSampleRate);
     }
 
+    void setBandSend(const std::array<float, 3>& sends) noexcept { targetBandSend = sends; }
+
     void setBandLevel(const std::array<float, 3>& levels) noexcept { targetBandLevel = levels; }
 
     void setBandDamping(const std::array<float, 3>& amounts) noexcept { targetBandDamping = amounts; }
@@ -160,6 +162,8 @@ public:
         preShimmer.reset();
         bandDamping = targetBandDamping;
         bandLevel = targetBandLevel;
+        bandSend = targetBandSend;
+        shimmerSendFilters = {};
         wetLow.fill(0.0f);
         wetBelowHigh.fill(0.0f);
         lowSplit = targetLowSplit;
@@ -290,6 +294,7 @@ public:
         for (std::size_t band = 0; band < bandDamping.size(); ++band)
         {
             bandDamping[band] += smoothing * (targetBandDamping[band] - bandDamping[band]);
+            bandSend[band] += smoothing * (targetBandSend[band] - bandSend[band]);
             bandLevel[band] += smoothing * (targetBandLevel[band] - bandLevel[band]);
         }
         std::array<float, 4> taps {};
@@ -329,9 +334,9 @@ public:
         const auto preMix = shimmerMix * preRoute;
         const auto parallelMix = shimmerMix * parallelRoute;
         const auto lateMix = shimmerMix * std::max(0.0f, 1.0f - preRoute - parallelRoute);
-        const auto shifted = processShimmer(shimmer, lateShimmerRunning, lateMix, lateLeftRaw, lateRightRaw);
+        const auto shifted = processShimmer(shimmer, lateShimmerRunning, lateMix, filterShimmerSend(0, 0.5f * (lateLeftRaw + lateRightRaw)));
         const auto pre = processShimmer(preShimmer, preShimmerRunning, preMix + parallelMix,
-                                       feed * left, feed * right);
+                                       filterShimmerSend(1, 0.5f * (feed * left + feed * right)));
         inputCut += smoothing * (targetInputCut - inputCut);
         outputCut += smoothing * (targetOutputCut - outputCut);
         cutCoefficient += smoothing * (targetCutCoefficient - cutCoefficient);
@@ -427,13 +432,25 @@ private:
     float inputCut = 0.0f, targetInputCut = 0.0f;
     float outputCut = 0.0f, targetOutputCut = 0.0f;
 
+    float filterShimmerSend(std::size_t path, float sample) noexcept
+    {
+        auto& [low, belowHigh] = shimmerSendFilters[path];
+        low += lowSplit * (sample - low);
+        belowHigh += highSplit * (sample - belowHigh);
+        return sample * bandSend[2] + low * (bandSend[0] - bandSend[1])
+             + belowHigh * (bandSend[1] - bandSend[2]);
+    }
+
+    std::array<std::array<float, 2>, 2> shimmerSendFilters {};
+    std::array<float, 3> bandSend { 1, 1, 1 }, targetBandSend { 1, 1, 1 };
+
     static Shimmer::Output processShimmer(Shimmer& processor, bool& running, float mix,
-                                         float left, float right) noexcept
+                                         float input) noexcept
     {
         if (mix > 0.0f)
         {
             running = true;
-            return processor.process(left, right);
+            return processor.process(input, input);
         }
         if (running)
         {
