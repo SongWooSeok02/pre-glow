@@ -313,7 +313,7 @@ PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner)
     const auto updateRouting = [this]
     {
         const auto route = shimmerRouting.getSelectedItemIndex();
-        shimmerGlobals[1].setEnabled(route == 0);
+        updateShimmerFeedbackVisibility();
         const std::array<juce::String, 4> paths {
             juce::String::fromUTF8("Input → Reverb → Wet   •   Reverb → Shimmer → Reverb"),
             juce::String::fromUTF8("Input → Reverb → Wet   •   Reverb → Shimmer → Wet"),
@@ -669,10 +669,9 @@ void PluginEditor::updateSections()
     shimmerRouting.setVisible(shimmerOpen);
     shimmerSignalPath.setVisible(shimmerOpen);
     voiceViewport.setVisible(shimmerOpen);
-    for (auto& slider : shimmerGlobals)
-        slider.setVisible(shimmerOpen);
-    for (auto& label : shimmerGlobalLabels)
-        label.setVisible(shimmerOpen);
+    shimmerGlobals[0].setVisible(shimmerOpen);
+    shimmerGlobalLabels[0].setVisible(shimmerOpen);
+    updateShimmerFeedbackVisibility();
     for (std::size_t i = 0; i < voiceSliders.size(); ++i)
     {
         const auto visible = voiceDetails[i / parameters::voiceParameters.size()].getToggleState();
@@ -965,6 +964,13 @@ void PluginEditor::paint(juce::Graphics& graphics)
 PluginEditor::~PluginEditor()
 {
     setLookAndFeel(nullptr);
+}
+
+void PluginEditor::updateShimmerFeedbackVisibility()
+{
+    const auto showFeedback = shimmerSignalPath.isVisible() && shimmerRouting.getSelectedItemIndex() == 0;
+    shimmerGlobals[1].setVisible(showFeedback);
+    shimmerGlobalLabels[1].setVisible(showFeedback);
 }
 
 void PluginEditor::resized()

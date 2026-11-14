@@ -35,6 +35,7 @@ private:
                          std::unique_ptr<juce::ParameterAttachment>&);
     void updateMorphControls();
     void updateSections();
+    void updateShimmerFeedbackVisibility();
     void configurePresets();
     void refreshPresets();
     void loadSelectedPreset();

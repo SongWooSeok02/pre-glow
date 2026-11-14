@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Show the Shimmer Feedback control only in Feedback routing.
+
 - Improve Shimmer dial contrast and use warm gold for the header controls.
 
 - Add cyan accents, visible inactive slider tracks, and more space inside editor sections.
