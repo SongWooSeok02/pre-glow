@@ -11,7 +11,7 @@ const juce::Colour surface { 0xffffffff };
 const juce::Colour border { 0xffe2e8f0 };
 const juce::Colour screen { 0xffeef2f6 };
 const juce::Colour coral { 0xffff5e7e };
-const juce::Colour lavender { 0xff7c3aed };
+const juce::Colour cyan { 0xff007e9a };
 const juce::Colour text { 0xff1e293b };
 const juce::Colour muted { 0xff64748b };
 const juce::Colour peach { 0xffff8c42 };
@@ -52,7 +52,7 @@ constexpr int maxVoiceHeight = 4 * voiceHeaderHeight + voiceRowHeight;
 constexpr int controlsWidth = 620;
 constexpr int spectrumWidth = 376;
 constexpr int columnGap = 12;
-constexpr int duckPanelHeight = 104;
+constexpr int duckPanelHeight = 116;
 constexpr int compactHeight = 250;
 constexpr int titleHeight = 44;
 constexpr int headerHeight = 88;
@@ -71,9 +71,9 @@ constexpr int stackedMorphHeight = morphColumnHeight + compactHeight - 32 + morp
 constexpr std::size_t drySliderIndex = 2;
 constexpr std::size_t wetSliderIndex = 3;
 constexpr int characterRowHeight = 34;
-constexpr int bandRowHeight = 324;
+constexpr int bandRowHeight = 340;
 constexpr int shimmerBottomPadding = 12;
-constexpr int sectionHeight = 136;
+constexpr int sectionHeight = 148;
 constexpr std::size_t bloomStart = 6;
 constexpr std::size_t swellStart = 10;
 }
@@ -100,7 +100,7 @@ void PluginEditor::MorphPad::paint(juce::Graphics& g)
     g.drawRect(plot, 1.0f);
     g.drawHorizontalLine(juce::roundToInt(plot.getCentreY()), plot.getX(), plot.getRight());
     g.drawVerticalLine(juce::roundToInt(plot.getCentreX()), plot.getY(), plot.getBottom());
-    g.setColour(PreGlowColors::lavender);
+    g.setColour(PreGlowColors::cyan);
     const auto x = plot.getX() + (position.x + 1.0f) * 0.5f * plot.getWidth();
     const auto y = plot.getY() + (1.0f - position.y) * 0.5f * plot.getHeight();
     g.fillEllipse(x - 6.0f, y - 6.0f, 12.0f, 12.0f);
@@ -141,7 +141,10 @@ void PluginEditor::MorphPad::mouseDoubleClick(const juce::MouseEvent&)
 PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner), morphPad(owner), ownerProcessor(owner)
 {
     using namespace PreGlowColors;
-    lookAndFeel.setColourScheme({ canvas, surface, surface, grid, text, lavender, surface, lavender, text });
+    lookAndFeel.setColourScheme({ canvas, surface, surface, grid, text, cyan, surface, cyan, text });
+    lookAndFeel.setColour(juce::Slider::backgroundColourId, border);
+    lookAndFeel.setColour(juce::Slider::trackColourId, cyan);
+    lookAndFeel.setColour(juce::Slider::thumbColourId, cyan.darker(0.25f));
     lookAndFeel.setDefaultSansSerifTypefaceName("Arial");
     freeze.setColour(juce::ToggleButton::tickColourId, peach);
 
@@ -156,7 +159,7 @@ PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner)
         auto& slider = sliders[i];
         slider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
         slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 76, 24);
-        slider.setColour(juce::Slider::rotarySliderFillColourId, i == 0 ? PreGlowColors::coral : PreGlowColors::lavender);
+        slider.setColour(juce::Slider::rotarySliderFillColourId, i == 0 ? PreGlowColors::coral : PreGlowColors::cyan);
         slider.setColour(juce::Slider::rotarySliderOutlineColourId, PreGlowColors::border);
         slider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
         slider.setTitle(names[i]);
@@ -795,7 +798,7 @@ void PluginEditor::paintSpectrum(juce::Graphics& g)
     constexpr float minHz = 20.0f, maxHz = 20000.0f, minDB = -90.0f, maxDB = 6.0f;
     const auto xFor = [&](float hz) { return plot.getX() + plot.getWidth() * std::log(hz / minHz) / std::log(maxHz / minHz); };
     const auto yFor = [&](float db) { return plot.getBottom() - plot.getHeight() * (db - minDB) / (maxDB - minDB); };
-    const std::array colours { PreGlowColors::coral, PreGlowColors::lavender };
+    const std::array colours { PreGlowColors::coral, PreGlowColors::cyan };
 
     g.setColour(PreGlowColors::screen);
     g.fillRoundedRectangle(bounds, 6.0f);
@@ -806,7 +809,7 @@ void PluginEditor::paintSpectrum(juce::Graphics& g)
                                  xFor(static_cast<float>(crossovers[1].getValue())), plot.getRight() };
         constexpr std::array names { "Low", "Mid", "High" };
         const std::array bandColours { PreGlowColors::teal, PreGlowColors::peach,
-                                       PreGlowColors::lavender };
+                                       PreGlowColors::cyan };
         for (std::size_t band = 0; band < names.size(); ++band)
         {
             const auto region = plot.withX(edges[band]).withWidth(edges[band + 1] - edges[band]);
@@ -880,7 +883,7 @@ void PluginEditor::paintMeters(juce::Graphics& graphics)
     graphics.fillRoundedRectangle(meterBounds.toFloat(), 6.0f);
     graphics.setFont(juce::FontOptions("Arial", 12.0f, juce::Font::plain));
     constexpr std::array meterLabels { "Input", "Output", "Tail" };
-    const std::array colours { PreGlowColors::coral, PreGlowColors::lavender, PreGlowColors::teal };
+    const std::array colours { PreGlowColors::coral, PreGlowColors::cyan, PreGlowColors::teal };
     for (std::size_t i = 0; i < displayedPeaks.size(); ++i)
     {
         auto row = rows.removeFromTop(24);
@@ -1029,7 +1032,7 @@ void PluginEditor::resized()
     bandPanel.setBounds(titleRow.removeFromRight(96).withSizeKeepingCentre(88, 28));
     duckPanel.setBounds(titleRow.removeFromRight(90).withSizeKeepingCentre(82, 28));
     sectionBounds[0] = controls.withHeight(characterRowHeight + 28);
-    auto characters = controls.removeFromTop(characterRowHeight).reduced(0, 3);
+    auto characters = controls.removeFromTop(characterRowHeight).reduced(10, 4);
     characterALabel.setBounds(characters.removeFromLeft(22));
     character.setBounds(characters.removeFromLeft(112));
     characters.removeFromLeft(8);
@@ -1037,7 +1040,7 @@ void PluginEditor::resized()
     characterB.setBounds(characters.removeFromLeft(112));
     characters.removeFromLeft(12);
     characterBlend.setBounds(characters);
-    auto options = controls.removeFromTop(28);
+    auto options = controls.removeFromTop(28).reduced(10, 2);
     freeze.setBounds(options.removeFromLeft(78));
     infinite.setBounds(options.removeFromLeft(123));
     bloom.setBounds(options.removeFromLeft(74));
@@ -1060,11 +1063,11 @@ void PluginEditor::resized()
     reverseLabel.setBounds(reverseRow.removeFromLeft(36));
     reverseTime.setBounds(reverseRow.removeFromLeft(230).reduced(4, 0));
     sectionBounds[1] = controls.removeFromTop(compactHeight - 124);
-    layoutRow(sectionBounds[1].reduced(4, 5), 0, bloomStart);
+    layoutRow(sectionBounds[1].reduced(12, 10), 0, bloomStart);
     if (bandPanel.getToggleState())
     {
         sectionBounds[2] = controls.removeFromTop(bandRowHeight);
-        auto bandRow = sectionBounds[2].reduced(4, 6);
+        auto bandRow = sectionBounds[2].reduced(12, 14);
         auto frequencyRow = bandRow.removeFromTop(54);
         const auto frequencyWidth = frequencyRow.getWidth() / 2;
         for (std::size_t i = 0; i < crossovers.size(); ++i)
@@ -1092,17 +1095,17 @@ void PluginEditor::resized()
     if (bloom.getToggleState())
     {
         sectionBounds[3] = controls.removeFromTop(sectionHeight);
-        layoutRow(sectionBounds[3].reduced(4, 5), bloomStart, swellStart - bloomStart);
+        layoutRow(sectionBounds[3].reduced(12, 10), bloomStart, swellStart - bloomStart);
     }
     if (swell.getToggleState())
     {
         sectionBounds[4] = controls.removeFromTop(sectionHeight);
-        layoutRow(sectionBounds[4].reduced(4, 5), swellStart, sliders.size() - swellStart);
+        layoutRow(sectionBounds[4].reduced(12, 10), swellStart, sliders.size() - swellStart);
     }
     if (duckPanel.getToggleState())
     {
         sectionBounds[6] = controls.removeFromTop(duckPanelHeight);
-        auto row = sectionBounds[6].reduced(8, 8);
+        auto row = sectionBounds[6].reduced(12, 14);
         duckOn.setBounds(row.removeFromTop(28).removeFromLeft(125));
         const auto width = row.getWidth() / static_cast<int>(duckSliders.size());
         for (std::size_t i = 0; i < duckSliders.size(); ++i)
@@ -1116,7 +1119,7 @@ void PluginEditor::resized()
     {
         const auto shimmerTop = controls.getY();
         shimmerSignalPath.setBounds(controls.removeFromTop(32).reduced(8, 0));
-        auto globals = controls.removeFromTop(100).reduced(6, 5);
+        auto globals = controls.removeFromTop(100).reduced(14, 8);
         shimmerRouting.setBounds(globals.removeFromRight(152).withSizeKeepingCentre(142, 28));
 
         for (std::size_t i = 0; i < shimmerGlobals.size(); ++i)

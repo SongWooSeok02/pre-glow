@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add cyan accents, visible inactive slider tracks, and more space inside editor sections.
+
 - Use a light editor palette with coral and lavender accents and updated typography.
 
 - Show Low, Mid, and High crossover regions on the spectrum while Multiband is open.
