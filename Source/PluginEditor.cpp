@@ -14,6 +14,8 @@ constexpr int compactHeight = 250;
 constexpr int morphSize = 220;
 constexpr int morphReadoutHeight = 28;
 constexpr int morphColumnHeight = 32 + morphSize + morphReadoutHeight;
+constexpr int morphButtonRowHeight = 34;
+constexpr int stackedMorphHeight = morphColumnHeight + compactHeight - 32 + morphButtonRowHeight;
 constexpr std::size_t wetSliderIndex = 3;
 constexpr int characterRowHeight = 34;
 constexpr int bandRowHeight = 324;
@@ -366,8 +368,9 @@ void PluginEditor::updateSections()
     morphPanel.setButtonText(morphOpen ? "Hide XY Morph" : "Show XY Morph");
     morphPad.setVisible(morphOpen);
     morphReadout.setVisible(morphOpen);
-    const auto width = controlsWidth + columnGap + spectrumWidth + (morphOpen ? columnGap + morphSize : 0);
-    setSize(width, std::max(morphOpen ? morphColumnHeight : 0, (bandsOpen ? bandRowHeight : 0) + compactHeight + characterRowHeight + sectionHeight * (static_cast<int>(bloomOpen) + static_cast<int>(swellOpen))
+    const auto morphBelow = bandsOpen || shimmerOpen;
+    const auto width = controlsWidth + columnGap + spectrumWidth + (morphOpen && !morphBelow ? columnGap + morphSize : 0);
+    setSize(width, std::max(morphOpen ? (morphBelow ? stackedMorphHeight : morphColumnHeight) : 0, (bandsOpen ? bandRowHeight : 0) + compactHeight + characterRowHeight + sectionHeight * (static_cast<int>(bloomOpen) + static_cast<int>(swellOpen))
         + (shimmerOpen ? 100 + shimmerBottomPadding + std::min(maxVoiceHeight, static_cast<int>(voiceDetails.size()) * voiceHeaderHeight + expandedCount * voiceRowHeight) : 0)));
     resized();
 }
@@ -513,16 +516,25 @@ void PluginEditor::paint(juce::Graphics& graphics)
 void PluginEditor::resized()
 {
     auto controls = getLocalBounds().reduced(16);
-    if (morphPanel.getToggleState())
+    const auto morphOpen = morphPanel.getToggleState();
+    const auto morphBelow = bandPanel.getToggleState() || shimmerPanel.getToggleState();
+    juce::Rectangle<int> morphColumn;
+    if (morphOpen && !morphBelow)
     {
-        auto rightColumn = controls.removeFromRight(morphSize);
+        morphColumn = controls.removeFromRight(morphSize);
         controls.removeFromRight(columnGap);
-        morphReadout.setBounds(rightColumn.removeFromTop(morphReadoutHeight));
-        morphPad.setBounds(rightColumn.removeFromTop(morphSize));
     }
+
     auto spectrumColumn = controls.removeFromRight(spectrumWidth);
     spectrumBounds = spectrumColumn.removeFromTop(compactHeight - 32);
-    morphPanel.setBounds(spectrumColumn.removeFromTop(34).withSizeKeepingCentre(128, 26));
+    morphPanel.setBounds(spectrumColumn.removeFromTop(morphButtonRowHeight).withSizeKeepingCentre(128, 26));
+    if (morphOpen)
+    {
+        if (morphBelow)
+            morphColumn = spectrumColumn.withSizeKeepingCentre(morphSize, spectrumColumn.getHeight());
+        morphReadout.setBounds(morphColumn.removeFromTop(morphReadoutHeight));
+        morphPad.setBounds(morphColumn.removeFromTop(morphSize));
+    }
     controls.removeFromRight(columnGap);
     auto titleRow = controls.removeFromTop(56);
     shimmerPanel.setBounds(titleRow.removeFromRight(96).withSizeKeepingCentre(96, 28));

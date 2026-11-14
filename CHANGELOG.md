@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Place XY Morph below the spectrum when Multiband or Shimmer is open.
+
 - Linked Wet to the XY pad in both directions. Schema 8 migrates saved Wet settings to Morph Y.
 
 - Centered XY Morph X at an even A/B mix. Schema 7 migrates saved mixes to Morph X. Use Morph X for A/B automation.
