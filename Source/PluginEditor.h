@@ -48,6 +48,10 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> infiniteAttachment;
     juce::ToggleButton freeze { "Freeze" };
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> freezeAttachment;
+    juce::ComboBox filterPlacement;
+    juce::Slider lowCut;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> filterPlacementAttachment;
+    std::unique_ptr<SliderAttachment> lowCutAttachment;
     juce::ComboBox character, characterB;
     juce::Slider characterBlend;
     juce::Label characterALabel, characterBLabel;

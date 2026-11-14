@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added an adjustable low cut with Reverb Input and Wet Output placement. Existing projects load with the filter off.
+
 - Show both reverb percentages on the A/B control.
 
 - Added Reverb A/B Blend to mix two existing reverb characters. Older sessions load at 0% B.

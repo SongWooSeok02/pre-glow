@@ -45,6 +45,13 @@ public:
         preShimmer.setVoices(voices);
     }
 
+    void setLowCut(int placement, float hz) noexcept
+    {
+        targetInputCut = placement == 1 ? 1.0f : 0.0f;
+        targetOutputCut = placement == 2 ? 1.0f : 0.0f;
+        targetCutCoefficient = -std::expm1(-6.2831853f * hz / filterSampleRate);
+    }
+
     void prepare(double sampleRate, ReverbCharacter character = ReverbCharacter::hall)
     {
         constexpr std::array diffusionSeconds { 0.0031, 0.0047, 0.0061, 0.0083 };
@@ -87,6 +94,7 @@ public:
 
         lastDecay = -1.0f;
 
+        filterSampleRate = static_cast<float>(sampleRate);
         smoothing = static_cast<float>(-std::expm1(-1.0 / (0.025 * sampleRate)));
         samplesPerMs = static_cast<float>(sampleRate * 0.001);
         swellGainSmoothing = 1.0f / (1.0f + 5.0f * samplesPerMs);
@@ -121,6 +129,11 @@ public:
         bloomShape = targetBloomShape;
         shimmer.reset();
         preShimmer.reset();
+        inputLow.fill(0.0f);
+        outputLow.fill(0.0f);
+        inputCut = targetInputCut;
+        outputCut = targetOutputCut;
+        cutCoefficient = targetCutCoefficient;
         preRoute = targetPreRoute;
         parallelRoute = targetParallelRoute;
         shimmerMix = targetShimmerMix;
@@ -264,8 +277,11 @@ public:
         const auto shifted = processShimmer(shimmer, lateShimmerRunning, lateMix, lateLeftRaw, lateRightRaw);
         const auto pre = processShimmer(preShimmer, preShimmerRunning, preMix + parallelMix,
                                        feed * left, feed * right);
-        const auto reverbLeft = left + preMix * pre.wet[0];
-        const auto reverbRight = right + preMix * pre.wet[1];
+        inputCut += smoothing * (targetInputCut - inputCut);
+        outputCut += smoothing * (targetOutputCut - outputCut);
+        cutCoefficient += smoothing * (targetCutCoefficient - cutCoefficient);
+        const auto reverbLeft = applyLowCut(left + preMix * pre.wet[0], inputLow[0], inputCut);
+        const auto reverbRight = applyLowCut(right + preMix * pre.wet[1], inputLow[1], inputCut);
         // Reserve part of the normal loop's loss for the pitch-shifted return.
         // This preserves the original feedback coefficient at every setting.
         float loopGain = 0.0f;
@@ -319,11 +335,23 @@ public:
         applyWidth(early[0], early[1], earlyWidth);
         applyWidth(lateLeft, lateRight, lateWidth);
         return { { dry * left, dry * right },
-                 { wet * (earlyGain * earlyLevel * early[0] + lateGain * lateLeft + feed * parallelMix * pre.wet[0]),
-                   wet * (earlyGain * earlyLevel * early[1] + lateGain * lateRight + feed * parallelMix * pre.wet[1]) } };
+                 { wet * applyLowCut(earlyGain * earlyLevel * early[0] + lateGain * lateLeft + feed * parallelMix * pre.wet[0], outputLow[0], outputCut),
+                   wet * applyLowCut(earlyGain * earlyLevel * early[1] + lateGain * lateRight + feed * parallelMix * pre.wet[1], outputLow[1], outputCut) } };
     }
 
 private:
+    float applyLowCut(float sample, float& low, float amount) const noexcept
+    {
+        low += cutCoefficient * (sample - low);
+        return sample - amount * low;
+    }
+
+    std::array<float, 2> inputLow {}, outputLow {};
+    float filterSampleRate = 48000.0f;
+    float cutCoefficient = 0.0f, targetCutCoefficient = 0.0f;
+    float inputCut = 0.0f, targetInputCut = 0.0f;
+    float outputCut = 0.0f, targetOutputCut = 0.0f;
+
     static Shimmer::Output processShimmer(Shimmer& processor, bool& running, float mix,
                                          float left, float right) noexcept
     {

@@ -9,6 +9,9 @@ namespace preglow::parameters
 inline constexpr auto decay = "decay";
 inline constexpr auto damping = "damping";
 inline constexpr auto mix = "mix";
+inline constexpr auto filterPlacement = "filter_placement";
+inline constexpr auto lowCut = "low_cut";
+inline const juce::StringArray filterPlacements { "Low Cut Off", "Reverb Input", "Wet Output" };
 inline constexpr auto characterB = "character_b";
 inline constexpr auto characterBlend = "character_blend";
 inline constexpr auto character = "character";
@@ -124,6 +127,10 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
     layout.add(std::make_unique<juce::AudioParameterChoice>(juce::ParameterID { characterB, 13 }, "Character B", characterNames, 1));
     layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID { characterBlend, 13 }, "Reverb A/B Blend",
         juce::NormalisableRange<float> { 0.0f, 100.0f, 1.0f }, 0.0f));
+    layout.add(std::make_unique<juce::AudioParameterChoice>(juce::ParameterID { filterPlacement, 14 },
+        "Low Cut Placement", filterPlacements, 0));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID { lowCut, 14 }, "Low Cut",
+        juce::NormalisableRange<float> { 20.0f, 2000.0f, 1.0f, 0.4f }, 120.0f));
     return layout;
 }
 }

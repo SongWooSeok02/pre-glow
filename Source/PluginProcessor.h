@@ -44,6 +44,9 @@ private:
     std::array<const std::atomic<float>*, Shimmer::voiceCount> voiceEnabled {};
     const std::atomic<float>* const shimmerEnabled = state.getRawParameterValue(parameters::shimmerEnabled);
     const std::atomic<float>* const shimmerRouting = state.getRawParameterValue(parameters::shimmerRouting);
+    void updateLowCut() noexcept;
+    const std::atomic<float>* const filterPlacement = state.getRawParameterValue(parameters::filterPlacement);
+    const std::atomic<float>* const lowCut = state.getRawParameterValue(parameters::lowCut);
     void updateShimmer() noexcept;
     std::array<std::array<const std::atomic<float>*, parameters::voiceParameters.size()>, Shimmer::voiceCount> shimmerVoices {};
     const std::atomic<float>* const shimmerMix = state.getRawParameterValue(parameters::shimmerMix);

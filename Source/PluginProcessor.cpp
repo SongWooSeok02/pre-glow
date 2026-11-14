@@ -16,6 +16,15 @@ PluginProcessor::PluginProcessor()
     }
 }
 
+void PluginProcessor::updateLowCut() noexcept
+{
+    const auto placement = filterPlacement->load(std::memory_order_relaxed);
+    const auto cutoff = lowCut->load(std::memory_order_relaxed);
+    for (auto& engine : engines)
+        engine.setLowCut(placement >= 1.5f ? 2 : placement >= 0.5f ? 1 : 0,
+                         std::isfinite(cutoff) ? std::clamp(cutoff, 20.0f, 2000.0f) : 120.0f);
+}
+
 void PluginProcessor::updateShimmer() noexcept
 {
     std::array<Shimmer::Voice, Shimmer::voiceCount> voices;
@@ -61,6 +70,7 @@ void PluginProcessor::prepareToPlay(double sampleRate, int)
     spectrumRate = sampleRate;
     characterSmoothing = static_cast<float>(-std::expm1(-1.0 / (0.025 * sampleRate)));
     updateShimmer();
+    updateLowCut();
     reset();
 }
 
@@ -158,6 +168,7 @@ void PluginProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiB
     for (auto& engine : engines)
         engine.setTarget(settings);
     updateShimmer();
+    updateLowCut();
     auto* left = buffer.getWritePointer(0);
     if (getMainBusNumOutputChannels() == 1)
     {

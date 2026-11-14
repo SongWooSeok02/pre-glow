@@ -39,6 +39,20 @@ PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner)
         addAndMakeVisible(slider);
         attachments[i] = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(owner.state, ids[i], slider);
     }
+    filterPlacement.setTitle("Low Cut Placement");
+    filterPlacement.addItemList(parameters::filterPlacements, 1);
+    addAndMakeVisible(filterPlacement);
+    filterPlacementAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
+        owner.state, parameters::filterPlacement, filterPlacement);
+    lowCut.setTitle("Low Cut");
+    lowCut.setSliderStyle(juce::Slider::LinearHorizontal);
+    lowCut.setTextBoxStyle(juce::Slider::TextBoxRight, false, 64, 22);
+    lowCutAttachment = std::make_unique<SliderAttachment>(owner.state, parameters::lowCut, lowCut);
+    lowCut.setTextValueSuffix(" Hz");
+    addAndMakeVisible(lowCut);
+    filterPlacement.onChange = [this] { lowCut.setEnabled(filterPlacement.getSelectedId() > 1); };
+    filterPlacement.onChange();
+
     character.setTitle("Reverb character");
     character.addItemList(parameters::characterNames, 1);
     addAndMakeVisible(character);
@@ -318,10 +332,12 @@ void PluginEditor::resized()
     characters.removeFromLeft(12);
     characterBlend.setBounds(characters);
     auto options = controls.removeFromTop(28);
-    freeze.setBounds(options.removeFromLeft(90));
-    infinite.setBounds(options.removeFromLeft(140));
-    bloom.setBounds(options.removeFromLeft(85));
-    swell.setBounds(options.removeFromLeft(85));
+    freeze.setBounds(options.removeFromLeft(78));
+    infinite.setBounds(options.removeFromLeft(123));
+    bloom.setBounds(options.removeFromLeft(74));
+    swell.setBounds(options.removeFromLeft(72));
+    filterPlacement.setBounds(options.removeFromLeft(115));
+    lowCut.setBounds(options);
     controls.removeFromTop(8);
     const auto layoutRow = [&](juce::Rectangle<int> row, std::size_t start, std::size_t count)
     {
