@@ -351,11 +351,14 @@ public:
         const auto reverbRight = applyLowCut(right + preMix * pre.wet[1], inputLow[1], inputCut);
         // Reserve part of the normal loop's loss for the pitch-shifted return.
         // This preserves the original feedback coefficient at every setting.
-        float loopGain = 0.0f;
-        for (const auto& line : lines)
-            loopGain = std::max({ loopGain, line.gain, line.bandGain[0], line.bandGain[1], line.bandGain[2] });
-        const auto feedbackGain = feed * lateMix * shimmerFeedback
-            * std::min(0.25f, 2.0f * (1.0f - loopGain));
+        auto feedbackGain = feed * lateMix * shimmerFeedback;
+        if (feedbackGain > 0.0f)
+        {
+            float loopGain = 0.0f;
+            for (const auto& line : lines)
+                loopGain = std::max({ loopGain, line.gain, line.bandGain[0], line.bandGain[1], line.bandGain[2] });
+            feedbackGain *= std::min(0.25f, 2.0f * (1.0f - loopGain));
+        }
         const auto [sendLeft, sendRight] = shifted.feedback;
         const std::array shimmerReturn { sendLeft, sendRight, -sendLeft, -sendRight };
         const std::array mixed { a + b + c + d, a - b + c - d, a + b - c - d, a - b - c + d };

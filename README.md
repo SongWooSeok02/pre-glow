@@ -121,3 +121,7 @@ The Multiband spectrum overlay passed macOS Release builds, both DSP tests, and 
 ## Phase 6 implementation complete
 
 See the [Phase 6 handoff](docs/phase-6-handoff.md) for the implementation checkpoint, verification gaps, and Phase 7 performance baseline.
+
+## Phase 7 verification
+
+Apple Silicon Release Standalone, AU and VST3 builds passed, along with both DSP tests and installed AU validation. AU and VST3 rendered impulse responses at 48 and 96 kHz in Pedalboard 0.9.17. See the [Phase 7 QA record](docs/phase-7-qa.md) for engine timings and pending DAW checks.
