@@ -10,6 +10,9 @@ const juce::Colour canvas { 0xfff5f7fa };
 const juce::Colour surface { 0xffffffff };
 const juce::Colour border { 0xffe2e8f0 };
 const juce::Colour screen { 0xffeef2f6 };
+const juce::Colour goldTint { 0xfffff4d7 };
+const juce::Colour goldActive { 0xffe3bc62 };
+const juce::Colour goldInk { 0xff76521b };
 const juce::Colour coral { 0xffff5e7e };
 const juce::Colour cyan { 0xff00e5ff };
 const juce::Colour cyanInk { 0xff006b80 };
@@ -150,9 +153,6 @@ PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner)
     lookAndFeel.setColour(juce::Slider::trackColourId, cyan);
     lookAndFeel.setColour(juce::Slider::thumbColourId, cyanInk);
     lookAndFeel.setDefaultSansSerifTypefaceName("Arial");
-    const juce::Colour goldTint { 0xfffff4d7 };
-    const juce::Colour goldActive { 0xffe3bc62 };
-    const juce::Colour goldInk { 0xff76521b };
     for (auto* button : { &advancedMode, &duckPanel, &bandPanel, &shimmerPanel })
     {
         button->setColour(juce::TextButton::buttonColourId, goldTint);
@@ -813,7 +813,7 @@ void PluginEditor::paintSpectrum(juce::Graphics& g)
     constexpr float minHz = 20.0f, maxHz = 20000.0f, minDB = -90.0f, maxDB = 6.0f;
     const auto xFor = [&](float hz) { return plot.getX() + plot.getWidth() * std::log(hz / minHz) / std::log(maxHz / minHz); };
     const auto yFor = [&](float db) { return plot.getBottom() - plot.getHeight() * (db - minDB) / (maxDB - minDB); };
-    const std::array colours { PreGlowColors::coral, PreGlowColors::cyanInk };
+    const std::array colours { PreGlowColors::goldInk, PreGlowColors::cyanInk };
 
     g.setColour(PreGlowColors::screen);
     g.fillRoundedRectangle(bounds, 6.0f);
@@ -823,8 +823,8 @@ void PluginEditor::paintSpectrum(juce::Graphics& g)
         const std::array edges { plot.getX(), xFor(static_cast<float>(crossovers[0].getValue())),
                                  xFor(static_cast<float>(crossovers[1].getValue())), plot.getRight() };
         constexpr std::array names { "Low", "Mid", "High" };
-        const std::array bandColours { PreGlowColors::teal, PreGlowColors::peach,
-                                       PreGlowColors::cyan };
+        const std::array bandColours { PreGlowColors::goldInk, PreGlowColors::cyanInk,
+                                       PreGlowColors::cyanInk.darker(0.35f) };
         for (std::size_t band = 0; band < names.size(); ++band)
         {
             const auto region = plot.withX(edges[band]).withWidth(edges[band + 1] - edges[band]);

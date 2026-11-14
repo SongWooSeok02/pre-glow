@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Match the spectrum traces and crossover overlay to the cyan and gold editor palette.
+
 - Show the Shimmer Feedback control only in Feedback routing.
 
 - Improve Shimmer dial contrast and use warm gold for the header controls.
