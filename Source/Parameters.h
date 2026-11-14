@@ -11,6 +11,8 @@ inline constexpr auto damping = "damping";
 inline constexpr auto mix = "mix";
 inline constexpr std::array crossoverIds { "low_mid_hz", "mid_high_hz" };
 inline constexpr std::array crossoverNames { "Low / Mid", "Mid / High" };
+inline constexpr std::array bandLevelIds { "low_band_level", "mid_band_level", "high_band_level" };
+inline constexpr std::array bandLevelNames { "Low Level", "Mid Level", "High Level" };
 inline constexpr std::array bandDampingIds { "low_feedback_damping", "mid_feedback_damping", "high_feedback_damping" };
 inline constexpr std::array bandDampingNames { "Low Damping", "Mid Damping", "High Damping" };
 inline constexpr std::array bandDecayIds { "low_decay", "mid_decay", "high_decay" };
@@ -147,6 +149,9 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
     for (std::size_t band = 0; band < bandDampingIds.size(); ++band)
         layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID { bandDampingIds[band], 17 },
             bandDampingNames[band], juce::NormalisableRange<float> { 0.0f, 100.0f, 1.0f }, 0.0f));
+    for (std::size_t band = 0; band < bandLevelIds.size(); ++band)
+        layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID { bandLevelIds[band], 18 },
+            bandLevelNames[band], juce::NormalisableRange<float> { 0.0f, 200.0f, 1.0f }, 100.0f));
     return layout;
 }
 }

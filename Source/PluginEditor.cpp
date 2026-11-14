@@ -12,7 +12,8 @@ constexpr int spectrumWidth = 376;
 constexpr int columnGap = 12;
 constexpr int compactHeight = 250;
 constexpr int characterRowHeight = 34;
-constexpr int bandRowHeight = 174;
+constexpr int bandRowHeight = 224;
+constexpr int shimmerBottomPadding = 12;
 constexpr int sectionHeight = 136;
 constexpr std::size_t bloomStart = 6;
 constexpr std::size_t swellStart = 10;
@@ -61,6 +62,14 @@ PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner)
         dampingSlider.setTextValueSuffix("%");
         addAndMakeVisible(dampingSlider);
         addAndMakeVisible(bandDampingLabels[band]);
+        auto& levelSlider = bandLevel[band];
+        levelSlider.setTitle(parameters::bandLevelNames[band]);
+        levelSlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 56, 22);
+        bandLevelLabels[band].setText(parameters::bandLevelNames[band], juce::dontSendNotification);
+        bandLevelAttachments[band] = std::make_unique<SliderAttachment>(owner.state, parameters::bandLevelIds[band], levelSlider);
+        levelSlider.setTextValueSuffix("%");
+        addAndMakeVisible(levelSlider);
+        addAndMakeVisible(bandLevelLabels[band]);
     }
     for (std::size_t i = 0; i < crossovers.size(); ++i)
     {
@@ -251,6 +260,8 @@ void PluginEditor::updateSections()
         bandLabels[band].setVisible(bandsOpen);
         bandDamping[band].setVisible(bandsOpen);
         bandDampingLabels[band].setVisible(bandsOpen);
+        bandLevel[band].setVisible(bandsOpen);
+        bandLevelLabels[band].setVisible(bandsOpen);
     }
     for (std::size_t i = 0; i < crossovers.size(); ++i)
     {
@@ -258,7 +269,7 @@ void PluginEditor::updateSections()
         crossoverLabels[i].setVisible(bandsOpen);
     }
     setSize(getWidth(), (bandsOpen ? bandRowHeight : 0) + compactHeight + characterRowHeight + sectionHeight * (static_cast<int>(bloomOpen) + static_cast<int>(swellOpen))
-        + (shimmerOpen ? 100 + std::min(maxVoiceHeight, static_cast<int>(voiceDetails.size()) * voiceHeaderHeight + expandedCount * voiceRowHeight) : 0));
+        + (shimmerOpen ? 100 + shimmerBottomPadding + std::min(maxVoiceHeight, static_cast<int>(voiceDetails.size()) * voiceHeaderHeight + expandedCount * voiceRowHeight) : 0));
     resized();
 }
 
@@ -430,7 +441,9 @@ void PluginEditor::resized()
             bandLabels[band].setBounds(cell.removeFromTop(22));
             bandDecay[band].setBounds(cell.removeFromTop(28));
             bandDampingLabels[band].setBounds(cell.removeFromTop(22));
-            bandDamping[band].setBounds(cell);
+            bandDamping[band].setBounds(cell.removeFromTop(28));
+            bandLevelLabels[band].setBounds(cell.removeFromTop(22));
+            bandLevel[band].setBounds(cell);
         }
     }
     if (bloom.getToggleState())

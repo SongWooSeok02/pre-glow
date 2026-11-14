@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added per-band Wet Level controls and extra padding below the Shimmer voices.
+
 - Added feedback damping for the Low, Mid, and High bands in Band Decay.
 
 - Added adjustable band crossover frequencies and bordered control sections.

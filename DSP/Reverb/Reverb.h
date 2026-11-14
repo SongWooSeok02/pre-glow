@@ -55,6 +55,8 @@ public:
         targetHighSplit = -std::expm1(-6.2831853f * highHz / filterSampleRate);
     }
 
+    void setBandLevel(const std::array<float, 3>& levels) noexcept { targetBandLevel = levels; }
+
     void setBandDamping(const std::array<float, 3>& amounts) noexcept { targetBandDamping = amounts; }
 
     void setBandDecay(const std::array<float, 3>& amounts) noexcept
@@ -157,6 +159,9 @@ public:
         shimmer.reset();
         preShimmer.reset();
         bandDamping = targetBandDamping;
+        bandLevel = targetBandLevel;
+        wetLow.fill(0.0f);
+        wetBelowHigh.fill(0.0f);
         lowSplit = targetLowSplit;
         highSplit = targetHighSplit;
         inputLow.fill(0.0f);
@@ -283,7 +288,10 @@ public:
         lowSplit += smoothing * (targetLowSplit - lowSplit);
         highSplit += smoothing * (targetHighSplit - highSplit);
         for (std::size_t band = 0; band < bandDamping.size(); ++band)
+        {
             bandDamping[band] += smoothing * (targetBandDamping[band] - bandDamping[band]);
+            bandLevel[band] += smoothing * (targetBandLevel[band] - bandLevel[band]);
+        }
         std::array<float, 4> taps {};
         for (std::size_t i = 0; i < lines.size(); ++i)
         {
@@ -381,9 +389,23 @@ public:
         auto lateRight = lateRightRaw + lateMix * shifted.wet[1];
         applyWidth(early[0], early[1], earlyWidth);
         applyWidth(lateLeft, lateRight, lateWidth);
-        return { { dry * left, dry * right },
-                 { wet * applyLowCut(earlyGain * earlyLevel * early[0] + lateGain * lateLeft + feed * parallelMix * pre.wet[0], outputLow[0], outputCut),
-                   wet * applyLowCut(earlyGain * earlyLevel * early[1] + lateGain * lateRight + feed * parallelMix * pre.wet[1], outputLow[1], outputCut) } };
+        const std::array wetSignal {
+            earlyGain * earlyLevel * early[0] + lateGain * lateLeft + feed * parallelMix * pre.wet[0],
+            earlyGain * earlyLevel * early[1] + lateGain * lateRight + feed * parallelMix * pre.wet[1]
+        };
+        Output output { { dry * left, dry * right }, {} };
+        for (std::size_t channel = 0; channel < wetSignal.size(); ++channel)
+        {
+            const auto sample = applyLowCut(wetSignal[channel], outputLow[channel], outputCut);
+            auto& low = wetLow[channel];
+            auto& belowHigh = wetBelowHigh[channel];
+            low += lowSplit * (sample - low);
+            belowHigh += highSplit * (sample - belowHigh);
+            output.wet[channel] = wet * (sample + low * (bandLevel[0] - 1.0f)
+                + (belowHigh - low) * (bandLevel[1] - 1.0f)
+                + (sample - belowHigh) * (bandLevel[2] - 1.0f));
+        }
+        return output;
     }
 
 private:
@@ -394,6 +416,8 @@ private:
     }
 
     std::array<float, 2> inputLow {}, outputLow {};
+    std::array<float, 2> wetLow {}, wetBelowHigh {};
+    std::array<float, 3> bandLevel { 1, 1, 1 }, targetBandLevel { 1, 1, 1 };
     std::array<float, 3> bandDamping {}, targetBandDamping {};
     std::array<float, 2> crossoverHz {};
     float targetLowSplit = 0.0f, targetHighSplit = 0.0f;
