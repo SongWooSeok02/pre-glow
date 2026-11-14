@@ -327,6 +327,7 @@ void PluginProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiB
             processSample(left[sample], right, true);
             left[sample] = 0.5f * (left[sample] + right);
         }
+        publishCorrelation(buffer);
         publishMeterPeaks(inputPeak, buffer.getMagnitude(0, 0, samples), blockWetPeak, samples);
         return;
     }
@@ -334,6 +335,7 @@ void PluginProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiB
     auto* right = buffer.getWritePointer(1);
     for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
         processSample(left[sample], right[sample], false);
+    publishCorrelation(buffer);
     publishMeterPeaks(inputPeak, getBusBuffer(buffer, false, 0).getMagnitude(0, samples), blockWetPeak, samples);
 }
 
@@ -346,6 +348,7 @@ void PluginProcessor::processBlockBypassed(juce::AudioBuffer<float>& buffer, juc
         captureSpectrum({ { left[sample], right[sample] }, {} });
     const auto samples = buffer.getNumSamples();
     const auto peak = getBusBuffer(buffer, true, 0).getMagnitude(0, samples);
+    publishCorrelation(buffer);
     publishMeterPeaks(peak, peak, 0.0f, samples);
 }
 
@@ -359,11 +362,30 @@ void PluginProcessor::publishMeterPeaks(float input, float output, float wet, in
     meterRevision.fetch_add(1, std::memory_order_release);
 }
 
-std::array<float, 3> PluginProcessor::readMeterPeaks(unsigned& revision) const noexcept
+void PluginProcessor::publishCorrelation(const juce::AudioBuffer<float>& buffer) noexcept
+{
+    const auto* left = buffer.getReadPointer(0);
+    const auto* right = buffer.getReadPointer(getMainBusNumOutputChannels() - 1);
+    double leftEnergy = 0.0, rightEnergy = 0.0, cross = 0.0;
+    for (int i = 0; i < buffer.getNumSamples(); ++i)
+    {
+        const double l = left[i], r = right[i];
+        leftEnergy += l * l;
+        rightEnergy += r * r;
+        cross += l * r;
+    }
+    const auto floor = 1.0e-10 * buffer.getNumSamples();
+    const auto value = leftEnergy > floor && rightEnergy > floor && std::isfinite(leftEnergy + rightEnergy)
+        ? static_cast<float>(std::clamp(cross / std::sqrt(leftEnergy * rightEnergy), -1.0, 1.0))
+        : 2.0f;
+    correlation.store(value, std::memory_order_relaxed);
+}
+
+std::array<float, 4> PluginProcessor::readMeterPeaks(unsigned& revision) const noexcept
 {
     revision = meterRevision.load(std::memory_order_acquire);
     return { meterPeaks[0].load(std::memory_order_relaxed), meterPeaks[1].load(std::memory_order_relaxed),
-             meterPeaks[2].load(std::memory_order_relaxed) };
+             meterPeaks[2].load(std::memory_order_relaxed), correlation.load(std::memory_order_relaxed) };
 }
 
 void PluginProcessor::upmixMonoInput(juce::AudioBuffer<float>& buffer) const noexcept

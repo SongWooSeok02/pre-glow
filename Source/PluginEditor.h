@@ -66,6 +66,8 @@ private:
     void paintMeters(juce::Graphics&);
     juce::Rectangle<int> spectrumBounds, meterBounds;
     std::array<float, 3> displayedPeaks {};
+    float displayedCorrelation = 2.0f;
+    double lastMeterFrame = 0.0;
     unsigned lastMeterRevision = 0;
     double lastMeterUpdate = 0.0;
     juce::dsp::FFT spectrumFFT { PluginProcessor::spectrumOrder };

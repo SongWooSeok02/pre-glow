@@ -50,7 +50,7 @@ constexpr int morphSize = 220;
 constexpr int morphReadoutHeight = 28;
 constexpr int morphColumnHeight = 32 + morphSize + morphReadoutHeight;
 constexpr int morphButtonRowHeight = 34;
-constexpr int meterHeight = 90;
+constexpr int meterHeight = 118;
 constexpr int meterColumnHeight = 2 * editorInset + compactHeight - 32 + morphButtonRowHeight + meterHeight;
 constexpr int stackedMorphHeight = morphColumnHeight + compactHeight - 32 + morphButtonRowHeight + meterHeight;
 constexpr std::size_t drySliderIndex = 2;
@@ -701,10 +701,16 @@ void PluginEditor::timerCallback()
     unsigned revision = 0;
     const auto peaks = ownerProcessor.readMeterPeaks(revision);
     if (revision != lastMeterRevision)
-        displayedPeaks = peaks;
+    {
+        std::copy_n(peaks.begin(), displayedPeaks.size(), displayedPeaks.begin());
+        displayedCorrelation = peaks.back();
+        lastMeterFrame = now;
+    }
     else
         for (auto& peak : displayedPeaks)
             peak *= release; // The host can stop calling processBlock when transport stops.
+    if (now - lastMeterFrame > 250.0)
+        displayedCorrelation = 2.0f;
     lastMeterRevision = revision;
     repaint(meterBounds);
 }
@@ -824,6 +830,23 @@ void PluginEditor::paintMeters(juce::Graphics& graphics)
         graphics.setColour(db >= 0.0f ? juce::Colour(0xffff9c82)
                                      : colours[i]);
         graphics.fillRoundedRectangle(track.withWidth(track.getWidth() * fraction), 4.0f);
+    }
+    auto row = rows.removeFromTop(24);
+    graphics.setColour(juce::Colour(0xfff0eaff));
+    graphics.drawText("Stereo", row.removeFromLeft(54), juce::Justification::centredLeft);
+    const auto active = displayedCorrelation <= 1.0f;
+    graphics.drawText(active ? juce::String(displayedCorrelation, 2) : juce::String("-"),
+                      row.removeFromRight(84), juce::Justification::centredRight);
+    const auto track = row.withSizeKeepingCentre(row.getWidth(), 8).toFloat();
+    graphics.setColour(juce::Colour(0xff383a50));
+    graphics.fillRoundedRectangle(track, 4.0f);
+    graphics.setColour(juce::Colour(0xff8789a4));
+    graphics.drawVerticalLine(juce::roundToInt(track.getCentreX()), track.getY(), track.getBottom());
+    if (active)
+    {
+        const auto x = track.getX() + (displayedCorrelation + 1.0f) * 0.5f * track.getWidth();
+        graphics.setColour(displayedCorrelation < 0.0f ? juce::Colour(0xffff9c82) : colours[0]);
+        graphics.fillEllipse(x - 4.0f, track.getCentreY() - 4.0f, 8.0f, 8.0f);
     }
 }
 

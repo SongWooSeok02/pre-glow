@@ -109,3 +109,5 @@ The PRE-GLOW naming and Basic layout update passed macOS Release builds for all 
 Input and output peak meters display dBFS below the spectrum in both editor modes. macOS Release Standalone, AU, and VST3 builds, both DSP tests, and installed AU validation passed. Meter behavior in Logic Pro has yet to be verified.
 
 The Tail meter shows the wet signal entering the output mix in both editor modes. macOS Release builds, both DSP tests, and installed AU validation passed.
+
+The Stereo meter shows output correlation from −1 to +1. macOS Release builds, both DSP tests, and installed AU validation passed.

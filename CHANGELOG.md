@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added an output stereo correlation meter.
+
 - Added a Tail peak meter for the wet signal at the output mix.
 
 - Added input and output peak meters below the spectrum in both editor modes.

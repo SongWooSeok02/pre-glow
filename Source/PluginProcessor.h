@@ -42,13 +42,15 @@ public:
     using SpectrumFrame = std::array<std::array<float, spectrumSize>, 4>;
     bool readSpectrum(SpectrumFrame& frame, double& sampleRate) noexcept;
 
-    std::array<float, 3> readMeterPeaks(unsigned& revision) const noexcept;
+    std::array<float, 4> readMeterPeaks(unsigned& revision) const noexcept;
 
     juce::AudioProcessorValueTreeState state;
 
 private:
     void publishMeterPeaks(float input, float output, float wet, int samples) noexcept;
     static_assert(std::atomic<float>::is_always_lock_free);
+    void publishCorrelation(const juce::AudioBuffer<float>&) noexcept;
+    std::atomic<float> correlation { 2.0f };
     float blockWetPeak = 0.0f;
     std::array<std::atomic<float>, 3> meterPeaks {};
     std::atomic<unsigned> meterRevision { 0 };
