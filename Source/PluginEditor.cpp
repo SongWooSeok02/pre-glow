@@ -11,6 +11,9 @@ constexpr int controlsWidth = 620;
 constexpr int spectrumWidth = 376;
 constexpr int columnGap = 12;
 constexpr int compactHeight = 250;
+constexpr int morphSize = 220;
+constexpr int morphReadoutHeight = 28;
+constexpr int morphColumnHeight = compactHeight + morphSize + morphReadoutHeight;
 constexpr int characterRowHeight = 34;
 constexpr int bandRowHeight = 324;
 constexpr int shimmerBottomPadding = 12;
@@ -29,7 +32,7 @@ PluginEditor::MorphPad::MorphPad(PluginProcessor& owner)
 
 juce::Rectangle<float> PluginEditor::MorphPad::plotBounds() const
 {
-    return getLocalBounds().toFloat().reduced(26.0f, 24.0f);
+    return getLocalBounds().toFloat().reduced(26.0f);
 }
 
 void PluginEditor::MorphPad::paint(juce::Graphics& g)
@@ -183,7 +186,7 @@ PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner)
     addAndMakeVisible(characterB);
     characterBAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
         owner.state, parameters::characterB, characterB);
-    characterBlend.setTitle("Reverb A/B Blend");
+    characterBlend.setTitle("Base Reverb A/B Blend");
     characterBlend.setSliderStyle(juce::Slider::LinearHorizontal);
     characterBlend.setTextBoxStyle(juce::Slider::TextBoxRight, true, 124, 22);
     addAndMakeVisible(characterBlend);
@@ -294,11 +297,10 @@ PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner)
         voiceLabels[i].setJustificationType(juce::Justification::centred);
         voiceContent.addAndMakeVisible(voiceLabels[i]);
     }
-    morphPanel.setClickingTogglesState(true);
-    morphPanel.onClick = [this] { updateSections(); };
-    addAndMakeVisible(morphPanel);
-    addChildComponent(morphPad);
-    setSize(controlsWidth + columnGap + spectrumWidth, compactHeight + characterRowHeight);
+    addAndMakeVisible(morphPad);
+    morphReadout.setJustificationType(juce::Justification::centred);
+    addAndMakeVisible(morphReadout);
+    setSize(controlsWidth + columnGap + spectrumWidth, morphColumnHeight);
     startTimerHz(30);
     updateSections();
 }
@@ -352,8 +354,7 @@ void PluginEditor::updateSections()
         crossovers[i].setVisible(bandsOpen);
         crossoverLabels[i].setVisible(bandsOpen);
     }
-    morphPad.setVisible(morphPanel.getToggleState());
-    setSize(getWidth(), std::max(morphPad.isVisible() ? 450 : 0, (bandsOpen ? bandRowHeight : 0) + compactHeight + characterRowHeight + sectionHeight * (static_cast<int>(bloomOpen) + static_cast<int>(swellOpen))
+    setSize(getWidth(), std::max(morphColumnHeight, (bandsOpen ? bandRowHeight : 0) + compactHeight + characterRowHeight + sectionHeight * (static_cast<int>(bloomOpen) + static_cast<int>(swellOpen))
         + (shimmerOpen ? 100 + shimmerBottomPadding + std::min(maxVoiceHeight, static_cast<int>(voiceDetails.size()) * voiceHeaderHeight + expandedCount * voiceRowHeight) : 0)));
     resized();
 }
@@ -381,6 +382,10 @@ void PluginEditor::timerCallback()
         for (std::size_t bin = 0; bin < magnitude.size(); ++bin)
             spectrum[source][bin] = std::max(magnitude[bin], spectrum[source][bin] * 0.89f);
     }
+    const auto b = juce::roundToInt(100.0f * ownerProcessor.effectiveBlend());
+    const auto wet = juce::roundToInt(100.0f * ownerProcessor.effectiveWet());
+    morphReadout.setText("XY Morph   A " + juce::String(100 - b) + "% / B " + juce::String(b)
+                         + "%   Wet " + juce::String(wet) + "%", juce::dontSendNotification);
     repaint(spectrumBounds);
 }
 
@@ -472,8 +477,8 @@ void PluginEditor::resized()
     auto controls = getLocalBounds().reduced(16);
     auto rightColumn = controls.removeFromRight(spectrumWidth);
     spectrumBounds = rightColumn.removeFromTop(compactHeight - 32);
-    morphPanel.setBounds(rightColumn.removeFromTop(34).withSizeKeepingCentre(96, 26));
-    morphPad.setBounds(rightColumn.removeFromTop(166));
+    morphReadout.setBounds(rightColumn.removeFromTop(morphReadoutHeight));
+    morphPad.setBounds(rightColumn.removeFromTop(morphSize).withSizeKeepingCentre(morphSize, morphSize));
     controls.removeFromRight(columnGap);
     auto titleRow = controls.removeFromTop(56);
     shimmerPanel.setBounds(titleRow.removeFromRight(96).withSizeKeepingCentre(96, 28));

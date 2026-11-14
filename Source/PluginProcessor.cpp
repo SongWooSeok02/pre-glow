@@ -95,11 +95,23 @@ static float morphValue(float base, float axis) noexcept
     return base + axis * (axis < 0.0f ? base : 1.0f - base);
 }
 
+float PluginProcessor::effectiveBlend() const noexcept
+{
+    return morphValue(characterBlend->load(std::memory_order_relaxed) * 0.01f,
+                      morphX->load(std::memory_order_relaxed));
+}
+
+float PluginProcessor::effectiveWet() const noexcept
+{
+    return morphValue(wet->load(std::memory_order_relaxed) * 0.01f,
+                      morphY->load(std::memory_order_relaxed));
+}
+
 ReverbSettings PluginProcessor::readSettings() const noexcept
 {
     const auto legacyMix = mix->load(std::memory_order_relaxed);
     return { decay->load(std::memory_order_relaxed), damping->load(std::memory_order_relaxed),
-             morphValue(wet->load(std::memory_order_relaxed) * 0.01f, morphY->load(std::memory_order_relaxed)) * 2.0f * legacyMix, earlyWidth->load(std::memory_order_relaxed) * 0.01f,
+             effectiveWet() * 2.0f * legacyMix, earlyWidth->load(std::memory_order_relaxed) * 0.01f,
              lateWidth->load(std::memory_order_relaxed) * 0.01f,
              dry->load(std::memory_order_relaxed) * 0.02f * (1.0f - legacyMix),
              freeze->load(std::memory_order_relaxed) >= 0.5f, infinite->load(std::memory_order_relaxed) >= 0.5f,
@@ -137,8 +149,7 @@ void PluginProcessor::updateCharacterTargets() noexcept
         const auto value = parameter.load(std::memory_order_relaxed);
         return std::isfinite(value) ? static_cast<std::size_t>(std::clamp(value, 0.0f, static_cast<float>(characterCount - 1))) : 0;
     };
-    const auto blend = morphValue(characterBlend->load(std::memory_order_relaxed) * 0.01f,
-                                  morphX->load(std::memory_order_relaxed));
+    const auto blend = effectiveBlend();
     targetCharacterWeights.fill(0.0f);
     targetCharacterWeights[readIndex(*character)] = 1.0f - blend;
     targetCharacterWeights[readIndex(*characterB)] += blend;

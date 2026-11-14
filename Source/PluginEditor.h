@@ -29,7 +29,7 @@ private:
     };
 
     void updateSections();
-    juce::TextButton morphPanel { "XY Morph" };
+    juce::Label morphReadout;
     MorphPad morphPad;
     void timerCallback() override;
     void paintSpectrum(juce::Graphics&);

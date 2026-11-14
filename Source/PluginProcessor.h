@@ -8,6 +8,8 @@ class PluginProcessor final : public juce::AudioProcessor
 {
 public:
     PluginProcessor();
+    float effectiveBlend() const noexcept;
+    float effectiveWet() const noexcept;
     void prepareToPlay(double sampleRate, int maxBlockSize) override;
     void releaseResources() override {}
     void reset() override;
