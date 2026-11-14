@@ -268,6 +268,7 @@ void PluginProcessor::processSample(float& left, float& right, bool mono) noexce
         mixed.dry.fill(0.5f * (mixed.dry[0] + mixed.dry[1]));
         mixed.wet.fill(0.5f * (mixed.wet[0] + mixed.wet[1]));
     }
+    blockWetPeak = std::max({ blockWetPeak, std::abs(mixed.wet[0]), std::abs(mixed.wet[1]) });
     captureSpectrum(mixed);
 }
 
@@ -315,6 +316,7 @@ void PluginProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiB
     updateLowCut();
     updateBandDecay();
     const auto samples = buffer.getNumSamples();
+    blockWetPeak = 0.0f;
     const auto inputPeak = getBusBuffer(buffer, true, 0).getMagnitude(0, samples);
     auto* left = buffer.getWritePointer(0);
     if (getMainBusNumOutputChannels() == 1)
@@ -325,14 +327,14 @@ void PluginProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiB
             processSample(left[sample], right, true);
             left[sample] = 0.5f * (left[sample] + right);
         }
-        publishMeterPeaks(inputPeak, buffer.getMagnitude(0, 0, samples), samples);
+        publishMeterPeaks(inputPeak, buffer.getMagnitude(0, 0, samples), blockWetPeak, samples);
         return;
     }
 
     auto* right = buffer.getWritePointer(1);
     for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
         processSample(left[sample], right[sample], false);
-    publishMeterPeaks(inputPeak, getBusBuffer(buffer, false, 0).getMagnitude(0, samples), samples);
+    publishMeterPeaks(inputPeak, getBusBuffer(buffer, false, 0).getMagnitude(0, samples), blockWetPeak, samples);
 }
 
 void PluginProcessor::processBlockBypassed(juce::AudioBuffer<float>& buffer, juce::MidiBuffer&)
@@ -344,23 +346,24 @@ void PluginProcessor::processBlockBypassed(juce::AudioBuffer<float>& buffer, juc
         captureSpectrum({ { left[sample], right[sample] }, {} });
     const auto samples = buffer.getNumSamples();
     const auto peak = getBusBuffer(buffer, true, 0).getMagnitude(0, samples);
-    publishMeterPeaks(peak, peak, samples);
+    publishMeterPeaks(peak, peak, 0.0f, samples);
 }
 
-void PluginProcessor::publishMeterPeaks(float input, float output, int samples) noexcept
+void PluginProcessor::publishMeterPeaks(float input, float output, float wet, int samples) noexcept
 {
     const auto release = std::exp(meterReleasePerSample * static_cast<float>(samples));
-    const std::array peaks { input, output };
+    const std::array peaks { input, output, wet };
     for (std::size_t i = 0; i < peaks.size(); ++i)
         meterPeaks[i].store(std::max(peaks[i], meterPeaks[i].load(std::memory_order_relaxed) * release),
                             std::memory_order_relaxed);
     meterRevision.fetch_add(1, std::memory_order_release);
 }
 
-std::array<float, 2> PluginProcessor::readMeterPeaks(unsigned& revision) const noexcept
+std::array<float, 3> PluginProcessor::readMeterPeaks(unsigned& revision) const noexcept
 {
     revision = meterRevision.load(std::memory_order_acquire);
-    return { meterPeaks[0].load(std::memory_order_relaxed), meterPeaks[1].load(std::memory_order_relaxed) };
+    return { meterPeaks[0].load(std::memory_order_relaxed), meterPeaks[1].load(std::memory_order_relaxed),
+             meterPeaks[2].load(std::memory_order_relaxed) };
 }
 
 void PluginProcessor::upmixMonoInput(juce::AudioBuffer<float>& buffer) const noexcept

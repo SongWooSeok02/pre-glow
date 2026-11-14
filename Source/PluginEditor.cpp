@@ -50,7 +50,8 @@ constexpr int morphSize = 220;
 constexpr int morphReadoutHeight = 28;
 constexpr int morphColumnHeight = 32 + morphSize + morphReadoutHeight;
 constexpr int morphButtonRowHeight = 34;
-constexpr int meterHeight = 66;
+constexpr int meterHeight = 90;
+constexpr int meterColumnHeight = 2 * editorInset + compactHeight - 32 + morphButtonRowHeight + meterHeight;
 constexpr int stackedMorphHeight = morphColumnHeight + compactHeight - 32 + morphButtonRowHeight + meterHeight;
 constexpr std::size_t drySliderIndex = 2;
 constexpr std::size_t wetSliderIndex = 3;
@@ -662,7 +663,7 @@ void PluginEditor::updateSections()
         repaint();
         return;
     }
-    setSize(width, std::max(morphOpen ? (morphBelow ? stackedMorphHeight : morphColumnHeight) : 0, (duckOpen ? duckPanelHeight : 0) + (bandsOpen ? bandRowHeight : 0) + compactHeight + characterRowHeight + 30 + (headerHeight - 56) + sectionHeight * (static_cast<int>(bloomOpen) + static_cast<int>(swellOpen))
+    setSize(width, std::max(morphOpen && morphBelow ? stackedMorphHeight : meterColumnHeight, (duckOpen ? duckPanelHeight : 0) + (bandsOpen ? bandRowHeight : 0) + compactHeight + characterRowHeight + 30 + (headerHeight - 56) + sectionHeight * (static_cast<int>(bloomOpen) + static_cast<int>(swellOpen))
         + (shimmerOpen ? 100 + shimmerBottomPadding + std::min(maxVoiceHeight, static_cast<int>(voiceDetails.size()) * voiceHeaderHeight + expandedCount * voiceRowHeight) : 0)));
     resized();
     repaint();
@@ -806,12 +807,14 @@ void PluginEditor::paintMeters(juce::Graphics& graphics)
     graphics.setColour(juce::Colour(0xff1c1e31));
     graphics.fillRoundedRectangle(meterBounds.toFloat(), 6.0f);
     graphics.setFont(juce::FontOptions(12.0f));
+    constexpr std::array meterLabels { "Input", "Output", "Tail" };
+    const std::array colours { juce::Colour(0xff60d8ee), juce::Colour(0xffc29bff), juce::Colour(0xff91dfb5) };
     for (std::size_t i = 0; i < displayedPeaks.size(); ++i)
     {
         auto row = rows.removeFromTop(24);
         const auto db = juce::Decibels::gainToDecibels(displayedPeaks[i], -60.0f);
         graphics.setColour(juce::Colour(0xfff0eaff));
-        graphics.drawText(i == 0 ? "Input" : "Output", row.removeFromLeft(54), juce::Justification::centredLeft);
+        graphics.drawText(meterLabels[i], row.removeFromLeft(54), juce::Justification::centredLeft);
         const auto level = db <= -60.0f ? juce::String("< -60") : juce::String(db, 1);
         graphics.drawText(level + " dBFS", row.removeFromRight(84), juce::Justification::centredRight);
         const auto track = row.withSizeKeepingCentre(row.getWidth(), 8).toFloat();
@@ -819,7 +822,7 @@ void PluginEditor::paintMeters(juce::Graphics& graphics)
         graphics.fillRoundedRectangle(track, 4.0f);
         const auto fraction = juce::jlimit(0.0f, 1.0f, (db + 60.0f) / 60.0f);
         graphics.setColour(db >= 0.0f ? juce::Colour(0xffff9c82)
-                                     : (i == 0 ? juce::Colour(0xff60d8ee) : juce::Colour(0xffc29bff)));
+                                     : colours[i]);
         graphics.fillRoundedRectangle(track.withWidth(track.getWidth() * fraction), 4.0f);
     }
 }

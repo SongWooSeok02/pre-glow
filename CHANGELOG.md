@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added a Tail peak meter for the wet signal at the output mix.
+
 - Added input and output peak meters below the spectrum in both editor modes.
 
 - Renamed the app and plug-in to PRE-GLOW, moved the mode switch below the title, and increased Basic card padding and spacing.
