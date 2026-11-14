@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added eight modulation slots for routing XY axes to Wet, Damping, Shimmer Mix, or Late Width with signed depth.
+
 - Place XY Morph below the spectrum when Multiband or Shimmer is open.
 
 - Linked Wet to the XY pad in both directions. Schema 8 migrates saved Wet settings to Morph Y.

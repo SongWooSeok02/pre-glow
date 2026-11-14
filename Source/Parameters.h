@@ -25,6 +25,13 @@ inline constexpr auto filterPlacement = "filter_placement";
 inline constexpr auto lowCut = "low_cut";
 inline const juce::StringArray filterPlacements { "Low Cut Off", "Reverb Input", "Wet Output" };
 inline constexpr auto characterB = "character_b";
+inline constexpr std::size_t modulationSlots = 8;
+inline const juce::StringArray modSources { "Off", "XY X", "XY Y" };
+inline const juce::StringArray modDestinations { "Wet", "Damping", "Shimmer Mix", "Late Width" };
+inline juce::String modId(std::size_t slot, const char* field)
+{
+    return "mod_" + juce::String(static_cast<int>(slot + 1)) + "_" + field;
+}
 inline constexpr auto morphX = "morph_x";
 inline constexpr auto morphY = "morph_y";
 inline constexpr auto characterBlend = "character_blend";
@@ -168,6 +175,16 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
         "Morph X (A/B)", juce::NormalisableRange<float> { -1.0f, 1.0f }, -1.0f));
     layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID { morphY, 21 },
         "Morph Y (Wet)", juce::NormalisableRange<float> { -1.0f, 1.0f }, -0.3f));
+    for (std::size_t slot = 0; slot < modulationSlots; ++slot)
+    {
+        const auto name = "Mod " + juce::String(static_cast<int>(slot + 1)) + " ";
+        layout.add(std::make_unique<juce::AudioParameterChoice>(juce::ParameterID { modId(slot, "source"), 22 },
+            name + "Source", modSources, 0));
+        layout.add(std::make_unique<juce::AudioParameterChoice>(juce::ParameterID { modId(slot, "destination"), 22 },
+            name + "Destination", modDestinations, 0));
+        layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID { modId(slot, "depth"), 22 },
+            name + "Depth", juce::NormalisableRange<float> { -100.0f, 100.0f, 1.0f }, 0.0f));
+    }
     return layout;
 }
 }

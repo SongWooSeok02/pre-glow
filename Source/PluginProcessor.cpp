@@ -8,6 +8,10 @@ PluginProcessor::PluginProcessor()
                                      .withOutput("Output", juce::AudioChannelSet::stereo(), true)),
       state(*this, nullptr, parameters::stateType, parameters::createLayout())
 {
+    for (std::size_t slot = 0; slot < modSlots.size(); ++slot)
+        modSlots[slot] = { state.getRawParameterValue(parameters::modId(slot, "source")),
+                           state.getRawParameterValue(parameters::modId(slot, "destination")),
+                           state.getRawParameterValue(parameters::modId(slot, "depth")) };
     for (std::size_t i = 0; i < crossoverParameters.size(); ++i)
         crossoverParameters[i] = state.getRawParameterValue(parameters::crossoverIds[i]);
     for (std::size_t band = 0; band < bandDecayParameters.size(); ++band)
@@ -67,6 +71,20 @@ void PluginProcessor::updateLowCut() noexcept
                          std::isfinite(cutoff) ? std::clamp(cutoff, 20.0f, 2000.0f) : 120.0f);
 }
 
+void PluginProcessor::updateModulation() noexcept
+{
+    modulationOffsets.fill(0.0f);
+    const std::array sources { 0.0f, 2.0f * effectiveBlend() - 1.0f, 2.0f * effectiveWet() - 1.0f };
+    for (const auto& slot : modSlots)
+    {
+        const auto source = slot.source->load(std::memory_order_relaxed);
+        const auto destination = slot.destination->load(std::memory_order_relaxed);
+        const auto depth = slot.depth->load(std::memory_order_relaxed);
+        if (source >= 1.0f && source <= 2.0f && destination >= 0.0f && destination <= 3.0f && std::isfinite(depth))
+            modulationOffsets[static_cast<std::size_t>(destination)] += sources[static_cast<std::size_t>(source)] * depth * 0.01f;
+    }
+}
+
 void PluginProcessor::updateShimmer() noexcept
 {
     std::array<Shimmer::Voice, Shimmer::voiceCount> voices;
@@ -78,7 +96,7 @@ void PluginProcessor::updateShimmer() noexcept
     }
     // The reverb smooths the effective mix for both the wet layer and feedback send.
     const auto amount = shimmerEnabled->load(std::memory_order_relaxed) > 0.5f
-        ? shimmerMix->load(std::memory_order_relaxed) * 0.01f : 0.0f;
+        ? std::clamp(shimmerMix->load(std::memory_order_relaxed) * 0.01f + modulationOffsets[2], 0.0f, 1.0f) : 0.0f;
     const auto route = shimmerRouting->load(std::memory_order_relaxed);
     const auto feedback = route < 0.5f
         ? shimmerFeedback->load(std::memory_order_relaxed) * 0.01f : 0.0f;
@@ -110,9 +128,9 @@ float PluginProcessor::effectiveWet() const noexcept
 ReverbSettings PluginProcessor::readSettings() const noexcept
 {
     const auto legacyMix = mix->load(std::memory_order_relaxed);
-    return { decay->load(std::memory_order_relaxed), damping->load(std::memory_order_relaxed),
-             effectiveWet() * 2.0f * legacyMix, earlyWidth->load(std::memory_order_relaxed) * 0.01f,
-             lateWidth->load(std::memory_order_relaxed) * 0.01f,
+    return { decay->load(std::memory_order_relaxed), std::clamp(damping->load(std::memory_order_relaxed) + modulationOffsets[1], 0.0f, 1.0f),
+             std::clamp(effectiveWet() + modulationOffsets[0], 0.0f, 1.0f) * 2.0f * legacyMix, earlyWidth->load(std::memory_order_relaxed) * 0.01f,
+             std::clamp(lateWidth->load(std::memory_order_relaxed) * 0.01f + 2.0f * modulationOffsets[3], 0.0f, 2.0f),
              dry->load(std::memory_order_relaxed) * 0.02f * (1.0f - legacyMix),
              freeze->load(std::memory_order_relaxed) >= 0.5f, infinite->load(std::memory_order_relaxed) >= 0.5f,
              bloomEnabled->load(std::memory_order_relaxed) >= 0.5f ? bloomAmount->load(std::memory_order_relaxed) * 0.01f : 0.0f,
@@ -124,6 +142,7 @@ ReverbSettings PluginProcessor::readSettings() const noexcept
 
 void PluginProcessor::prepareToPlay(double sampleRate, int)
 {
+    updateModulation();
     const auto settings = readSettings();
     auto liveSettings = settings;
     liveSettings.freeze = false;
@@ -241,6 +260,7 @@ void PluginProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiB
 {
     juce::ScopedNoDenormals noDenormals;
     upmixMonoInput(buffer);
+    updateModulation();
     const auto settings = readSettings();
     auto liveSettings = settings;
     liveSettings.freeze = false;

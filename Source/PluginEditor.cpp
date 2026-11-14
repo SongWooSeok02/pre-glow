@@ -10,6 +10,8 @@ constexpr int maxVoiceHeight = 4 * voiceHeaderHeight + voiceRowHeight;
 constexpr int controlsWidth = 620;
 constexpr int spectrumWidth = 376;
 constexpr int columnGap = 12;
+constexpr int matrixRowHeight = 32;
+constexpr int matrixHeight = 16 + matrixRowHeight * static_cast<int>(parameters::modulationSlots);
 constexpr int compactHeight = 250;
 constexpr int morphSize = 220;
 constexpr int morphReadoutHeight = 28;
@@ -303,6 +305,30 @@ PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner)
         voiceLabels[i].setJustificationType(juce::Justification::centred);
         voiceContent.addAndMakeVisible(voiceLabels[i]);
     }
+    matrixPanel.setClickingTogglesState(true);
+    matrixPanel.onClick = [this] { updateSections(); };
+    addAndMakeVisible(matrixPanel);
+    for (std::size_t i = 0; i < matrixRows.size(); ++i)
+    {
+        auto& row = matrixRows[i];
+        row.number.setText(juce::String(static_cast<int>(i + 1)), juce::dontSendNotification);
+        row.source.setTitle("Modulation Source");
+        row.destination.setTitle("Modulation Destination");
+        row.source.addItemList(parameters::modSources, 1);
+        row.destination.addItemList(parameters::modDestinations, 1);
+        row.depth.setTitle("Modulation Depth");
+        row.depth.setSliderStyle(juce::Slider::LinearHorizontal);
+        row.depth.setTextBoxStyle(juce::Slider::TextBoxRight, false, 58, 22);
+        addChildComponent(row.number);
+        addChildComponent(row.source);
+        addChildComponent(row.destination);
+        addChildComponent(row.depth);
+        using ComboBinding = juce::AudioProcessorValueTreeState::ComboBoxAttachment;
+        row.sourceBinding = std::make_unique<ComboBinding>(owner.state, parameters::modId(i, "source"), row.source);
+        row.destinationBinding = std::make_unique<ComboBinding>(owner.state, parameters::modId(i, "destination"), row.destination);
+        row.depthBinding = std::make_unique<SliderAttachment>(owner.state, parameters::modId(i, "depth"), row.depth);
+        row.depth.setTextValueSuffix("%");
+    }
     morphPanel.setClickingTogglesState(true);
     morphPanel.onClick = [this] { updateSections(); };
     addAndMakeVisible(morphPanel);
@@ -368,9 +394,17 @@ void PluginEditor::updateSections()
     morphPanel.setButtonText(morphOpen ? "Hide XY Morph" : "Show XY Morph");
     morphPad.setVisible(morphOpen);
     morphReadout.setVisible(morphOpen);
-    const auto morphBelow = bandsOpen || shimmerOpen;
+    const auto matrixOpen = matrixPanel.getToggleState();
+    for (auto& row : matrixRows)
+    {
+        row.number.setVisible(matrixOpen);
+        row.source.setVisible(matrixOpen);
+        row.destination.setVisible(matrixOpen);
+        row.depth.setVisible(matrixOpen);
+    }
+    const auto morphBelow = bandsOpen || shimmerOpen || matrixOpen;
     const auto width = controlsWidth + columnGap + spectrumWidth + (morphOpen && !morphBelow ? columnGap + morphSize : 0);
-    setSize(width, std::max(morphOpen ? (morphBelow ? stackedMorphHeight : morphColumnHeight) : 0, (bandsOpen ? bandRowHeight : 0) + compactHeight + characterRowHeight + sectionHeight * (static_cast<int>(bloomOpen) + static_cast<int>(swellOpen))
+    setSize(width, std::max(morphOpen ? (morphBelow ? stackedMorphHeight : morphColumnHeight) : 0, (matrixOpen ? matrixHeight : 0) + (bandsOpen ? bandRowHeight : 0) + compactHeight + characterRowHeight + sectionHeight * (static_cast<int>(bloomOpen) + static_cast<int>(swellOpen))
         + (shimmerOpen ? 100 + shimmerBottomPadding + std::min(maxVoiceHeight, static_cast<int>(voiceDetails.size()) * voiceHeaderHeight + expandedCount * voiceRowHeight) : 0)));
     resized();
 }
@@ -517,7 +551,7 @@ void PluginEditor::resized()
 {
     auto controls = getLocalBounds().reduced(16);
     const auto morphOpen = morphPanel.getToggleState();
-    const auto morphBelow = bandPanel.getToggleState() || shimmerPanel.getToggleState();
+    const auto morphBelow = bandPanel.getToggleState() || shimmerPanel.getToggleState() || matrixPanel.getToggleState();
     juce::Rectangle<int> morphColumn;
     if (morphOpen && !morphBelow)
     {
@@ -541,6 +575,7 @@ void PluginEditor::resized()
     titleRow.removeFromRight(8);
     shimmerPower.setBounds(titleRow.removeFromRight(110).withSizeKeepingCentre(110, 28));
     bandPanel.setBounds(titleRow.removeFromRight(96).withSizeKeepingCentre(88, 28));
+    matrixPanel.setBounds(titleRow.removeFromRight(100).withSizeKeepingCentre(90, 28));
     sectionBounds.fill({});
     sectionBounds[0] = controls.withHeight(characterRowHeight + 28);
     auto characters = controls.removeFromTop(characterRowHeight).reduced(0, 3);
@@ -608,6 +643,19 @@ void PluginEditor::resized()
     {
         sectionBounds[4] = controls.removeFromTop(sectionHeight);
         layoutRow(sectionBounds[4].reduced(4, 5), swellStart, sliders.size() - swellStart);
+    }
+    if (matrixPanel.getToggleState())
+    {
+        sectionBounds[6] = controls.removeFromTop(matrixHeight);
+        auto rows = sectionBounds[6].reduced(10, 8);
+        for (auto& row : matrixRows)
+        {
+            auto bounds = rows.removeFromTop(matrixRowHeight).reduced(0, 3);
+            row.number.setBounds(bounds.removeFromLeft(32));
+            row.source.setBounds(bounds.removeFromLeft(120).reduced(4, 0));
+            row.destination.setBounds(bounds.removeFromLeft(150).reduced(4, 0));
+            row.depth.setBounds(bounds.reduced(4, 0));
+        }
     }
     if (shimmerPanel.getToggleState())
     {

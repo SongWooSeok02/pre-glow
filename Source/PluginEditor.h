@@ -33,6 +33,16 @@ private:
     void updateMorphControls();
     void updateSections();
     juce::TextButton morphPanel { "Show XY Morph" };
+    juce::TextButton matrixPanel { "Mod Matrix" };
+    struct MatrixRow
+    {
+        juce::Label number;
+        juce::ComboBox source, destination;
+        juce::Slider depth;
+        std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> sourceBinding, destinationBinding;
+        std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> depthBinding;
+    };
+    std::array<MatrixRow, parameters::modulationSlots> matrixRows;
     juce::Label morphReadout;
     MorphPad morphPad;
     void timerCallback() override;
@@ -70,7 +80,7 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> infiniteAttachment;
     juce::ToggleButton freeze { "Freeze" };
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> freezeAttachment;
-    std::array<juce::Rectangle<int>, 6> sectionBounds;
+    std::array<juce::Rectangle<int>, 7> sectionBounds;
     std::array<juce::Slider, 2> crossovers;
     std::array<juce::Label, 2> crossoverLabels;
     std::array<std::unique_ptr<SliderAttachment>, 2> crossoverAttachments;
