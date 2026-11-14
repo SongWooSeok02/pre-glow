@@ -28,6 +28,9 @@ private:
         juce::ParameterAttachment xAttachment, yAttachment;
     };
 
+    void bindMorphSlider(juce::Slider&, const char* baseId, const char* axisId,
+                         std::unique_ptr<juce::ParameterAttachment>&);
+    void updateMorphControls();
     void updateSections();
     juce::Label morphReadout;
     MorphPad morphPad;
@@ -82,7 +85,7 @@ private:
     juce::Slider characterBlend;
     juce::Label characterALabel, characterBLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> characterBAttachment;
-    std::unique_ptr<SliderAttachment> characterBlendAttachment;
+    std::unique_ptr<juce::ParameterAttachment> characterBlendAttachment, wetMorphAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> characterAttachment;
     std::array<juce::Slider, 13> sliders;
     std::array<juce::Label, 13> labels;

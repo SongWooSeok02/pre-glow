@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Moved XY Morph beside the spectrum and linked the Wet and A/B controls to the pad.
+
 - Kept XY Morph visible in a square pad with live A/B and Wet values.
 
 - Added an XY Morph pad for A/B Blend and Wet, with a neutral center and automatable axes.

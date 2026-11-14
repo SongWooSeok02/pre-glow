@@ -13,7 +13,8 @@ constexpr int columnGap = 12;
 constexpr int compactHeight = 250;
 constexpr int morphSize = 220;
 constexpr int morphReadoutHeight = 28;
-constexpr int morphColumnHeight = compactHeight + morphSize + morphReadoutHeight;
+constexpr int morphColumnHeight = 32 + morphSize + morphReadoutHeight;
+constexpr std::size_t wetSliderIndex = 3;
 constexpr int characterRowHeight = 34;
 constexpr int bandRowHeight = 324;
 constexpr int shimmerBottomPadding = 12;
@@ -102,7 +103,8 @@ PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner)
         labels[i].setJustificationType(juce::Justification::centred);
         addAndMakeVisible(labels[i]);
         addAndMakeVisible(slider);
-        attachments[i] = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(owner.state, ids[i], slider);
+        if (i != wetSliderIndex)
+            attachments[i] = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(owner.state, ids[i], slider);
     }
     bandPanel.setClickingTogglesState(true);
     bandPanel.onClick = [this] { updateSections(); };
@@ -186,11 +188,12 @@ PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner)
     addAndMakeVisible(characterB);
     characterBAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
         owner.state, parameters::characterB, characterB);
-    characterBlend.setTitle("Base Reverb A/B Blend");
+    characterBlend.setTitle("Reverb A/B Blend");
     characterBlend.setSliderStyle(juce::Slider::LinearHorizontal);
     characterBlend.setTextBoxStyle(juce::Slider::TextBoxRight, true, 124, 22);
     addAndMakeVisible(characterBlend);
-    characterBlendAttachment = std::make_unique<SliderAttachment>(owner.state, parameters::characterBlend, characterBlend);
+    bindMorphSlider(characterBlend, parameters::characterBlend, parameters::morphX, characterBlendAttachment);
+    bindMorphSlider(sliders[wetSliderIndex], parameters::wet, parameters::morphY, wetMorphAttachment);
     characterBlend.textFromValueFunction = [](double value)
     {
         const auto b = juce::roundToInt(value);
@@ -300,7 +303,8 @@ PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner)
     addAndMakeVisible(morphPad);
     morphReadout.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(morphReadout);
-    setSize(controlsWidth + columnGap + spectrumWidth, morphColumnHeight);
+    updateMorphControls();
+    setSize(controlsWidth + 2 * columnGap + spectrumWidth + morphSize, morphColumnHeight);
     startTimerHz(30);
     updateSections();
 }
@@ -382,11 +386,44 @@ void PluginEditor::timerCallback()
         for (std::size_t bin = 0; bin < magnitude.size(); ++bin)
             spectrum[source][bin] = std::max(magnitude[bin], spectrum[source][bin] * 0.89f);
     }
-    const auto b = juce::roundToInt(100.0f * ownerProcessor.effectiveBlend());
-    const auto wet = juce::roundToInt(100.0f * ownerProcessor.effectiveWet());
-    morphReadout.setText("XY Morph   A " + juce::String(100 - b) + "% / B " + juce::String(b)
-                         + "%   Wet " + juce::String(wet) + "%", juce::dontSendNotification);
+    updateMorphControls();
     repaint(spectrumBounds);
+}
+
+void PluginEditor::bindMorphSlider(juce::Slider& slider, const char* baseId, const char* axisId,
+                                  std::unique_ptr<juce::ParameterAttachment>& attachment)
+{
+    auto& axis = *ownerProcessor.state.getParameter(axisId);
+    attachment = std::make_unique<juce::ParameterAttachment>(*ownerProcessor.state.getParameter(baseId),
+        [this](float) { updateMorphControls(); });
+    auto* base = attachment.get();
+    slider.setRange(0.0, 100.0, 1.0);
+    slider.onDragStart = [base] { base->beginGesture(); };
+    slider.onDragEnd = [base] { base->endGesture(); };
+    slider.onValueChange = [&slider, &axis, base]
+    {
+        const auto value = static_cast<float>(slider.getValue());
+        const auto centre = axis.convertTo0to1(0.0f);
+        if (std::abs(axis.getValue() - centre) > 0.000001f)
+        {
+            axis.beginChangeGesture();
+            axis.setValueNotifyingHost(centre);
+            axis.endChangeGesture();
+        }
+        if (slider.isMouseButtonDown())
+            base->setValueAsPartOfGesture(value);
+        else
+            base->setValueAsCompleteGesture(value);
+    };
+}
+
+void PluginEditor::updateMorphControls()
+{
+    const auto blend = 100.0f * ownerProcessor.effectiveBlend();
+    const auto wet = 100.0f * ownerProcessor.effectiveWet();
+    characterBlend.setValue(blend, juce::dontSendNotification);
+    sliders[wetSliderIndex].setValue(wet, juce::dontSendNotification);
+    morphReadout.setText("XY Morph", juce::dontSendNotification);
 }
 
 void PluginEditor::paintSpectrum(juce::Graphics& g)
@@ -475,8 +512,9 @@ void PluginEditor::paint(juce::Graphics& graphics)
 void PluginEditor::resized()
 {
     auto controls = getLocalBounds().reduced(16);
-    auto rightColumn = controls.removeFromRight(spectrumWidth);
-    spectrumBounds = rightColumn.removeFromTop(compactHeight - 32);
+    auto rightColumn = controls.removeFromRight(morphSize);
+    controls.removeFromRight(columnGap);
+    spectrumBounds = controls.removeFromRight(spectrumWidth).withHeight(compactHeight - 32);
     morphReadout.setBounds(rightColumn.removeFromTop(morphReadoutHeight));
     morphPad.setBounds(rightColumn.removeFromTop(morphSize).withSizeKeepingCentre(morphSize, morphSize));
     controls.removeFromRight(columnGap);
