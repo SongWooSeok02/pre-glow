@@ -19,8 +19,12 @@ Pedalboard 0.9.17 호스트에서 두 포맷을 각각 로드했다. 48/96 kHz, 
 
 Shimmer 피드백의 적용 계수가 0인 샘플에서는 루프 게인 최대값 계산을 건너뛴다. 피드백이 활성화된 샘플에서는 기존 제한 계산을 적용한다.
 
+## Logic Pro 13.0 편집기
+
+열려 있던 AU 인스턴스에서 Basic → Advanced → Basic으로 전환했다. A/B와 Decay, Dry, Wet, Freeze 및 Shimmer On 표시 값이 전환 전후 일치했다. Shimmer 섹션에서 비활성 상태의 경로 `Input → Reverb → Wet`이 깨짐 없이 표시됐다. Multiband 섹션에서 250 Hz와 4000 Hz의 경계 및 Low·Mid·High 영역을 확인했다.
+
 ## 남은 검증
 
 - Logic Pro 13.0에서 고정 소스, 샘플레이트, I/O 버퍼와 인스턴스 수를 기록하고 바이패스, 기본 Hall, Shimmer 4보이스, Freeze, 에디터 열림/닫힘의 성능 미터를 비교한다.
-- Logic AU와 VST3 DAW에서 기존 프로젝트 복원, 파라미터 자동화, AU/VST3 User 프리셋 왕복, Basic/Advanced 청취, 라우팅 표시, 크로스오버 및 미터를 확인한다.
+- Logic AU와 VST3 DAW에서 기존 프로젝트 복원, 파라미터 자동화, AU/VST3 User 프리셋 왕복, Basic/Advanced 청취, Shimmer 활성 라우팅, 크로스오버 이동 및 재생 중 미터를 확인한다.
 - 타 플랫폼에서 실제 호스트를 사용해 확인한다.
