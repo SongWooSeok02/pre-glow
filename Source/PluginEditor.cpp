@@ -813,9 +813,9 @@ void PluginEditor::paintSpectrum(juce::Graphics& g)
     constexpr float minHz = 20.0f, maxHz = 20000.0f, minDB = -90.0f, maxDB = 6.0f;
     const auto xFor = [&](float hz) { return plot.getX() + plot.getWidth() * std::log(hz / minHz) / std::log(maxHz / minHz); };
     const auto yFor = [&](float db) { return plot.getBottom() - plot.getHeight() * (db - minDB) / (maxDB - minDB); };
-    const std::array colours { PreGlowColors::goldInk, PreGlowColors::cyanInk };
+    const std::array colours { juce::Colour(0xffffd700), juce::Colour(0xff00ffff) };
 
-    g.setColour(PreGlowColors::screen);
+    g.setColour(juce::Colour(0xff25313e));
     g.fillRoundedRectangle(bounds, 6.0f);
     g.setFont(juce::FontOptions("Arial", 11.0f, juce::Font::plain));
     if (bandPanel.isVisible() && bandPanel.getToggleState())
@@ -823,8 +823,7 @@ void PluginEditor::paintSpectrum(juce::Graphics& g)
         const std::array edges { plot.getX(), xFor(static_cast<float>(crossovers[0].getValue())),
                                  xFor(static_cast<float>(crossovers[1].getValue())), plot.getRight() };
         constexpr std::array names { "Low", "Mid", "High" };
-        const std::array bandColours { PreGlowColors::goldInk, PreGlowColors::cyanInk,
-                                       PreGlowColors::cyanInk.darker(0.35f) };
+        const std::array bandColours { colours[0], colours[1], colours[0] };
         for (std::size_t band = 0; band < names.size(); ++band)
         {
             const auto region = plot.withX(edges[band]).withWidth(edges[band + 1] - edges[band]);
@@ -843,17 +842,17 @@ void PluginEditor::paintSpectrum(juce::Graphics& g)
     for (const auto db : { -90, -60, -30, 0 })
     {
         const auto y = yFor(static_cast<float>(db));
-        g.setColour(PreGlowColors::grid);
+        g.setColour(juce::Colour(0xff435364));
         g.drawHorizontalLine(juce::roundToInt(y), plot.getX(), plot.getRight());
-        g.setColour(PreGlowColors::muted);
+        g.setColour(PreGlowColors::border);
         g.drawText(juce::String(db), juce::Rectangle<float>(bounds.getX(), y - 7, 33, 14), juce::Justification::centredRight);
     }
     for (const auto hz : { 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000 })
     {
         const auto x = xFor(static_cast<float>(hz));
-        g.setColour(PreGlowColors::grid);
+        g.setColour(juce::Colour(0xff435364));
         g.drawVerticalLine(juce::roundToInt(x), plot.getY(), plot.getBottom());
-        g.setColour(PreGlowColors::muted);
+        g.setColour(PreGlowColors::border);
         const auto label = hz >= 1000 ? juce::String(hz / 1000) + "k" : juce::String(hz);
         g.drawText(label, juce::Rectangle<float>(std::min(x - 15, bounds.getRight() - 30),
                                                plot.getBottom() + 3, 30, 15), juce::Justification::centred);
