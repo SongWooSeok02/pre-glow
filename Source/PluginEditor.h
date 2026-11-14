@@ -83,6 +83,7 @@ private:
     std::array<juce::ToggleButton, Shimmer::voiceCount> voiceToggles;
     std::array<std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment>, Shimmer::voiceCount> voiceToggleAttachments;
     juce::ComboBox shimmerRouting;
+    juce::Label shimmerSignalPath;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> shimmerRoutingAttachment;
     juce::Component voiceContent;
     std::array<juce::GroupComponent, Shimmer::voiceCount> voiceCards;

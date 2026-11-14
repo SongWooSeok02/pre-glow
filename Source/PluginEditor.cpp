@@ -269,12 +269,25 @@ PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner)
     addAndMakeVisible(shimmerRouting);
     shimmerRoutingAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
         owner.state, parameters::shimmerRouting, shimmerRouting);
-    const auto updateFeedbackControl = [this]
+    addChildComponent(shimmerSignalPath);
+    shimmerSignalPath.setTitle("Wet signal path");
+    shimmerSignalPath.setJustificationType(juce::Justification::centred);
+    const auto updateRouting = [this]
     {
-        shimmerGlobals[1].setEnabled(shimmerRouting.getSelectedId() == 1);
+        const auto route = shimmerRouting.getSelectedItemIndex();
+        shimmerGlobals[1].setEnabled(route == 0);
+        const std::array<juce::String, 4> paths {
+            "Input → Reverb → Wet   •   Reverb → Shimmer → Reverb",
+            "Input → Reverb → Wet   •   Reverb → Shimmer → Wet",
+            "Input → Reverb → Wet   •   Input → Shimmer → Reverb",
+            "Input → Reverb → Wet   •   Input → Shimmer → Wet"
+        };
+        shimmerSignalPath.setText(shimmerPower.getToggleState() && juce::isPositiveAndBelow(route, 4)
+                                      ? paths[static_cast<std::size_t>(route)] : "Input → Reverb → Wet",
+                                  juce::dontSendNotification);
     };
-    shimmerRouting.onChange = updateFeedbackControl;
-    updateFeedbackControl();
+    shimmerRouting.onChange = shimmerPower.onStateChange = updateRouting;
+    updateRouting();
     voiceViewport.setViewedComponent(&voiceContent, false);
     voiceViewport.setScrollBarsShown(true, false);
     addAndMakeVisible(voiceViewport);
@@ -613,6 +626,7 @@ void PluginEditor::updateSections()
         expandedCount += static_cast<int>(expanded);
     }
     shimmerRouting.setVisible(shimmerOpen);
+    shimmerSignalPath.setVisible(shimmerOpen);
     voiceViewport.setVisible(shimmerOpen);
     for (auto& slider : shimmerGlobals)
         slider.setVisible(shimmerOpen);
@@ -664,7 +678,7 @@ void PluginEditor::updateSections()
         return;
     }
     setSize(width, std::max(morphOpen && morphBelow ? stackedMorphHeight : meterColumnHeight, (duckOpen ? duckPanelHeight : 0) + (bandsOpen ? bandRowHeight : 0) + compactHeight + characterRowHeight + 30 + (headerHeight - 56) + sectionHeight * (static_cast<int>(bloomOpen) + static_cast<int>(swellOpen))
-        + (shimmerOpen ? 100 + shimmerBottomPadding + std::min(maxVoiceHeight, static_cast<int>(voiceDetails.size()) * voiceHeaderHeight + expandedCount * voiceRowHeight) : 0)));
+        + (shimmerOpen ? 132 + shimmerBottomPadding + std::min(maxVoiceHeight, static_cast<int>(voiceDetails.size()) * voiceHeaderHeight + expandedCount * voiceRowHeight) : 0)));
     resized();
     repaint();
 }
@@ -1052,6 +1066,7 @@ void PluginEditor::resized()
     if (shimmerPanel.getToggleState())
     {
         const auto shimmerTop = controls.getY();
+        shimmerSignalPath.setBounds(controls.removeFromTop(32).reduced(8, 0));
         auto globals = controls.removeFromTop(100).reduced(6, 5);
         shimmerRouting.setBounds(globals.removeFromRight(152).withSizeKeepingCentre(142, 28));
 
