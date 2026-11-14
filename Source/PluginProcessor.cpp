@@ -8,12 +8,26 @@ PluginProcessor::PluginProcessor()
                                      .withOutput("Output", juce::AudioChannelSet::stereo(), true)),
       state(*this, nullptr, parameters::stateType, parameters::createLayout())
 {
+    for (std::size_t band = 0; band < bandDecayParameters.size(); ++band)
+        bandDecayParameters[band] = state.getRawParameterValue(parameters::bandDecayIds[band]);
     for (std::size_t voice = 0; voice < shimmerVoices.size(); ++voice)
     {
         voiceEnabled[voice] = state.getRawParameterValue(parameters::voiceId(voice, parameters::voiceEnabled));
         for (std::size_t field = 0; field < parameters::voiceParameters.size(); ++field)
             shimmerVoices[voice][field] = state.getRawParameterValue(parameters::voiceId(voice, parameters::voiceParameters[field]));
     }
+}
+
+void PluginProcessor::updateBandDecay() noexcept
+{
+    std::array<float, 3> amounts {};
+    for (std::size_t band = 0; band < amounts.size(); ++band)
+    {
+        const auto value = bandDecayParameters[band]->load(std::memory_order_relaxed);
+        amounts[band] = std::isfinite(value) ? std::clamp(value, 0.25f, 2.0f) : 1.0f;
+    }
+    for (auto& engine : engines)
+        engine.setBandDecay(amounts);
 }
 
 void PluginProcessor::updateLowCut() noexcept
@@ -71,6 +85,7 @@ void PluginProcessor::prepareToPlay(double sampleRate, int)
     characterSmoothing = static_cast<float>(-std::expm1(-1.0 / (0.025 * sampleRate)));
     updateShimmer();
     updateLowCut();
+    updateBandDecay();
     reset();
 }
 
@@ -169,6 +184,7 @@ void PluginProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiB
         engine.setTarget(settings);
     updateShimmer();
     updateLowCut();
+    updateBandDecay();
     auto* left = buffer.getWritePointer(0);
     if (getMainBusNumOutputChannels() == 1)
     {

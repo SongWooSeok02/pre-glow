@@ -44,6 +44,8 @@ private:
     std::array<const std::atomic<float>*, Shimmer::voiceCount> voiceEnabled {};
     const std::atomic<float>* const shimmerEnabled = state.getRawParameterValue(parameters::shimmerEnabled);
     const std::atomic<float>* const shimmerRouting = state.getRawParameterValue(parameters::shimmerRouting);
+    std::array<const std::atomic<float>*, 3> bandDecayParameters {};
+    void updateBandDecay() noexcept;
     void updateLowCut() noexcept;
     const std::atomic<float>* const filterPlacement = state.getRawParameterValue(parameters::filterPlacement);
     const std::atomic<float>* const lowCut = state.getRawParameterValue(parameters::lowCut);

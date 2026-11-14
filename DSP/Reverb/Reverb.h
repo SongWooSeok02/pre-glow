@@ -45,6 +45,17 @@ public:
         preShimmer.setVoices(voices);
     }
 
+    void setBandDecay(const std::array<float, 3>& amounts) noexcept
+    {
+        if (amounts == cachedBandDecay && std::abs(lastDecay - cachedBandBaseDecay) < 0.000001f)
+            return;
+        cachedBandDecay = amounts;
+        cachedBandBaseDecay = lastDecay;
+        for (auto& line : lines)
+            for (std::size_t band = 0; band < amounts.size(); ++band)
+                line.targetBandGain[band] = std::pow(line.targetGain, 1.0f / amounts[band]);
+    }
+
     void setLowCut(int placement, float hz) noexcept
     {
         targetInputCut = placement == 1 ? 1.0f : 0.0f;
@@ -92,8 +103,10 @@ public:
             reflectionDelays[i] = static_cast<std::size_t>(std::max(1.0, std::round(sampleRate * reflections[i].seconds * reflectionScale)));
         earlyHistory.resize(reflectionDelays.back() + 1);
 
-        lastDecay = -1.0f;
+        lastDecay = cachedBandBaseDecay = -1.0f;
 
+        lowSplit = static_cast<float>(-std::expm1(-6.2831853 * 250.0 / sampleRate));
+        highSplit = static_cast<float>(-std::expm1(-6.2831853 * 4000.0 / sampleRate));
         filterSampleRate = static_cast<float>(sampleRate);
         smoothing = static_cast<float>(-std::expm1(-1.0 / (0.025 * sampleRate)));
         samplesPerMs = static_cast<float>(sampleRate * 0.001);
@@ -115,6 +128,8 @@ public:
             line.extraDiffusion.reset();
             line.low = 0.0f;
             line.gain = line.targetGain;
+            line.bandGain = line.targetBandGain;
+            line.lowBand = line.belowHigh = 0.0f;
         }
         std::fill(earlyHistory.begin(), earlyHistory.end(), std::array<float, 2> {});
         earlyPosition = 0;
@@ -154,7 +169,10 @@ public:
         if (std::abs(decay - lastDecay) > 0.000001f)
         {
             for (auto& line : lines)
+            {
                 line.targetGain = std::pow(0.001f, line.seconds / decay);
+                line.targetBandGain.fill(line.targetGain);
+            }
             lastDecay = decay;
         }
         targetFreeze = settings.freeze;
@@ -254,7 +272,17 @@ public:
             line.low += (1.0f - 0.92f * dampingAmount) * (line.samples[line.position] - line.low);
             line.gain += smoothing * (line.targetGain - line.gain);
             // At full Freeze the normalized Hadamard feedback is lossless.
-            taps[i] = line.low * (freeze + feed * line.gain);
+            line.lowBand += lowSplit * (line.low - line.lowBand);
+            line.belowHigh += highSplit * (line.low - line.belowHigh);
+            for (std::size_t band = 0; band < line.bandGain.size(); ++band)
+                line.bandGain[band] += smoothing * (line.targetBandGain[band] - line.bandGain[band]);
+
+            const auto mid = line.belowHigh - line.lowBand;
+            const auto high = line.low - line.belowHigh;
+            const auto correction = line.lowBand * (line.bandGain[0] - line.gain)
+                                  + mid * (line.bandGain[1] - line.gain)
+                                  + high * (line.bandGain[2] - line.gain);
+            taps[i] = line.low * (freeze + feed * line.gain) + feed * correction;
         }
 
         const auto [a, b, c, d] = taps;
@@ -286,7 +314,7 @@ public:
         // This preserves the original feedback coefficient at every setting.
         float loopGain = 0.0f;
         for (const auto& line : lines)
-            loopGain = std::max(loopGain, line.gain);
+            loopGain = std::max({ loopGain, line.gain, line.bandGain[0], line.bandGain[1], line.bandGain[2] });
         const auto feedbackGain = feed * lateMix * shimmerFeedback
             * std::min(0.25f, 2.0f * (1.0f - loopGain));
         const auto [sendLeft, sendRight] = shifted.feedback;
@@ -347,6 +375,7 @@ private:
     }
 
     std::array<float, 2> inputLow {}, outputLow {};
+    float lowSplit = 0.0f, highSplit = 0.0f;
     float filterSampleRate = 48000.0f;
     float cutCoefficient = 0.0f, targetCutCoefficient = 0.0f;
     float inputCut = 0.0f, targetInputCut = 0.0f;
@@ -419,6 +448,8 @@ private:
         float low = 0.0f;
         float gain = 0.0f;
         float targetGain = 0.0f;
+        float lowBand = 0.0f, belowHigh = 0.0f;
+        std::array<float, 3> bandGain {}, targetBandGain {};
         Diffuser diffusion;
         Diffuser extraDiffusion;
     };
@@ -446,6 +477,8 @@ private:
     float targetEarlyWidth = 1.0f;
     float targetLateWidth = 1.0f;
     float earlyLevel = 1.0f;
+    std::array<float, 3> cachedBandDecay {};
+    float cachedBandBaseDecay = -1.0f;
     float lastDecay = -1.0f;
     float smoothing = 1.0f;
     float swellGain = 1.0f;

@@ -12,6 +12,7 @@ constexpr int spectrumWidth = 376;
 constexpr int columnGap = 12;
 constexpr int compactHeight = 250;
 constexpr int characterRowHeight = 34;
+constexpr int bandRowHeight = 64;
 constexpr int sectionHeight = 136;
 constexpr std::size_t bloomStart = 6;
 constexpr std::size_t swellStart = 10;
@@ -38,6 +39,20 @@ PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner)
         addAndMakeVisible(labels[i]);
         addAndMakeVisible(slider);
         attachments[i] = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(owner.state, ids[i], slider);
+    }
+    bandPanel.setClickingTogglesState(true);
+    bandPanel.onClick = [this] { updateSections(); };
+    addAndMakeVisible(bandPanel);
+    for (std::size_t band = 0; band < bandDecay.size(); ++band)
+    {
+        auto& slider = bandDecay[band];
+        slider.setTitle(parameters::bandDecayNames[band]);
+        slider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 56, 22);
+        bandLabels[band].setText(parameters::bandDecayNames[band], juce::dontSendNotification);
+        bandAttachments[band] = std::make_unique<SliderAttachment>(owner.state, parameters::bandDecayIds[band], slider);
+        slider.setTextValueSuffix("x");
+        addAndMakeVisible(slider);
+        addAndMakeVisible(bandLabels[band]);
     }
     filterPlacement.setTitle("Low Cut Placement");
     filterPlacement.addItemList(parameters::filterPlacements, 1);
@@ -210,7 +225,13 @@ void PluginEditor::updateSections()
         voiceSliders[i].setVisible(visible);
         voiceLabels[i].setVisible(visible);
     }
-    setSize(getWidth(), compactHeight + characterRowHeight + sectionHeight * (static_cast<int>(bloomOpen) + static_cast<int>(swellOpen))
+    const auto bandsOpen = bandPanel.getToggleState();
+    for (std::size_t band = 0; band < bandDecay.size(); ++band)
+    {
+        bandDecay[band].setVisible(bandsOpen);
+        bandLabels[band].setVisible(bandsOpen);
+    }
+    setSize(getWidth(), (bandsOpen ? bandRowHeight : 0) + compactHeight + characterRowHeight + sectionHeight * (static_cast<int>(bloomOpen) + static_cast<int>(swellOpen))
         + (shimmerOpen ? 100 + std::min(maxVoiceHeight, static_cast<int>(voiceDetails.size()) * voiceHeaderHeight + expandedCount * voiceRowHeight) : 0));
     resized();
 }
@@ -323,6 +344,7 @@ void PluginEditor::resized()
     shimmerPanel.setBounds(titleRow.removeFromRight(96).withSizeKeepingCentre(96, 28));
     titleRow.removeFromRight(8);
     shimmerPower.setBounds(titleRow.removeFromRight(110).withSizeKeepingCentre(110, 28));
+    bandPanel.setBounds(titleRow.removeFromRight(96).withSizeKeepingCentre(88, 28));
     auto characters = controls.removeFromTop(characterRowHeight).reduced(0, 3);
     characterALabel.setBounds(characters.removeFromLeft(22));
     character.setBounds(characters.removeFromLeft(112));
@@ -350,6 +372,17 @@ void PluginEditor::resized()
         }
     };
     layoutRow(controls.removeFromTop(compactHeight - 124), 0, bloomStart);
+    if (bandPanel.getToggleState())
+    {
+        auto bandRow = controls.removeFromTop(bandRowHeight);
+        const auto width = bandRow.getWidth() / static_cast<int>(bandDecay.size());
+        for (std::size_t band = 0; band < bandDecay.size(); ++band)
+        {
+            auto cell = bandRow.removeFromLeft(width).reduced(6, 2);
+            bandLabels[band].setBounds(cell.removeFromTop(22));
+            bandDecay[band].setBounds(cell);
+        }
+    }
     if (bloom.getToggleState())
         layoutRow(controls.removeFromTop(sectionHeight), bloomStart, swellStart - bloomStart);
     if (swell.getToggleState())

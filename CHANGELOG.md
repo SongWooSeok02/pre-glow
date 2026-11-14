@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added Low, Mid, and High decay multipliers with fixed 250 Hz and 4 kHz crossover points.
+
 - Added an adjustable low cut with Reverb Input and Wet Output placement. Existing projects load with the filter off.
 
 - Show both reverb percentages on the A/B control.
