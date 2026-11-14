@@ -2,6 +2,8 @@
 
 Stereo reverb plugin. Phase 5 implementation is complete. Decay, Damping and Mix support host automation and session recall.
 
+베타 설치 및 첫 실행은 [한국어 사용설명서](docs/user-guide-ko.md)를 참고하세요.
+
 ## Build
 
 Install CMake 3.22 or newer and a C++17 toolchain. On macOS use Xcode. On Windows use Visual Studio 2022 with Desktop development with C++. CMake fetches the pinned JUCE 8.0.8 revision.
