@@ -50,7 +50,8 @@ constexpr int morphSize = 220;
 constexpr int morphReadoutHeight = 28;
 constexpr int morphColumnHeight = 32 + morphSize + morphReadoutHeight;
 constexpr int morphButtonRowHeight = 34;
-constexpr int stackedMorphHeight = morphColumnHeight + compactHeight - 32 + morphButtonRowHeight;
+constexpr int meterHeight = 66;
+constexpr int stackedMorphHeight = morphColumnHeight + compactHeight - 32 + morphButtonRowHeight + meterHeight;
 constexpr std::size_t drySliderIndex = 2;
 constexpr std::size_t wetSliderIndex = 3;
 constexpr int characterRowHeight = 34;
@@ -692,6 +693,19 @@ void PluginEditor::timerCallback()
     }
     updateMorphControls();
     repaint(spectrumBounds);
+
+    const auto now = juce::Time::getMillisecondCounterHiRes();
+    const auto release = static_cast<float>(std::pow(0.1, (now - lastMeterUpdate) / 600.0));
+    lastMeterUpdate = now;
+    unsigned revision = 0;
+    const auto peaks = ownerProcessor.readMeterPeaks(revision);
+    if (revision != lastMeterRevision)
+        displayedPeaks = peaks;
+    else
+        for (auto& peak : displayedPeaks)
+            peak *= release; // The host can stop calling processBlock when transport stops.
+    lastMeterRevision = revision;
+    repaint(meterBounds);
 }
 
 void PluginEditor::bindMorphSlider(juce::Slider& slider, const char* axisId,
@@ -786,6 +800,30 @@ void PluginEditor::paintSpectrum(juce::Graphics& g)
     }
 }
 
+void PluginEditor::paintMeters(juce::Graphics& graphics)
+{
+    auto rows = meterBounds.reduced(10, 5);
+    graphics.setColour(juce::Colour(0xff1c1e31));
+    graphics.fillRoundedRectangle(meterBounds.toFloat(), 6.0f);
+    graphics.setFont(juce::FontOptions(12.0f));
+    for (std::size_t i = 0; i < displayedPeaks.size(); ++i)
+    {
+        auto row = rows.removeFromTop(24);
+        const auto db = juce::Decibels::gainToDecibels(displayedPeaks[i], -60.0f);
+        graphics.setColour(juce::Colour(0xfff0eaff));
+        graphics.drawText(i == 0 ? "Input" : "Output", row.removeFromLeft(54), juce::Justification::centredLeft);
+        const auto level = db <= -60.0f ? juce::String("< -60") : juce::String(db, 1);
+        graphics.drawText(level + " dBFS", row.removeFromRight(84), juce::Justification::centredRight);
+        const auto track = row.withSizeKeepingCentre(row.getWidth(), 8).toFloat();
+        graphics.setColour(juce::Colour(0xff383a50));
+        graphics.fillRoundedRectangle(track, 4.0f);
+        const auto fraction = juce::jlimit(0.0f, 1.0f, (db + 60.0f) / 60.0f);
+        graphics.setColour(db >= 0.0f ? juce::Colour(0xffff9c82)
+                                     : (i == 0 ? juce::Colour(0xff60d8ee) : juce::Colour(0xffc29bff)));
+        graphics.fillRoundedRectangle(track.withWidth(track.getWidth() * fraction), 4.0f);
+    }
+}
+
 void PluginEditor::paint(juce::Graphics& graphics)
 {
     graphics.fillAll(juce::Colour(0xff151627));
@@ -796,6 +834,7 @@ void PluginEditor::paint(juce::Graphics& graphics)
     }
     else
         paintSpectrum(graphics);
+    paintMeters(graphics);
     for (const auto bounds : sectionBounds)
     {
         if (bounds.isEmpty())
@@ -827,6 +866,7 @@ void PluginEditor::resized()
     auto spectrumColumn = controls.removeFromRight(spectrumWidth);
     spectrumBounds = spectrumColumn.removeFromTop(compactHeight - 32);
     auto spectrumActions = spectrumColumn.removeFromTop(morphButtonRowHeight);
+    meterBounds = spectrumColumn.removeFromTop(meterHeight).withTrimmedBottom(8);
     presetButton.setBounds(spectrumActions.removeFromRight(100).withSizeKeepingCentre(92, 26));
     presetPanel.setBounds(spectrumBounds);
     auto presetArea = presetPanel.getLocalBounds().reduced(14);

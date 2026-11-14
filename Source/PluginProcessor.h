@@ -42,9 +42,16 @@ public:
     using SpectrumFrame = std::array<std::array<float, spectrumSize>, 4>;
     bool readSpectrum(SpectrumFrame& frame, double& sampleRate) noexcept;
 
+    std::array<float, 2> readMeterPeaks(unsigned& revision) const noexcept;
+
     juce::AudioProcessorValueTreeState state;
 
 private:
+    void publishMeterPeaks(float input, float output, int samples) noexcept;
+    static_assert(std::atomic<float>::is_always_lock_free);
+    std::array<std::atomic<float>, 2> meterPeaks {};
+    std::atomic<unsigned> meterRevision { 0 };
+    float meterReleasePerSample = 0.0f;
     bool restoreState(const void*, int, bool validatePreset);
     std::array<const std::atomic<float>*, Shimmer::voiceCount> voiceEnabled {};
     const std::atomic<float>* const shimmerEnabled = state.getRawParameterValue(parameters::shimmerEnabled);

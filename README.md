@@ -105,3 +105,5 @@ User files use the `.preglowpreset` extension and the versioned processor state 
 The macOS Release Standalone, AU, and VST3 builds, both DSP tests, and validation of the installed AU passed. In-host preset UI and AU/VST3 round-trip verification are pending.
 
 The PRE-GLOW naming and Basic layout update passed macOS Release builds for all three formats, both DSP tests, and AU validation under the new display name.
+
+Input and output peak meters display dBFS below the spectrum in both editor modes. macOS Release Standalone, AU, and VST3 builds, both DSP tests, and installed AU validation passed. Meter behavior in Logic Pro has yet to be verified.

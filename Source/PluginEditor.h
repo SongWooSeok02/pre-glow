@@ -63,7 +63,11 @@ private:
     void timerCallback() override;
     void paintSpectrum(juce::Graphics&);
     PluginProcessor& ownerProcessor;
-    juce::Rectangle<int> spectrumBounds;
+    void paintMeters(juce::Graphics&);
+    juce::Rectangle<int> spectrumBounds, meterBounds;
+    std::array<float, 2> displayedPeaks {};
+    unsigned lastMeterRevision = 0;
+    double lastMeterUpdate = 0.0;
     juce::dsp::FFT spectrumFFT { PluginProcessor::spectrumOrder };
     juce::dsp::WindowingFunction<float> spectrumWindow {
         PluginProcessor::spectrumSize, juce::dsp::WindowingFunction<float>::hann };
