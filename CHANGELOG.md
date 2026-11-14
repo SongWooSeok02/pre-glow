@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added a Ducking bypass and a Reverse-like wet swell with adjustable rise time.
+
 - Replaced Mod Matrix with input-triggered Ducking for the wet output.
 
 - Place XY Morph below the spectrum when Multiband or Shimmer is open.

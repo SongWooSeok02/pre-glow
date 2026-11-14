@@ -33,6 +33,11 @@ private:
     void updateMorphControls();
     void updateSections();
     juce::TextButton morphPanel { "Show XY Morph" };
+    juce::ToggleButton duckOn { "Ducking On" }, reverseOn { "Reverse-like" };
+    juce::Slider reverseTime;
+    juce::Label reverseLabel;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> duckOnBinding, reverseOnBinding;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> reverseTimeBinding;
     juce::TextButton duckPanel { "Ducking" };
     std::array<juce::Slider, 4> duckSliders;
     std::array<juce::Label, 4> duckLabels;

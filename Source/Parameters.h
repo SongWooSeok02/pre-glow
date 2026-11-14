@@ -32,6 +32,9 @@ inline const std::array<juce::NormalisableRange<float>, 4> duckRanges {{
     { 1.0f, 200.0f, 1.0f, 0.5f }, { 20.0f, 2000.0f, 1.0f, 0.5f }
 }};
 inline constexpr std::array duckDefaults { -24.0f, 0.0f, 10.0f, 300.0f };
+inline constexpr auto duckEnabled = "duck_enabled";
+inline constexpr auto reverseEnabled = "reverse_enabled";
+inline constexpr auto reverseRise = "reverse_rise";
 inline constexpr auto morphX = "morph_x";
 inline constexpr auto morphY = "morph_y";
 inline constexpr auto characterBlend = "character_blend";
@@ -178,6 +181,10 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
     for (std::size_t i = 0; i < duckIds.size(); ++i)
         layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID { duckIds[i], 23 },
             duckNames[i], duckRanges[i], duckDefaults[i]));
+    layout.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID { duckEnabled, 24 }, "Ducking Enabled", true));
+    layout.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID { reverseEnabled, 24 }, "Reverse-like Enabled", false));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID { reverseRise, 24 }, "Reverse Rise",
+        juce::NormalisableRange<float> { 50.0f, 2000.0f, 1.0f, 0.5f }, 450.0f));
     return layout;
 }
 }

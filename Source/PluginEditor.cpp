@@ -10,7 +10,7 @@ constexpr int maxVoiceHeight = 4 * voiceHeaderHeight + voiceRowHeight;
 constexpr int controlsWidth = 620;
 constexpr int spectrumWidth = 376;
 constexpr int columnGap = 12;
-constexpr int duckPanelHeight = 76;
+constexpr int duckPanelHeight = 104;
 constexpr int compactHeight = 250;
 constexpr int morphSize = 220;
 constexpr int morphReadoutHeight = 28;
@@ -304,6 +304,17 @@ PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner)
         voiceLabels[i].setJustificationType(juce::Justification::centred);
         voiceContent.addAndMakeVisible(voiceLabels[i]);
     }
+    duckOnBinding = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(owner.state, parameters::duckEnabled, duckOn);
+    reverseOnBinding = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(owner.state, parameters::reverseEnabled, reverseOn);
+    reverseTime.setTitle("Reverse Rise");
+    reverseTime.setTextBoxStyle(juce::Slider::TextBoxRight, false, 72, 22);
+    reverseTimeBinding = std::make_unique<SliderAttachment>(owner.state, parameters::reverseRise, reverseTime);
+    reverseTime.setTextValueSuffix(" ms");
+    reverseLabel.setText("Rise", juce::dontSendNotification);
+    addChildComponent(duckOn);
+    addAndMakeVisible(reverseOn);
+    addAndMakeVisible(reverseTime);
+    addAndMakeVisible(reverseLabel);
     duckPanel.setClickingTogglesState(true);
     duckPanel.onClick = [this] { updateSections(); };
     addAndMakeVisible(duckPanel);
@@ -327,7 +338,7 @@ PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner)
     morphReadout.setJustificationType(juce::Justification::centred);
     addChildComponent(morphReadout);
     updateMorphControls();
-    setSize(controlsWidth + columnGap + spectrumWidth, compactHeight + characterRowHeight);
+    setSize(controlsWidth + columnGap + spectrumWidth, compactHeight + characterRowHeight + 30);
     startTimerHz(30);
     updateSections();
 }
@@ -386,6 +397,7 @@ void PluginEditor::updateSections()
     morphPad.setVisible(morphOpen);
     morphReadout.setVisible(morphOpen);
     const auto duckOpen = duckPanel.getToggleState();
+    duckOn.setVisible(duckOpen);
     for (std::size_t i = 0; i < duckSliders.size(); ++i)
     {
         duckSliders[i].setVisible(duckOpen);
@@ -393,7 +405,7 @@ void PluginEditor::updateSections()
     }
     const auto morphBelow = bandsOpen || shimmerOpen;
     const auto width = controlsWidth + columnGap + spectrumWidth + (morphOpen && !morphBelow ? columnGap + morphSize : 0);
-    setSize(width, std::max(morphOpen ? (morphBelow ? stackedMorphHeight : morphColumnHeight) : 0, (duckOpen ? duckPanelHeight : 0) + (bandsOpen ? bandRowHeight : 0) + compactHeight + characterRowHeight + sectionHeight * (static_cast<int>(bloomOpen) + static_cast<int>(swellOpen))
+    setSize(width, std::max(morphOpen ? (morphBelow ? stackedMorphHeight : morphColumnHeight) : 0, (duckOpen ? duckPanelHeight : 0) + (bandsOpen ? bandRowHeight : 0) + compactHeight + characterRowHeight + 30 + sectionHeight * (static_cast<int>(bloomOpen) + static_cast<int>(swellOpen))
         + (shimmerOpen ? 100 + shimmerBottomPadding + std::min(maxVoiceHeight, static_cast<int>(voiceDetails.size()) * voiceHeaderHeight + expandedCount * voiceRowHeight) : 0)));
     resized();
 }
@@ -593,6 +605,10 @@ void PluginEditor::resized()
             sliders[i].setBounds(column);
         }
     };
+    auto reverseRow = controls.removeFromTop(30);
+    reverseOn.setBounds(reverseRow.removeFromLeft(116));
+    reverseLabel.setBounds(reverseRow.removeFromLeft(36));
+    reverseTime.setBounds(reverseRow.removeFromLeft(230).reduced(4, 0));
     sectionBounds[1] = controls.removeFromTop(compactHeight - 124);
     layoutRow(sectionBounds[1].reduced(4, 5), 0, bloomStart);
     if (bandPanel.getToggleState())
@@ -637,6 +653,7 @@ void PluginEditor::resized()
     {
         sectionBounds[6] = controls.removeFromTop(duckPanelHeight);
         auto row = sectionBounds[6].reduced(8, 8);
+        duckOn.setBounds(row.removeFromTop(28).removeFromLeft(125));
         const auto width = row.getWidth() / static_cast<int>(duckSliders.size());
         for (std::size_t i = 0; i < duckSliders.size(); ++i)
         {

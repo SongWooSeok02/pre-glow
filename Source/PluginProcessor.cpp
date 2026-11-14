@@ -165,6 +165,9 @@ void PluginProcessor::reset()
         engine.reset();
     livePathStarted = false;
     duckGain = 1.0f;
+    reverseMix = reverseTarget = reverseDetector = 0.0f;
+    reversePhase = 1.0f;
+    reverseInputActive = false;
     spectrumPosition = 0;
     updateCharacterTargets();
     characterWeights = targetCharacterWeights;
@@ -221,11 +224,25 @@ void PluginProcessor::processSample(float& left, float& right, bool mono) noexce
         }
     }
     const auto peak = std::max(std::abs(left), std::abs(right));
+    const auto inputLevel = std::isfinite(peak) ? peak : 0.0f;
+    const auto detectorRelease = 1.0f / (1.0f + 0.04f * static_cast<float>(spectrumRate));
+    reverseDetector = std::max(inputLevel, reverseDetector * (1.0f - detectorRelease));
+    if (!reverseInputActive && reverseDetector >= 0.01f)
+    {
+        reverseInputActive = true;
+        reversePhase = 0.0f;
+    }
+    else if (reverseDetector < 0.003f)
+        reverseInputActive = false;
+
+    reversePhase = std::min(1.0f, reversePhase + reverseStep);
+    reverseMix += characterSmoothing * (reverseTarget - reverseMix);
+    const auto reverseGain = 1.0f - reverseMix * (1.0f - reversePhase * reversePhase);
     const auto over = std::isfinite(peak) && peak > duckThreshold ? 1.0f - duckThreshold / peak : 0.0f;
     const auto targetDuckGain = 1.0f - duckAmount * over;
     duckGain += (targetDuckGain < duckGain ? duckAttack : duckRelease) * (targetDuckGain - duckGain);
     for (auto& channel : mixed.wet)
-        channel *= duckGain;
+        channel *= duckGain * reverseGain;
     left = mixed.dry[0] + mixed.wet[0];
     right = mixed.dry[1] + mixed.wet[1];
     if (mono)
@@ -256,7 +273,11 @@ void PluginProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiB
         return std::isfinite(value) ? std::clamp(value, parameters::duckRanges[i].start, parameters::duckRanges[i].end) : parameters::duckDefaults[i];
     };
     duckThreshold = juce::Decibels::decibelsToGain(readDuck(0));
-    duckAmount = readDuck(1) * 0.01f;
+    duckAmount = duckEnabled->load(std::memory_order_relaxed) >= 0.5f ? readDuck(1) * 0.01f : 0.0f;
+    reverseTarget = reverseEnabled->load(std::memory_order_relaxed) >= 0.5f ? 1.0f : 0.0f;
+    const auto rise = reverseRise->load(std::memory_order_relaxed);
+    const auto riseMs = std::isfinite(rise) ? std::clamp(rise, 50.0f, 2000.0f) : 450.0f;
+    reverseStep = static_cast<float>(1000.0 / (riseMs * spectrumRate));
     const auto coefficient = [this](float ms)
     {
         return static_cast<float>(-std::expm1(-1000.0 / (ms * spectrumRate)));

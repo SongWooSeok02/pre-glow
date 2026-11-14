@@ -60,6 +60,12 @@ private:
     const std::atomic<float>* const morphX = state.getRawParameterValue(parameters::morphX);
     const std::atomic<float>* const morphY = state.getRawParameterValue(parameters::morphY);
     std::array<const std::atomic<float>*, 4> duckParameters {};
+    const std::atomic<float>* const duckEnabled = state.getRawParameterValue(parameters::duckEnabled);
+    const std::atomic<float>* const reverseEnabled = state.getRawParameterValue(parameters::reverseEnabled);
+    const std::atomic<float>* const reverseRise = state.getRawParameterValue(parameters::reverseRise);
+    float reverseMix = 0.0f, reverseTarget = 0.0f, reversePhase = 1.0f, reverseStep = 1.0f;
+    float reverseDetector = 0.0f;
+    bool reverseInputActive = false;
     float duckGain = 1.0f, duckAmount = 0.0f, duckThreshold = 1.0f;
     float duckAttack = 1.0f, duckRelease = 1.0f;
     ReverbSettings readSettings() const noexcept;
