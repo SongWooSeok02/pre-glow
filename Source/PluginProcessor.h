@@ -55,6 +55,8 @@ private:
     const std::atomic<float>* const shimmerMix = state.getRawParameterValue(parameters::shimmerMix);
     const std::atomic<float>* const shimmerFeedback = state.getRawParameterValue(parameters::shimmerFeedback);
     void upmixMonoInput(juce::AudioBuffer<float>&) const noexcept;
+    const std::atomic<float>* const morphX = state.getRawParameterValue(parameters::morphX);
+    const std::atomic<float>* const morphY = state.getRawParameterValue(parameters::morphY);
     ReverbSettings readSettings() const noexcept;
     const std::atomic<float>* const decay = state.getRawParameterValue(parameters::decay);
     const std::atomic<float>* const damping = state.getRawParameterValue(parameters::damping);

@@ -12,7 +12,25 @@ public:
     void resized() override;
 
 private:
+    class MorphPad final : public juce::Component
+    {
+    public:
+        explicit MorphPad(PluginProcessor&);
+        void paint(juce::Graphics&) override;
+        void mouseDown(const juce::MouseEvent&) override;
+        void mouseDrag(const juce::MouseEvent&) override;
+        void mouseUp(const juce::MouseEvent&) override;
+        void mouseDoubleClick(const juce::MouseEvent&) override;
+
+    private:
+        juce::Rectangle<float> plotBounds() const;
+        juce::Point<float> position;
+        juce::ParameterAttachment xAttachment, yAttachment;
+    };
+
     void updateSections();
+    juce::TextButton morphPanel { "XY Morph" };
+    MorphPad morphPad;
     void timerCallback() override;
     void paintSpectrum(juce::Graphics&);
     PluginProcessor& ownerProcessor;

@@ -18,7 +18,67 @@ constexpr int sectionHeight = 136;
 constexpr std::size_t bloomStart = 6;
 constexpr std::size_t swellStart = 10;
 }
-PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner), ownerProcessor(owner)
+PluginEditor::MorphPad::MorphPad(PluginProcessor& owner)
+    : xAttachment(*owner.state.getParameter(parameters::morphX), [this](float x) { position.x = x; repaint(); }),
+      yAttachment(*owner.state.getParameter(parameters::morphY), [this](float y) { position.y = y; repaint(); })
+{
+    setTitle("XY Morph: A/B and Wet. Double-click to centre.");
+    xAttachment.sendInitialUpdate();
+    yAttachment.sendInitialUpdate();
+}
+
+juce::Rectangle<float> PluginEditor::MorphPad::plotBounds() const
+{
+    return getLocalBounds().toFloat().reduced(26.0f, 24.0f);
+}
+
+void PluginEditor::MorphPad::paint(juce::Graphics& g)
+{
+    const auto plot = plotBounds();
+    g.setColour(juce::Colour(0xff1c1e31));
+    g.fillRoundedRectangle(getLocalBounds().toFloat(), 8.0f);
+    g.setColour(juce::Colour(0xff464965));
+    g.drawRect(plot, 1.0f);
+    g.drawHorizontalLine(juce::roundToInt(plot.getCentreY()), plot.getX(), plot.getRight());
+    g.drawVerticalLine(juce::roundToInt(plot.getCentreX()), plot.getY(), plot.getBottom());
+    g.setColour(juce::Colour(0xffc29bff));
+    const auto x = plot.getX() + (position.x + 1.0f) * 0.5f * plot.getWidth();
+    const auto y = plot.getY() + (1.0f - position.y) * 0.5f * plot.getHeight();
+    g.fillEllipse(x - 6.0f, y - 6.0f, 12.0f, 12.0f);
+    g.setColour(juce::Colour(0xfff0eaff));
+    g.drawText("Wet +", getLocalBounds().removeFromTop(22), juce::Justification::centred);
+    g.drawText("Wet -", getLocalBounds().removeFromBottom(22), juce::Justification::centred);
+    g.drawText("A", getLocalBounds().removeFromLeft(24), juce::Justification::centred);
+    g.drawText("B", getLocalBounds().removeFromRight(24), juce::Justification::centred);
+}
+
+void PluginEditor::MorphPad::mouseDown(const juce::MouseEvent& event)
+{
+    xAttachment.beginGesture();
+    yAttachment.beginGesture();
+    mouseDrag(event);
+}
+
+void PluginEditor::MorphPad::mouseDrag(const juce::MouseEvent& event)
+{
+    const auto plot = plotBounds();
+    xAttachment.setValueAsPartOfGesture(juce::jlimit(-1.0f, 1.0f, 2.0f * (event.position.x - plot.getX()) / plot.getWidth() - 1.0f));
+    yAttachment.setValueAsPartOfGesture(juce::jlimit(-1.0f, 1.0f, 1.0f - 2.0f * (event.position.y - plot.getY()) / plot.getHeight()));
+}
+
+void PluginEditor::MorphPad::mouseUp(const juce::MouseEvent&)
+{
+    xAttachment.endGesture();
+    yAttachment.endGesture();
+}
+
+void PluginEditor::MorphPad::mouseDoubleClick(const juce::MouseEvent&)
+{
+    xAttachment.setValueAsPartOfGesture(0.0f);
+    yAttachment.setValueAsPartOfGesture(0.0f);
+}
+
+PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner), morphPad(owner), ownerProcessor(owner)
 {
     constexpr std::array ids { parameters::decay, parameters::damping, parameters::dry, parameters::wet, parameters::earlyWidth, parameters::lateWidth,
                                parameters::bloomAmount, parameters::bloomAttack, parameters::bloomRelease, parameters::bloomShape,
@@ -234,6 +294,10 @@ PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner)
         voiceLabels[i].setJustificationType(juce::Justification::centred);
         voiceContent.addAndMakeVisible(voiceLabels[i]);
     }
+    morphPanel.setClickingTogglesState(true);
+    morphPanel.onClick = [this] { updateSections(); };
+    addAndMakeVisible(morphPanel);
+    addChildComponent(morphPad);
     setSize(controlsWidth + columnGap + spectrumWidth, compactHeight + characterRowHeight);
     startTimerHz(30);
     updateSections();
@@ -288,8 +352,9 @@ void PluginEditor::updateSections()
         crossovers[i].setVisible(bandsOpen);
         crossoverLabels[i].setVisible(bandsOpen);
     }
-    setSize(getWidth(), (bandsOpen ? bandRowHeight : 0) + compactHeight + characterRowHeight + sectionHeight * (static_cast<int>(bloomOpen) + static_cast<int>(swellOpen))
-        + (shimmerOpen ? 100 + shimmerBottomPadding + std::min(maxVoiceHeight, static_cast<int>(voiceDetails.size()) * voiceHeaderHeight + expandedCount * voiceRowHeight) : 0));
+    morphPad.setVisible(morphPanel.getToggleState());
+    setSize(getWidth(), std::max(morphPad.isVisible() ? 450 : 0, (bandsOpen ? bandRowHeight : 0) + compactHeight + characterRowHeight + sectionHeight * (static_cast<int>(bloomOpen) + static_cast<int>(swellOpen))
+        + (shimmerOpen ? 100 + shimmerBottomPadding + std::min(maxVoiceHeight, static_cast<int>(voiceDetails.size()) * voiceHeaderHeight + expandedCount * voiceRowHeight) : 0)));
     resized();
 }
 
@@ -405,7 +470,10 @@ void PluginEditor::paint(juce::Graphics& graphics)
 void PluginEditor::resized()
 {
     auto controls = getLocalBounds().reduced(16);
-    spectrumBounds = controls.removeFromRight(spectrumWidth).withHeight(compactHeight - 32);
+    auto rightColumn = controls.removeFromRight(spectrumWidth);
+    spectrumBounds = rightColumn.removeFromTop(compactHeight - 32);
+    morphPanel.setBounds(rightColumn.removeFromTop(34).withSizeKeepingCentre(96, 26));
+    morphPad.setBounds(rightColumn.removeFromTop(166));
     controls.removeFromRight(columnGap);
     auto titleRow = controls.removeFromTop(56);
     shimmerPanel.setBounds(titleRow.removeFromRight(96).withSizeKeepingCentre(96, 28));
@@ -482,7 +550,7 @@ void PluginEditor::resized()
     }
     if (shimmerPanel.getToggleState())
     {
-        sectionBounds[5] = controls;
+        const auto shimmerTop = controls.getY();
         auto globals = controls.removeFromTop(100).reduced(6, 5);
         shimmerRouting.setBounds(globals.removeFromRight(152).withSizeKeepingCentre(142, 28));
 
@@ -497,6 +565,8 @@ void PluginEditor::resized()
         const auto height = static_cast<int>(voiceDetails.size()) * voiceHeaderHeight
             + static_cast<int>(expandedCount) * voiceRowHeight;
         voiceViewport.setBounds(controls.removeFromTop(std::min(maxVoiceHeight, height)));
+        sectionBounds[5] = { controls.getX(), shimmerTop, controls.getWidth(),
+                             controls.getY() - shimmerTop + shimmerBottomPadding };
         voiceContent.setSize(voiceViewport.getWidth() - voiceViewport.getScrollBarThickness(), height);
         auto area = voiceContent.getLocalBounds();
         constexpr auto fields = parameters::voiceParameters.size();

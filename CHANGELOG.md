@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added an XY Morph pad for A/B Blend and Wet, with a neutral center and automatable axes.
+
 - Added per-band modulation depth for slow movement in the Wet output.
 
 - Freeze now layers live reverb over the held tail using the current settings.

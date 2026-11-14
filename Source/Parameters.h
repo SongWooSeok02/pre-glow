@@ -25,6 +25,8 @@ inline constexpr auto filterPlacement = "filter_placement";
 inline constexpr auto lowCut = "low_cut";
 inline const juce::StringArray filterPlacements { "Low Cut Off", "Reverb Input", "Wet Output" };
 inline constexpr auto characterB = "character_b";
+inline constexpr auto morphX = "morph_x";
+inline constexpr auto morphY = "morph_y";
 inline constexpr auto characterBlend = "character_blend";
 inline constexpr auto character = "character";
 inline const juce::StringArray characterNames { "Hall", "Room", "Plate", "Cloud", "Cathedral", "Void" };
@@ -162,6 +164,10 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
     for (std::size_t band = 0; band < bandModIds.size(); ++band)
         layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID { bandModIds[band], 20 },
             bandModNames[band], juce::NormalisableRange<float> { 0.0f, 100.0f, 1.0f }, 0.0f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID { morphX, 21 },
+        "Morph X (A/B)", juce::NormalisableRange<float> { -1.0f, 1.0f }, 0.0f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID { morphY, 21 },
+        "Morph Y (Wet)", juce::NormalisableRange<float> { -1.0f, 1.0f }, 0.0f));
     return layout;
 }
 }
