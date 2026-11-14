@@ -8,6 +8,8 @@ PluginProcessor::PluginProcessor()
                                      .withOutput("Output", juce::AudioChannelSet::stereo(), true)),
       state(*this, nullptr, parameters::stateType, parameters::createLayout())
 {
+    for (std::size_t i = 0; i < crossoverParameters.size(); ++i)
+        crossoverParameters[i] = state.getRawParameterValue(parameters::crossoverIds[i]);
     for (std::size_t band = 0; band < bandDecayParameters.size(); ++band)
         bandDecayParameters[band] = state.getRawParameterValue(parameters::bandDecayIds[band]);
     for (std::size_t voice = 0; voice < shimmerVoices.size(); ++voice)
@@ -26,8 +28,14 @@ void PluginProcessor::updateBandDecay() noexcept
         const auto value = bandDecayParameters[band]->load(std::memory_order_relaxed);
         amounts[band] = std::isfinite(value) ? std::clamp(value, 0.25f, 2.0f) : 1.0f;
     }
+    const auto lowHz = crossoverParameters[0]->load(std::memory_order_relaxed);
+    const auto highHz = crossoverParameters[1]->load(std::memory_order_relaxed);
     for (auto& engine : engines)
+    {
         engine.setBandDecay(amounts);
+        engine.setBandCrossovers(std::isfinite(lowHz) ? lowHz : 250.0f,
+                                 std::isfinite(highHz) ? highHz : 4000.0f);
+    }
 }
 
 void PluginProcessor::updateLowCut() noexcept

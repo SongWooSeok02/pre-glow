@@ -48,6 +48,10 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> infiniteAttachment;
     juce::ToggleButton freeze { "Freeze" };
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> freezeAttachment;
+    std::array<juce::Rectangle<int>, 6> sectionBounds;
+    std::array<juce::Slider, 2> crossovers;
+    std::array<juce::Label, 2> crossoverLabels;
+    std::array<std::unique_ptr<SliderAttachment>, 2> crossoverAttachments;
     juce::TextButton bandPanel { "Band Decay" };
     std::array<juce::Slider, 3> bandDecay;
     std::array<juce::Label, 3> bandLabels;

@@ -9,6 +9,8 @@ namespace preglow::parameters
 inline constexpr auto decay = "decay";
 inline constexpr auto damping = "damping";
 inline constexpr auto mix = "mix";
+inline constexpr std::array crossoverIds { "low_mid_hz", "mid_high_hz" };
+inline constexpr std::array crossoverNames { "Low / Mid", "Mid / High" };
 inline constexpr std::array bandDecayIds { "low_decay", "mid_decay", "high_decay" };
 inline constexpr std::array bandDecayNames { "Low Decay", "Mid Decay", "High Decay" };
 inline constexpr auto filterPlacement = "filter_placement";
@@ -136,6 +138,10 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
     for (std::size_t band = 0; band < bandDecayIds.size(); ++band)
         layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID { bandDecayIds[band], 15 },
             bandDecayNames[band], juce::NormalisableRange<float> { 0.25f, 2.0f, 0.01f }, 1.0f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID { crossoverIds[0], 16 },
+        crossoverNames[0], juce::NormalisableRange<float> { 40, 1000, 1, 0.5f }, 250.0f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID { crossoverIds[1], 16 },
+        crossoverNames[1], juce::NormalisableRange<float> { 1100, 12000, 1, 0.5f }, 4000.0f));
     return layout;
 }
 }

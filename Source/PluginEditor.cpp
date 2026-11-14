@@ -12,7 +12,7 @@ constexpr int spectrumWidth = 376;
 constexpr int columnGap = 12;
 constexpr int compactHeight = 250;
 constexpr int characterRowHeight = 34;
-constexpr int bandRowHeight = 64;
+constexpr int bandRowHeight = 120;
 constexpr int sectionHeight = 136;
 constexpr std::size_t bloomStart = 6;
 constexpr std::size_t swellStart = 10;
@@ -53,6 +53,17 @@ PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner)
         slider.setTextValueSuffix("x");
         addAndMakeVisible(slider);
         addAndMakeVisible(bandLabels[band]);
+    }
+    for (std::size_t i = 0; i < crossovers.size(); ++i)
+    {
+        auto& slider = crossovers[i];
+        slider.setTitle(parameters::crossoverNames[i]);
+        slider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 74, 22);
+        crossoverLabels[i].setText(parameters::crossoverNames[i], juce::dontSendNotification);
+        crossoverAttachments[i] = std::make_unique<SliderAttachment>(owner.state, parameters::crossoverIds[i], slider);
+        slider.setTextValueSuffix(" Hz");
+        addAndMakeVisible(slider);
+        addAndMakeVisible(crossoverLabels[i]);
     }
     filterPlacement.setTitle("Low Cut Placement");
     filterPlacement.addItemList(parameters::filterPlacements, 1);
@@ -231,6 +242,11 @@ void PluginEditor::updateSections()
         bandDecay[band].setVisible(bandsOpen);
         bandLabels[band].setVisible(bandsOpen);
     }
+    for (std::size_t i = 0; i < crossovers.size(); ++i)
+    {
+        crossovers[i].setVisible(bandsOpen);
+        crossoverLabels[i].setVisible(bandsOpen);
+    }
     setSize(getWidth(), (bandsOpen ? bandRowHeight : 0) + compactHeight + characterRowHeight + sectionHeight * (static_cast<int>(bloomOpen) + static_cast<int>(swellOpen))
         + (shimmerOpen ? 100 + std::min(maxVoiceHeight, static_cast<int>(voiceDetails.size()) * voiceHeaderHeight + expandedCount * voiceRowHeight) : 0));
     resized();
@@ -330,6 +346,16 @@ void PluginEditor::paint(juce::Graphics& graphics)
 {
     graphics.fillAll(juce::Colour(0xff151627));
     paintSpectrum(graphics);
+    for (const auto bounds : sectionBounds)
+    {
+        if (bounds.isEmpty())
+            continue;
+        const auto box = bounds.toFloat().reduced(0.5f, 2.5f);
+        graphics.setColour(juce::Colour(0xff1c1e31));
+        graphics.fillRoundedRectangle(box, 8.0f);
+        graphics.setColour(juce::Colour(0xff3b3d58));
+        graphics.drawRoundedRectangle(box, 8.0f, 1.0f);
+    }
     graphics.setColour(juce::Colour(0xfff0eaff));
     graphics.setFont(juce::FontOptions(30.0f));
     graphics.drawText(JucePlugin_Name, getLocalBounds().removeFromTop(68).reduced(24, 0), juce::Justification::centredLeft);
@@ -345,6 +371,8 @@ void PluginEditor::resized()
     titleRow.removeFromRight(8);
     shimmerPower.setBounds(titleRow.removeFromRight(110).withSizeKeepingCentre(110, 28));
     bandPanel.setBounds(titleRow.removeFromRight(96).withSizeKeepingCentre(88, 28));
+    sectionBounds.fill({});
+    sectionBounds[0] = controls.withHeight(characterRowHeight + 28);
     auto characters = controls.removeFromTop(characterRowHeight).reduced(0, 3);
     characterALabel.setBounds(characters.removeFromLeft(22));
     character.setBounds(characters.removeFromLeft(112));
@@ -371,10 +399,20 @@ void PluginEditor::resized()
             sliders[i].setBounds(column);
         }
     };
-    layoutRow(controls.removeFromTop(compactHeight - 124), 0, bloomStart);
+    sectionBounds[1] = controls.removeFromTop(compactHeight - 124);
+    layoutRow(sectionBounds[1].reduced(4, 5), 0, bloomStart);
     if (bandPanel.getToggleState())
     {
-        auto bandRow = controls.removeFromTop(bandRowHeight);
+        sectionBounds[2] = controls.removeFromTop(bandRowHeight);
+        auto bandRow = sectionBounds[2].reduced(4, 6);
+        auto frequencyRow = bandRow.removeFromTop(54);
+        const auto frequencyWidth = frequencyRow.getWidth() / 2;
+        for (std::size_t i = 0; i < crossovers.size(); ++i)
+        {
+            auto cell = frequencyRow.removeFromLeft(frequencyWidth).reduced(6, 2);
+            crossoverLabels[i].setBounds(cell.removeFromTop(22));
+            crossovers[i].setBounds(cell);
+        }
         const auto width = bandRow.getWidth() / static_cast<int>(bandDecay.size());
         for (std::size_t band = 0; band < bandDecay.size(); ++band)
         {
@@ -384,12 +422,19 @@ void PluginEditor::resized()
         }
     }
     if (bloom.getToggleState())
-        layoutRow(controls.removeFromTop(sectionHeight), bloomStart, swellStart - bloomStart);
+    {
+        sectionBounds[3] = controls.removeFromTop(sectionHeight);
+        layoutRow(sectionBounds[3].reduced(4, 5), bloomStart, swellStart - bloomStart);
+    }
     if (swell.getToggleState())
-        layoutRow(controls.removeFromTop(sectionHeight), swellStart, sliders.size() - swellStart);
+    {
+        sectionBounds[4] = controls.removeFromTop(sectionHeight);
+        layoutRow(sectionBounds[4].reduced(4, 5), swellStart, sliders.size() - swellStart);
+    }
     if (shimmerPanel.getToggleState())
     {
-        auto globals = controls.removeFromTop(100);
+        sectionBounds[5] = controls;
+        auto globals = controls.removeFromTop(100).reduced(6, 5);
         shimmerRouting.setBounds(globals.removeFromRight(152).withSizeKeepingCentre(142, 28));
 
         for (std::size_t i = 0; i < shimmerGlobals.size(); ++i)

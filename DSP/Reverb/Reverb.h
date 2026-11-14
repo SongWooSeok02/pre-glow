@@ -45,6 +45,16 @@ public:
         preShimmer.setVoices(voices);
     }
 
+    void setBandCrossovers(float lowHz, float highHz) noexcept
+    {
+        const std::array frequencies { lowHz, highHz };
+        if (frequencies == crossoverHz)
+            return;
+        crossoverHz = frequencies;
+        targetLowSplit = -std::expm1(-6.2831853f * lowHz / filterSampleRate);
+        targetHighSplit = -std::expm1(-6.2831853f * highHz / filterSampleRate);
+    }
+
     void setBandDecay(const std::array<float, 3>& amounts) noexcept
     {
         if (amounts == cachedBandDecay && std::abs(lastDecay - cachedBandBaseDecay) < 0.000001f)
@@ -105,9 +115,9 @@ public:
 
         lastDecay = cachedBandBaseDecay = -1.0f;
 
-        lowSplit = static_cast<float>(-std::expm1(-6.2831853 * 250.0 / sampleRate));
-        highSplit = static_cast<float>(-std::expm1(-6.2831853 * 4000.0 / sampleRate));
         filterSampleRate = static_cast<float>(sampleRate);
+        crossoverHz = {};
+        setBandCrossovers(250.0f, 4000.0f);
         smoothing = static_cast<float>(-std::expm1(-1.0 / (0.025 * sampleRate)));
         samplesPerMs = static_cast<float>(sampleRate * 0.001);
         swellGainSmoothing = 1.0f / (1.0f + 5.0f * samplesPerMs);
@@ -144,6 +154,8 @@ public:
         bloomShape = targetBloomShape;
         shimmer.reset();
         preShimmer.reset();
+        lowSplit = targetLowSplit;
+        highSplit = targetHighSplit;
         inputLow.fill(0.0f);
         outputLow.fill(0.0f);
         inputCut = targetInputCut;
@@ -265,6 +277,8 @@ public:
         const auto earlyGain = std::min(bloomEarlyGain, swellWetGain);
         const auto lateGain = std::min(bloomLateGain, swellWetGain);
         const auto dampingAmount = feed * std::min(1.0f, damping * dampingScale);
+        lowSplit += smoothing * (targetLowSplit - lowSplit);
+        highSplit += smoothing * (targetHighSplit - highSplit);
         std::array<float, 4> taps {};
         for (std::size_t i = 0; i < lines.size(); ++i)
         {
@@ -375,6 +389,8 @@ private:
     }
 
     std::array<float, 2> inputLow {}, outputLow {};
+    std::array<float, 2> crossoverHz {};
+    float targetLowSplit = 0.0f, targetHighSplit = 0.0f;
     float lowSplit = 0.0f, highSplit = 0.0f;
     float filterSampleRate = 48000.0f;
     float cutCoefficient = 0.0f, targetCutCoefficient = 0.0f;
