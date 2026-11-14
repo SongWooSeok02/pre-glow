@@ -92,7 +92,7 @@ See the [Phase 4 handoff](docs/phase-4-handoff.md) for the Phase 5 starting poin
 
 See the [Phase 5 handoff](docs/phase-5-handoff.md) for the completed scope, validation results, and the Phase 6 starting point.
 
-Phase 6 starts with Basic and Advanced editor modes. Basic opens by default with Reverb A/B, Decay, Dry, Wet, Shimmer On, and Freeze. The mode button sits below the spectrum. Advanced exposes the detailed controls and restores expanded sections when switching back.
+Phase 6 starts with Basic and Advanced editor modes. Basic opens by default with Reverb A/B, Decay, Dry, Wet, Shimmer On, and Freeze. The mode button sits below the PRE-GLOW title. Advanced exposes the detailed controls and restores expanded sections when switching back.
 
 The macOS Release Standalone, AU, and VST3 builds and the `reverb_impulse` and `pitch_shifter` tests passed for this change. DAW mode-switch listening and session recall are pending.
 
@@ -103,3 +103,5 @@ Open **Presets** below the spectrum in either editor mode. Filter by Factory or 
 User files use the `.preglowpreset` extension and the versioned processor state payload. On macOS, AU, VST3, and Standalone use `~/Library/Application Support/pre-glow/Presets`.
 
 The macOS Release Standalone, AU, and VST3 builds, both DSP tests, and validation of the installed AU passed. In-host preset UI and AU/VST3 round-trip verification are pending.
+
+The PRE-GLOW naming and Basic layout update passed macOS Release builds for all three formats, both DSP tests, and AU validation under the new display name.

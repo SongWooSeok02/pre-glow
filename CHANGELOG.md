@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Renamed the app and plug-in to PRE-GLOW, moved the mode switch below the title, and increased Basic card padding and spacing.
+
 - Added a preset browser with four Factory presets and User preset search, save, load, rename, and deletion.
 
 - Added Basic and Advanced editor modes with shared parameter controls.

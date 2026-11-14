@@ -39,6 +39,13 @@ constexpr int spectrumWidth = 376;
 constexpr int columnGap = 12;
 constexpr int duckPanelHeight = 104;
 constexpr int compactHeight = 250;
+constexpr int titleHeight = 44;
+constexpr int headerHeight = 88;
+constexpr int basicSettingsHeight = 104;
+constexpr int basicKnobsHeight = 156;
+constexpr int cardGap = 12;
+constexpr int editorInset = 16;
+constexpr int basicHeight = 2 * editorInset + headerHeight + basicSettingsHeight + cardGap + basicKnobsHeight;
 constexpr int morphSize = 220;
 constexpr int morphReadoutHeight = 28;
 constexpr int morphColumnHeight = 32 + morphSize + morphReadoutHeight;
@@ -370,7 +377,6 @@ PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner)
     addChildComponent(morphReadout);
     configurePresets();
     updateMorphControls();
-    setSize(controlsWidth + columnGap + spectrumWidth, compactHeight + characterRowHeight + 30);
     startTimerHz(30);
     updateSections();
 }
@@ -648,9 +654,17 @@ void PluginEditor::updateSections()
     }
     const auto morphBelow = bandsOpen || shimmerOpen;
     const auto width = controlsWidth + columnGap + spectrumWidth + (morphOpen && !morphBelow ? columnGap + morphSize : 0);
-    setSize(width, std::max(morphOpen ? (morphBelow ? stackedMorphHeight : morphColumnHeight) : 0, (duckOpen ? duckPanelHeight : 0) + (bandsOpen ? bandRowHeight : 0) + compactHeight + characterRowHeight + 30 + sectionHeight * (static_cast<int>(bloomOpen) + static_cast<int>(swellOpen))
+    if (!advanced)
+    {
+        setSize(width, basicHeight);
+        resized();
+        repaint();
+        return;
+    }
+    setSize(width, std::max(morphOpen ? (morphBelow ? stackedMorphHeight : morphColumnHeight) : 0, (duckOpen ? duckPanelHeight : 0) + (bandsOpen ? bandRowHeight : 0) + compactHeight + characterRowHeight + 30 + (headerHeight - 56) + sectionHeight * (static_cast<int>(bloomOpen) + static_cast<int>(swellOpen))
         + (shimmerOpen ? 100 + shimmerBottomPadding + std::min(maxVoiceHeight, static_cast<int>(voiceDetails.size()) * voiceHeaderHeight + expandedCount * voiceRowHeight) : 0)));
     resized();
+    repaint();
 }
 
 void PluginEditor::timerCallback()
@@ -786,7 +800,7 @@ void PluginEditor::paint(juce::Graphics& graphics)
     {
         if (bounds.isEmpty())
             continue;
-        const auto box = bounds.toFloat().reduced(0.5f, 2.5f);
+        const auto box = bounds.toFloat().reduced(0.5f, advancedMode.getToggleState() ? 2.5f : 0.5f);
         graphics.setColour(juce::Colour(0xff1c1e31));
         graphics.fillRoundedRectangle(box, 8.0f);
         graphics.setColour(juce::Colour(0xff3b3d58));
@@ -794,12 +808,12 @@ void PluginEditor::paint(juce::Graphics& graphics)
     }
     graphics.setColour(juce::Colour(0xfff0eaff));
     graphics.setFont(juce::FontOptions(30.0f));
-    graphics.drawText(JucePlugin_Name, getLocalBounds().removeFromTop(68).reduced(24, 0), juce::Justification::centredLeft);
+    graphics.drawText(JucePlugin_Name, getLocalBounds().reduced(editorInset).removeFromTop(titleHeight), juce::Justification::centredLeft);
 }
 
 void PluginEditor::resized()
 {
-    auto controls = getLocalBounds().reduced(16);
+    auto controls = getLocalBounds().reduced(editorInset);
     const auto advanced = advancedMode.getToggleState();
     const auto morphOpen = advanced && morphPanel.getToggleState();
     const auto morphBelow = bandPanel.getToggleState() || shimmerPanel.getToggleState();
@@ -813,7 +827,6 @@ void PluginEditor::resized()
     auto spectrumColumn = controls.removeFromRight(spectrumWidth);
     spectrumBounds = spectrumColumn.removeFromTop(compactHeight - 32);
     auto spectrumActions = spectrumColumn.removeFromTop(morphButtonRowHeight);
-    advancedMode.setBounds(spectrumActions.removeFromRight(112).withSizeKeepingCentre(104, 26));
     presetButton.setBounds(spectrumActions.removeFromRight(100).withSizeKeepingCentre(92, 26));
     presetPanel.setBounds(spectrumBounds);
     auto presetArea = presetPanel.getLocalBounds().reduced(14);
@@ -836,13 +849,47 @@ void PluginEditor::resized()
         morphPad.setBounds(morphColumn.removeFromTop(morphSize));
     }
     controls.removeFromRight(columnGap);
-    auto titleRow = controls.removeFromTop(56);
+    auto editorHeader = controls.removeFromTop(headerHeight);
+    editorHeader.removeFromTop(titleHeight);
+    auto titleRow = editorHeader.removeFromTop(30);
+    advancedMode.setBounds(titleRow.removeFromLeft(110));
+    sectionBounds.fill({});
+    if (!advanced)
+    {
+        sectionBounds[0] = controls.removeFromTop(basicSettingsHeight);
+        auto settings = sectionBounds[0].reduced(16, 12);
+        auto characters = settings.removeFromTop(30);
+        characterALabel.setBounds(characters.removeFromLeft(22));
+        character.setBounds(characters.removeFromLeft(112));
+        characters.removeFromLeft(12);
+        characterBLabel.setBounds(characters.removeFromLeft(22));
+        characterB.setBounds(characters.removeFromLeft(112));
+        characters.removeFromLeft(16);
+        characterBlend.setBounds(characters);
+
+        settings.removeFromTop(12);
+        auto options = settings.removeFromTop(28);
+        freeze.setBounds(options.removeFromLeft(90));
+        shimmerPower.setBounds(options.removeFromLeft(120));
+
+        controls.removeFromTop(cardGap);
+        sectionBounds[1] = controls.removeFromTop(basicKnobsHeight);
+        auto row = sectionBounds[1].reduced(16, 14);
+        const auto width = row.getWidth() / 3;
+        for (const auto i : { std::size_t { 0 }, drySliderIndex, wetSliderIndex })
+        {
+            auto column = row.removeFromLeft(width).reduced(12, 0);
+            labels[i].setBounds(column.removeFromTop(24));
+            sliders[i].setBounds(column.withTrimmedTop(4));
+        }
+        return;
+    }
+
     shimmerPanel.setBounds(titleRow.removeFromRight(96).withSizeKeepingCentre(96, 28));
     titleRow.removeFromRight(8);
     shimmerPower.setBounds(titleRow.removeFromRight(110).withSizeKeepingCentre(110, 28));
     bandPanel.setBounds(titleRow.removeFromRight(96).withSizeKeepingCentre(88, 28));
     duckPanel.setBounds(titleRow.removeFromRight(90).withSizeKeepingCentre(82, 28));
-    sectionBounds.fill({});
     sectionBounds[0] = controls.withHeight(characterRowHeight + 28);
     auto characters = controls.removeFromTop(characterRowHeight).reduced(0, 3);
     characterALabel.setBounds(characters.removeFromLeft(22));
@@ -870,20 +917,6 @@ void PluginEditor::resized()
             sliders[i].setBounds(column);
         }
     };
-    if (!advanced)
-    {
-        sectionBounds[1] = controls.removeFromTop(compactHeight - 94);
-        auto row = sectionBounds[1].reduced(4, 5);
-        const auto width = row.getWidth() / 3;
-        for (const auto i : { std::size_t { 0 }, drySliderIndex, wetSliderIndex })
-        {
-            auto column = row.removeFromLeft(width).reduced(6);
-            labels[i].setBounds(column.removeFromTop(24));
-            sliders[i].setBounds(column);
-        }
-        return;
-    }
-
     auto reverseRow = controls.removeFromTop(30);
     reverseOn.setBounds(reverseRow.removeFromLeft(116));
     reverseLabel.setBounds(reverseRow.removeFromLeft(36));

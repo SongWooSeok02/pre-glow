@@ -16,10 +16,11 @@ juce_add_plugin(pre_glow
     BUNDLE_ID "audio.preglow.plugin"
     PLUGIN_MANUFACTURER_CODE Pglo
     PLUGIN_CODE PrGl
+    AU_EXPORT_PREFIX pre_glowAU
     FORMATS ${formats}
-    PLUGIN_NAME "pre-glow ${PROJECT_VERSION}"
+    PLUGIN_NAME "PRE-GLOW"
 
-    PRODUCT_NAME "pre-glow")
+    PRODUCT_NAME "PRE-GLOW")
 target_sources(pre_glow PRIVATE Source/PluginProcessor.cpp Source/PluginEditor.cpp)
 target_compile_features(pre_glow PUBLIC cxx_std_17)
 target_compile_definitions(pre_glow PUBLIC JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_VST3_CAN_REPLACE_VST2=0)
