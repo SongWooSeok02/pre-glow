@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Use a light editor palette with coral and lavender accents and updated typography.
+
 - Show Low, Mid, and High crossover regions on the spectrum while Multiband is open.
 
 - Fixed garbled arrows and separators in the Shimmer signal path.

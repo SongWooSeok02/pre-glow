@@ -4,6 +4,21 @@ namespace preglow
 {
 namespace
 {
+namespace PreGlowColors
+{
+const juce::Colour canvas { 0xfff5f7fa };
+const juce::Colour surface { 0xffffffff };
+const juce::Colour border { 0xffe2e8f0 };
+const juce::Colour screen { 0xffeef2f6 };
+const juce::Colour coral { 0xffff5e7e };
+const juce::Colour lavender { 0xff7c3aed };
+const juce::Colour text { 0xff1e293b };
+const juce::Colour muted { 0xff64748b };
+const juce::Colour peach { 0xffff8c42 };
+const juce::Colour teal { 0xff147d67 };
+const juce::Colour grid { 0xffc4cfdb };
+}
+
 struct FactoryPreset
 {
     const char* name;
@@ -79,17 +94,18 @@ juce::Rectangle<float> PluginEditor::MorphPad::plotBounds() const
 void PluginEditor::MorphPad::paint(juce::Graphics& g)
 {
     const auto plot = plotBounds();
-    g.setColour(juce::Colour(0xff1c1e31));
+    g.setColour(PreGlowColors::surface);
     g.fillRoundedRectangle(getLocalBounds().toFloat(), 8.0f);
-    g.setColour(juce::Colour(0xff464965));
+    g.setColour(PreGlowColors::grid);
     g.drawRect(plot, 1.0f);
     g.drawHorizontalLine(juce::roundToInt(plot.getCentreY()), plot.getX(), plot.getRight());
     g.drawVerticalLine(juce::roundToInt(plot.getCentreX()), plot.getY(), plot.getBottom());
-    g.setColour(juce::Colour(0xffc29bff));
+    g.setColour(PreGlowColors::lavender);
     const auto x = plot.getX() + (position.x + 1.0f) * 0.5f * plot.getWidth();
     const auto y = plot.getY() + (1.0f - position.y) * 0.5f * plot.getHeight();
     g.fillEllipse(x - 6.0f, y - 6.0f, 12.0f, 12.0f);
-    g.setColour(juce::Colour(0xfff0eaff));
+    g.setColour(PreGlowColors::text);
+    g.setFont(juce::FontOptions("Arial", 14.0f, juce::Font::plain));
     g.drawText("Wet +", getLocalBounds().removeFromTop(22), juce::Justification::centred);
     g.drawText("Wet -", getLocalBounds().removeFromBottom(22), juce::Justification::centred);
     g.drawText("A", getLocalBounds().removeFromLeft(24), juce::Justification::centred);
@@ -124,6 +140,11 @@ void PluginEditor::MorphPad::mouseDoubleClick(const juce::MouseEvent&)
 
 PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner), morphPad(owner), ownerProcessor(owner)
 {
+    using namespace PreGlowColors;
+    lookAndFeel.setColourScheme({ canvas, surface, surface, grid, text, lavender, surface, lavender, text });
+    lookAndFeel.setDefaultSansSerifTypefaceName("Arial");
+    freeze.setColour(juce::ToggleButton::tickColourId, peach);
+
     constexpr std::array ids { parameters::decay, parameters::damping, parameters::dry, parameters::wet, parameters::earlyWidth, parameters::lateWidth,
                                parameters::bloomAmount, parameters::bloomAttack, parameters::bloomRelease, parameters::bloomShape,
                                parameters::swellTime, parameters::swellSensitivity, parameters::swellCurve };
@@ -135,8 +156,8 @@ PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner)
         auto& slider = sliders[i];
         slider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
         slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 76, 24);
-        slider.setColour(juce::Slider::rotarySliderFillColourId, juce::Colour(0xffaa91ff));
-        slider.setColour(juce::Slider::rotarySliderOutlineColourId, juce::Colour(0xff373850));
+        slider.setColour(juce::Slider::rotarySliderFillColourId, i == 0 ? PreGlowColors::coral : PreGlowColors::lavender);
+        slider.setColour(juce::Slider::rotarySliderOutlineColourId, PreGlowColors::border);
         slider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
         slider.setTitle(names[i]);
         labels[i].setText(names[i], juce::dontSendNotification);
@@ -314,7 +335,7 @@ PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner)
         auto& toggle = voiceToggles[voice];
         auto& card = voiceCards[voice];
         card.setText(name);
-        card.setColour(juce::GroupComponent::outlineColourId, juce::Colour(0xff575876));
+        card.setColour(juce::GroupComponent::outlineColourId, PreGlowColors::border);
         voiceContent.addAndMakeVisible(card);
         toggle.setButtonText("On");
         toggle.setTitle(name + " on");
@@ -391,6 +412,7 @@ PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner)
     morphReadout.setJustificationType(juce::Justification::centred);
     addChildComponent(morphReadout);
     configurePresets();
+    setLookAndFeel(&lookAndFeel);
     updateMorphControls();
     startTimerHz(30);
     updateSections();
@@ -410,7 +432,7 @@ void PluginEditor::configurePresets()
     presetCategory.setSelectedId(1, juce::dontSendNotification);
     presetCategory.onChange = [this] { refreshPresets(); };
     presetSearch.setTitle("Search presets");
-    presetSearch.setTextToShowWhenEmpty("Search presets", juce::Colours::lightgrey);
+    presetSearch.setTextToShowWhenEmpty("Search presets", PreGlowColors::muted);
     presetSearch.onTextChange = [this] { refreshPresets(); };
     presetChoices.setTitle("Preset");
     presetChoices.setTextWhenNothingSelected("Select a preset");
@@ -773,18 +795,18 @@ void PluginEditor::paintSpectrum(juce::Graphics& g)
     constexpr float minHz = 20.0f, maxHz = 20000.0f, minDB = -90.0f, maxDB = 6.0f;
     const auto xFor = [&](float hz) { return plot.getX() + plot.getWidth() * std::log(hz / minHz) / std::log(maxHz / minHz); };
     const auto yFor = [&](float db) { return plot.getBottom() - plot.getHeight() * (db - minDB) / (maxDB - minDB); };
-    const std::array colours { juce::Colour(0xff60d8ee), juce::Colour(0xffc29bff) };
+    const std::array colours { PreGlowColors::coral, PreGlowColors::lavender };
 
-    g.setColour(juce::Colour(0xff10111e));
+    g.setColour(PreGlowColors::screen);
     g.fillRoundedRectangle(bounds, 6.0f);
-    g.setFont(juce::FontOptions(11.0f));
+    g.setFont(juce::FontOptions("Arial", 11.0f, juce::Font::plain));
     if (bandPanel.isVisible() && bandPanel.getToggleState())
     {
         const std::array edges { plot.getX(), xFor(static_cast<float>(crossovers[0].getValue())),
                                  xFor(static_cast<float>(crossovers[1].getValue())), plot.getRight() };
         constexpr std::array names { "Low", "Mid", "High" };
-        const std::array bandColours { juce::Colour(0xff91dfb5), juce::Colour(0xfff5ca89),
-                                       juce::Colour(0xffb6a7f4) };
+        const std::array bandColours { PreGlowColors::teal, PreGlowColors::peach,
+                                       PreGlowColors::lavender };
         for (std::size_t band = 0; band < names.size(); ++band)
         {
             const auto region = plot.withX(edges[band]).withWidth(edges[band + 1] - edges[band]);
@@ -803,17 +825,17 @@ void PluginEditor::paintSpectrum(juce::Graphics& g)
     for (const auto db : { -90, -60, -30, 0 })
     {
         const auto y = yFor(static_cast<float>(db));
-        g.setColour(juce::Colour(0xff303247));
+        g.setColour(PreGlowColors::grid);
         g.drawHorizontalLine(juce::roundToInt(y), plot.getX(), plot.getRight());
-        g.setColour(juce::Colour(0xffb7b5cd));
+        g.setColour(PreGlowColors::muted);
         g.drawText(juce::String(db), juce::Rectangle<float>(bounds.getX(), y - 7, 33, 14), juce::Justification::centredRight);
     }
     for (const auto hz : { 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000 })
     {
         const auto x = xFor(static_cast<float>(hz));
-        g.setColour(juce::Colour(0xff303247));
+        g.setColour(PreGlowColors::grid);
         g.drawVerticalLine(juce::roundToInt(x), plot.getY(), plot.getBottom());
-        g.setColour(juce::Colour(0xffb7b5cd));
+        g.setColour(PreGlowColors::muted);
         const auto label = hz >= 1000 ? juce::String(hz / 1000) + "k" : juce::String(hz);
         g.drawText(label, juce::Rectangle<float>(std::min(x - 15, bounds.getRight() - 30),
                                                plot.getBottom() + 3, 30, 15), juce::Justification::centred);
@@ -854,42 +876,42 @@ void PluginEditor::paintSpectrum(juce::Graphics& g)
 void PluginEditor::paintMeters(juce::Graphics& graphics)
 {
     auto rows = meterBounds.reduced(10, 5);
-    graphics.setColour(juce::Colour(0xff1c1e31));
+    graphics.setColour(PreGlowColors::surface);
     graphics.fillRoundedRectangle(meterBounds.toFloat(), 6.0f);
-    graphics.setFont(juce::FontOptions(12.0f));
+    graphics.setFont(juce::FontOptions("Arial", 12.0f, juce::Font::plain));
     constexpr std::array meterLabels { "Input", "Output", "Tail" };
-    const std::array colours { juce::Colour(0xff60d8ee), juce::Colour(0xffc29bff), juce::Colour(0xff91dfb5) };
+    const std::array colours { PreGlowColors::coral, PreGlowColors::lavender, PreGlowColors::teal };
     for (std::size_t i = 0; i < displayedPeaks.size(); ++i)
     {
         auto row = rows.removeFromTop(24);
         const auto db = juce::Decibels::gainToDecibels(displayedPeaks[i], -60.0f);
-        graphics.setColour(juce::Colour(0xfff0eaff));
+        graphics.setColour(PreGlowColors::text);
         graphics.drawText(meterLabels[i], row.removeFromLeft(54), juce::Justification::centredLeft);
         const auto level = db <= -60.0f ? juce::String("< -60") : juce::String(db, 1);
         graphics.drawText(level + " dBFS", row.removeFromRight(84), juce::Justification::centredRight);
         const auto track = row.withSizeKeepingCentre(row.getWidth(), 8).toFloat();
-        graphics.setColour(juce::Colour(0xff383a50));
+        graphics.setColour(PreGlowColors::border);
         graphics.fillRoundedRectangle(track, 4.0f);
         const auto fraction = juce::jlimit(0.0f, 1.0f, (db + 60.0f) / 60.0f);
-        graphics.setColour(db >= 0.0f ? juce::Colour(0xffff9c82)
+        graphics.setColour(db >= 0.0f ? PreGlowColors::peach
                                      : colours[i]);
         graphics.fillRoundedRectangle(track.withWidth(track.getWidth() * fraction), 4.0f);
     }
     auto row = rows.removeFromTop(24);
-    graphics.setColour(juce::Colour(0xfff0eaff));
+    graphics.setColour(PreGlowColors::text);
     graphics.drawText("Stereo", row.removeFromLeft(54), juce::Justification::centredLeft);
     const auto active = displayedCorrelation <= 1.0f;
     graphics.drawText(active ? juce::String(displayedCorrelation, 1) : juce::String("-"),
                       row.removeFromRight(84), juce::Justification::centredRight);
     const auto track = row.withSizeKeepingCentre(row.getWidth(), 8).toFloat();
-    graphics.setColour(juce::Colour(0xff383a50));
+    graphics.setColour(PreGlowColors::border);
     graphics.fillRoundedRectangle(track, 4.0f);
-    graphics.setColour(juce::Colour(0xff8789a4));
+    graphics.setColour(PreGlowColors::muted);
     graphics.drawVerticalLine(juce::roundToInt(track.getCentreX()), track.getY(), track.getBottom());
     if (active)
     {
         const auto x = track.getX() + (displayedCorrelation + 1.0f) * 0.5f * track.getWidth();
-        graphics.setColour(displayedCorrelation < 0.0f ? juce::Colour(0xffff9c82) : colours[0]);
+        graphics.setColour(displayedCorrelation < 0.0f ? PreGlowColors::peach : colours[0]);
         const auto centre = track.getCentreX();
         graphics.fillRect(track.withX(std::min(x, centre)).withWidth(std::abs(x - centre)));
     }
@@ -897,10 +919,10 @@ void PluginEditor::paintMeters(juce::Graphics& graphics)
 
 void PluginEditor::paint(juce::Graphics& graphics)
 {
-    graphics.fillAll(juce::Colour(0xff151627));
+    graphics.fillAll(PreGlowColors::canvas);
     if (presetPanel.isVisible())
     {
-        graphics.setColour(juce::Colour(0xff1c1e31));
+        graphics.setColour(PreGlowColors::surface);
         graphics.fillRoundedRectangle(spectrumBounds.toFloat(), 8.0f);
     }
     else
@@ -911,14 +933,19 @@ void PluginEditor::paint(juce::Graphics& graphics)
         if (bounds.isEmpty())
             continue;
         const auto box = bounds.toFloat().reduced(0.5f, advancedMode.getToggleState() ? 2.5f : 0.5f);
-        graphics.setColour(juce::Colour(0xff1c1e31));
+        graphics.setColour(PreGlowColors::surface);
         graphics.fillRoundedRectangle(box, 8.0f);
-        graphics.setColour(juce::Colour(0xff3b3d58));
+        graphics.setColour(PreGlowColors::border);
         graphics.drawRoundedRectangle(box, 8.0f, 1.0f);
     }
-    graphics.setColour(juce::Colour(0xfff0eaff));
-    graphics.setFont(juce::FontOptions(30.0f));
+    graphics.setColour(PreGlowColors::text);
+    graphics.setFont(juce::FontOptions("Arial", 30.0f, juce::Font::bold).withKerningFactor(0.09f));
     graphics.drawText(JucePlugin_Name, getLocalBounds().reduced(editorInset).removeFromTop(titleHeight), juce::Justification::centredLeft);
+}
+
+PluginEditor::~PluginEditor()
+{
+    setLookAndFeel(nullptr);
 }
 
 void PluginEditor::resized()

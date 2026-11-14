@@ -8,10 +8,13 @@ class PluginEditor final : public juce::AudioProcessorEditor, private juce::Time
 {
 public:
     explicit PluginEditor(PluginProcessor&);
+    ~PluginEditor() override;
     void paint(juce::Graphics&) override;
     void resized() override;
 
 private:
+    juce::LookAndFeel_V4 lookAndFeel;
+
     class MorphPad final : public juce::Component
     {
     public:
