@@ -115,3 +115,5 @@ The Stereo meter shows output correlation from −1 to +1. macOS Release builds,
 The smoothed Stereo display passed macOS Release builds, both DSP tests, and installed AU validation.
 
 The Advanced Shimmer signal path display passed macOS Release builds, both DSP tests, and installed AU validation.
+
+The Multiband spectrum overlay passed macOS Release builds, both DSP tests, and installed AU validation.

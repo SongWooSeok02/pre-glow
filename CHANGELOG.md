@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Show Low, Mid, and High crossover regions on the spectrum while Multiband is open.
+
 - Fixed garbled arrows and separators in the Shimmer signal path.
 
 - Added a wet signal path display to the Advanced Shimmer section.

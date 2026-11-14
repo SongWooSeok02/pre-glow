@@ -778,6 +778,28 @@ void PluginEditor::paintSpectrum(juce::Graphics& g)
     g.setColour(juce::Colour(0xff10111e));
     g.fillRoundedRectangle(bounds, 6.0f);
     g.setFont(juce::FontOptions(11.0f));
+    if (bandPanel.isVisible() && bandPanel.getToggleState())
+    {
+        const std::array edges { plot.getX(), xFor(static_cast<float>(crossovers[0].getValue())),
+                                 xFor(static_cast<float>(crossovers[1].getValue())), plot.getRight() };
+        constexpr std::array names { "Low", "Mid", "High" };
+        const std::array bandColours { juce::Colour(0xff91dfb5), juce::Colour(0xfff5ca89),
+                                       juce::Colour(0xffb6a7f4) };
+        for (std::size_t band = 0; band < names.size(); ++band)
+        {
+            const auto region = plot.withX(edges[band]).withWidth(edges[band + 1] - edges[band]);
+            g.setColour(bandColours[band].withAlpha(0.10f));
+            g.fillRect(region);
+            g.setColour(bandColours[band]);
+            g.drawText(names[band], region.withTrimmedTop(region.getHeight() - 17.0f).reduced(2.0f, 0.0f),
+                       juce::Justification::centred);
+            if (band > 0)
+            {
+                g.setColour(bandColours[band].withAlpha(0.65f));
+                g.fillRect(region.withWidth(1.0f));
+            }
+        }
+    }
     for (const auto db : { -90, -60, -30, 0 })
     {
         const auto y = yFor(static_cast<float>(db));
