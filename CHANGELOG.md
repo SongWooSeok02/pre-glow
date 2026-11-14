@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added Basic and Advanced editor modes with shared parameter controls.
+
 ## Phase 5 implementation complete (2026-11-14)
 
 See the [Phase 5 handoff](docs/phase-5-handoff.md).

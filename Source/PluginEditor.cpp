@@ -17,6 +17,7 @@ constexpr int morphReadoutHeight = 28;
 constexpr int morphColumnHeight = 32 + morphSize + morphReadoutHeight;
 constexpr int morphButtonRowHeight = 34;
 constexpr int stackedMorphHeight = morphColumnHeight + compactHeight - 32 + morphButtonRowHeight;
+constexpr std::size_t drySliderIndex = 2;
 constexpr std::size_t wetSliderIndex = 3;
 constexpr int characterRowHeight = 34;
 constexpr int bandRowHeight = 324;
@@ -331,6 +332,9 @@ PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner)
         addChildComponent(slider);
         addChildComponent(duckLabels[i]);
     }
+    advancedMode.setClickingTogglesState(true);
+    advancedMode.onClick = [this] { updateSections(); };
+    addAndMakeVisible(advancedMode);
     morphPanel.setClickingTogglesState(true);
     morphPanel.onClick = [this] { updateSections(); };
     addAndMakeVisible(morphPanel);
@@ -345,15 +349,30 @@ PluginEditor::PluginEditor(PluginProcessor& owner) : AudioProcessorEditor(owner)
 
 void PluginEditor::updateSections()
 {
-    const auto bloomOpen = bloom.getToggleState();
-    const auto swellOpen = swell.getToggleState();
+    const auto advanced = advancedMode.getToggleState();
+    advancedMode.setButtonText(advanced ? "Advanced" : "Basic");
+    advancedMode.setTitle(advanced ? "Switch to Basic mode" : "Switch to Advanced mode");
+    for (auto* component : std::initializer_list<juce::Component*> {
+             &infinite, &bloom, &swell, &filterPlacement, &lowCut, &reverseOn, &reverseTime,
+             &reverseLabel, &shimmerPanel, &bandPanel, &duckPanel, &morphPanel })
+        component->setVisible(advanced);
+
+    for (std::size_t i = 0; i < bloomStart; ++i)
+    {
+        const auto visible = advanced || i == 0 || i == drySliderIndex || i == wetSliderIndex;
+        labels[i].setVisible(visible);
+        sliders[i].setVisible(visible);
+    }
+
+    const auto bloomOpen = advanced && bloom.getToggleState();
+    const auto swellOpen = advanced && swell.getToggleState();
     for (std::size_t i = bloomStart; i < sliders.size(); ++i)
     {
         const auto visible = i < swellStart ? bloomOpen : swellOpen;
         labels[i].setVisible(visible);
         sliders[i].setVisible(visible);
     }
-    const auto shimmerOpen = shimmerPanel.getToggleState();
+    const auto shimmerOpen = advanced && shimmerPanel.getToggleState();
     int expandedCount = 0;
     for (auto& details : voiceDetails)
     {
@@ -373,7 +392,7 @@ void PluginEditor::updateSections()
         voiceSliders[i].setVisible(visible);
         voiceLabels[i].setVisible(visible);
     }
-    const auto bandsOpen = bandPanel.getToggleState();
+    const auto bandsOpen = advanced && bandPanel.getToggleState();
     for (std::size_t band = 0; band < bandDecay.size(); ++band)
     {
         bandDecay[band].setVisible(bandsOpen);
@@ -392,11 +411,11 @@ void PluginEditor::updateSections()
         crossovers[i].setVisible(bandsOpen);
         crossoverLabels[i].setVisible(bandsOpen);
     }
-    const auto morphOpen = morphPanel.getToggleState();
+    const auto morphOpen = advanced && morphPanel.getToggleState();
     morphPanel.setButtonText(morphOpen ? "Hide XY Morph" : "Show XY Morph");
     morphPad.setVisible(morphOpen);
     morphReadout.setVisible(morphOpen);
-    const auto duckOpen = duckPanel.getToggleState();
+    const auto duckOpen = advanced && duckPanel.getToggleState();
     duckOn.setVisible(duckOpen);
     for (std::size_t i = 0; i < duckSliders.size(); ++i)
     {
@@ -551,7 +570,8 @@ void PluginEditor::paint(juce::Graphics& graphics)
 void PluginEditor::resized()
 {
     auto controls = getLocalBounds().reduced(16);
-    const auto morphOpen = morphPanel.getToggleState();
+    const auto advanced = advancedMode.getToggleState();
+    const auto morphOpen = advanced && morphPanel.getToggleState();
     const auto morphBelow = bandPanel.getToggleState() || shimmerPanel.getToggleState();
     juce::Rectangle<int> morphColumn;
     if (morphOpen && !morphBelow)
@@ -562,7 +582,9 @@ void PluginEditor::resized()
 
     auto spectrumColumn = controls.removeFromRight(spectrumWidth);
     spectrumBounds = spectrumColumn.removeFromTop(compactHeight - 32);
-    morphPanel.setBounds(spectrumColumn.removeFromTop(morphButtonRowHeight).withSizeKeepingCentre(128, 26));
+    auto spectrumActions = spectrumColumn.removeFromTop(morphButtonRowHeight);
+    advancedMode.setBounds(spectrumActions.removeFromRight(112).withSizeKeepingCentre(104, 26));
+    morphPanel.setBounds(spectrumActions.removeFromLeft(144).withSizeKeepingCentre(128, 26));
     if (morphOpen)
     {
         if (morphBelow)
@@ -605,6 +627,20 @@ void PluginEditor::resized()
             sliders[i].setBounds(column);
         }
     };
+    if (!advanced)
+    {
+        sectionBounds[1] = controls.removeFromTop(compactHeight - 94);
+        auto row = sectionBounds[1].reduced(4, 5);
+        const auto width = row.getWidth() / 3;
+        for (const auto i : { std::size_t { 0 }, drySliderIndex, wetSliderIndex })
+        {
+            auto column = row.removeFromLeft(width).reduced(6);
+            labels[i].setBounds(column.removeFromTop(24));
+            sliders[i].setBounds(column);
+        }
+        return;
+    }
+
     auto reverseRow = controls.removeFromTop(30);
     reverseOn.setBounds(reverseRow.removeFromLeft(116));
     reverseLabel.setBounds(reverseRow.removeFromLeft(36));

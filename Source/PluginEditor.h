@@ -32,6 +32,7 @@ private:
                          std::unique_ptr<juce::ParameterAttachment>&);
     void updateMorphControls();
     void updateSections();
+    juce::TextButton advancedMode { "Basic / Advanced" };
     juce::TextButton morphPanel { "Show XY Morph" };
     juce::ToggleButton duckOn { "Ducking On" }, reverseOn { "Reverse-like" };
     juce::Slider reverseTime;
