@@ -1,6 +1,6 @@
 # pre-glow
 
-Stereo reverb plugin. Phase 5 implementation is complete. Decay, Damping and Mix support host automation and session recall.
+Stereo reverb plugin. Phase 6 implementation is complete and Phase 7 DAW verification is in progress. Decay, Damping and Mix support host automation and session recall.
 
 베타 설치 및 첫 실행은 [한국어 사용설명서](docs/user-guide-ko.md)를 참고하세요.
 
@@ -127,3 +127,7 @@ See the [Phase 6 handoff](docs/phase-6-handoff.md) for the implementation checkp
 ## Phase 7 verification
 
 Apple Silicon Release Standalone, AU and VST3 builds passed, along with both DSP tests and installed AU validation. AU and VST3 rendered impulse responses at 48 and 96 kHz in Pedalboard 0.9.17. See the [Phase 7 QA record](docs/phase-7-qa.md) for engine timings and pending DAW checks.
+
+## Phase 8 beta packaging
+
+The existing local 0.1.3 Apple Silicon beta archives for AU, VST3 and Standalone passed ZIP integrity and extracted bundle signature checks. See the [Phase 7 QA record](docs/phase-7-qa.md) for the latest platform and release status.

@@ -34,5 +34,12 @@ Shimmer 피드백의 적용 계수가 0인 샘플에서는 루프 게인 최대�
 ## 남은 검증
 
 - Logic Pro 13.0에서 고정 소스, 샘플레이트, I/O 버퍼와 인스턴스 수를 기록하고 바이패스, 기본 Hall, Shimmer 4보이스, Freeze, 에디터 열림/닫힘의 성능 미터를 비교한다.
-- Logic AU와 VST3 DAW에서 기존 프로젝트 복원, 파라미터 자동화, AU/VST3 User 프리셋 왕복, Basic/Advanced 청취, Shimmer 활성 라우팅, 크로스오버 이동를 확인한다.
+- Logic AU와 VST3 DAW에서 기존 프로젝트 복원, 파라미터 자동화, AU/VST3 User 프리셋 왕복, Basic/Advanced 청취, Shimmer 활성 라우팅, 크로스오버 이동을 확인한다.
 - 타 플랫폼에서 실제 호스트를 사용해 확인한다.
+
+## 2026-11-16 재검증
+
+- Apple Silicon Release 빌드 출력이 최신 상태였다. CTest 2개와 설치된 AU의 `auval -v aufx PrGl Pglo`가 통과했다.
+- 설치된 AU와 로컬 VST3를 Pedalboard에서 재검증했다. 상태 복원 전후 최대 샘플 차이는 두 포맷 모두 0이었다. Freeze 잔향이 유지됐고, 샘플레이트 4개와 버퍼 크기 3개의 조합에서 Shimmer 경로 4개의 출력이 포맷 간 허용오차 2e-6 이내로 일치했다.
+- 기존 로컬 0.1.3 베타 ZIP 세 개를 검사했다. AU, VST3, Standalone 모두 압축 무결성, 압축 해제 후 번들 서명 검증, arm64 아키텍처 확인을 통과했다. 공개 릴리스, Intel macOS 및 Windows 패키지는 남아 있다. 배포 전 적용할 JUCE 및 VST3 SDK 라이선스 조건도 확정해야 한다.
+- 최신 소스 기준 [GitHub Actions 실행](https://github.com/SongWooSeok02/pre-glow/actions/runs/43548722406)은 계정 결제 또는 지출 한도 문제로 Apple Silicon, Intel macOS, Windows 작업이 모두 시작되지 않았다.
