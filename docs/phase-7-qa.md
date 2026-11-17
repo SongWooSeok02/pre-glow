@@ -43,3 +43,9 @@ Shimmer 피드백의 적용 계수가 0인 샘플에서는 루프 게인 최대�
 - 설치된 AU와 로컬 VST3를 Pedalboard에서 재검증했다. 상태 복원 전후 최대 샘플 차이는 두 포맷 모두 0이었다. Freeze 잔향이 유지됐고, 샘플레이트 4개와 버퍼 크기 3개의 조합에서 Shimmer 경로 4개의 출력이 포맷 간 허용오차 2e-6 이내로 일치했다.
 - 기존 로컬 0.1.3 베타 ZIP 세 개를 검사했다. AU, VST3, Standalone 모두 압축 무결성, 압축 해제 후 번들 서명 검증, arm64 아키텍처 확인을 통과했다. 공개 릴리스, Intel macOS 및 Windows 패키지는 남아 있다. 배포 전 적용할 JUCE 및 VST3 SDK 라이선스 조건도 확정해야 한다.
 - 최신 소스 기준 [GitHub Actions 실행](https://github.com/SongWooSeok02/pre-glow/actions/runs/43548722406)은 계정 결제 또는 지출 한도 문제로 Apple Silicon, Intel macOS, Windows 작업이 모두 시작되지 않았다.
+
+## 2026-11-17 Logic Pro 프로젝트 복원
+
+48 kHz의 새 검증 프로젝트에서 모노 오디오 트랙의 Audio Units → pre-glow → PRE-GLOW → Mono→Stereo 메뉴를 선택했다. AU 편집기가 열렸고 Freeze를 켠 뒤 Advanced로 전환해도 켜진 상태가 유지됐다. Shimmer 편집기에서 Feedback 경로 표시와 보이스 컨트롤을 확인했다. 프로젝트를 저장하고 닫은 뒤 다시 열었을 때 PRE-GLOW가 로드됐고 Freeze가 켜진 상태로 복원됐다. 검증 프로젝트 이름은 `PRE-GLOW Phase 7 QA 2026-11-17`이다.
+
+이번 기록은 새 프로젝트의 AU 복원과 메뉴 동작을 확인한 결과다. 이전 버전 프로젝트 호환, 자동화 재생, User 프리셋 왕복, 오디오 청취 및 성능 미터 비교는 추가 검증이 필요하다.
