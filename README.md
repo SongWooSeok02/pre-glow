@@ -126,7 +126,7 @@ See the [Phase 6 handoff](docs/phase-6-handoff.md) for the implementation checkp
 
 ## Phase 7 verification
 
-Apple Silicon Release Standalone, AU and VST3 builds passed, along with both DSP tests and installed AU validation. AU and VST3 rendered impulse responses at 48 and 96 kHz in Pedalboard 0.9.17. Logic Pro loaded the Mono → Stereo AU on a mono track and restored Freeze after a new test project was saved, closed and reopened. See the [Phase 7 QA record](docs/phase-7-qa.md) for engine timings and pending DAW checks.
+Apple Silicon Release Standalone, AU and VST3 builds passed, along with both DSP tests and installed AU validation. AU and VST3 rendered impulse responses at 48 and 96 kHz in Pedalboard 0.9.17. Logic Pro loaded the Mono → Stereo AU on a mono track and restored Freeze after a new test project was saved, closed and reopened. AU and VST3 also migrated test payloads from state schemas 1, 2, 4 and 7 to schema 8 in Pedalboard. See the [Phase 7 QA record](docs/phase-7-qa.md) for engine timings and pending DAW checks.
 
 ## Phase 8 beta packaging
 
