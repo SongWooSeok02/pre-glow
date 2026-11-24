@@ -34,9 +34,9 @@ Shimmer 피드백의 적용 계수가 0인 샘플에서는 루프 게인 최대�
 ## 남은 검증
 
 - Logic Pro 13.0에서 고정 소스, 샘플레이트, I/O 버퍼와 인스턴스 수를 기록하고 바이패스, 기본 Hall, Shimmer 4보이스, Freeze, 에디터 열림/닫힘의 성능 미터를 비교한다.
-- Logic AU에서 파라미터 자동화 재생, Basic/Advanced 청취 및 소리가 나는 상태에서 Shimmer 라우팅 전환을 확인한다. 기존 프로젝트 호환 범위는 저장 시점의 플러그인 버전이 확인된 프로젝트로 추가 검증한다.
+- Logic AU에서 Basic/Advanced를 청취로 비교하고 재생 중 Shimmer 라우팅 전환의 오디오 결과를 확인한다. 기존 프로젝트 호환 범위는 저장 시점의 플러그인 버전이 확인된 프로젝트로 추가 검증한다.
 - VST3 DAW에서 기존 프로젝트 복원, 파라미터 자동화 재생, User 프리셋 UI 왕복, Basic/Advanced 청취, Shimmer 활성 라우팅 및 크로스오버 이동을 확인한다.
-- 타 플랫폼에서 실제 호스트를 사용해 확인한다.
+- 실제 Intel Mac과 Windows에서 호스트 검증을 진행한다.
 
 ## 2026-11-16 재검증
 
@@ -70,3 +70,11 @@ Pedalboard에서 설치된 Apple Silicon AU와 로컬 VST3 각각에 스키마 1
 - Advanced에서 크로스오버 250/4000 Hz를 350/5000 Hz로 변경해 User 프리셋으로 저장했다. 450/6000 Hz로 변경한 뒤 저장한 프리셋을 로드하자 350/5000 Hz로 복원됐다.
 - Logic에서 저장한 프리셋의 페이로드를 Pedalboard 0.9.17의 VST3 호스트 상태에 넣었다. VST3가 다시 저장한 상태의 파라미터 85개가 일치했다. 48 kHz, 256 프레임에서 저장 전과 새 VST3 인스턴스에 복원한 뒤의 임펄스 렌더 최대 샘플 차이는 0이었다. VST3 DAW의 프리셋 UI는 추가 검증이 필요하다.
 - Apple Silicon의 기존 Release DSP 테스트 바이너리 두 개와 설치된 AU의 `auval -v aufx PrGl Pglo`가 통과했다. [직전 GitHub Actions 실행](https://github.com/SongWooSeok02/pre-glow/actions/runs/44035639280)의 세 플랫폼 작업은 계정 결제 또는 지출 한도 문제로 시작되지 않았다.
+
+### Logic 재생 자동화 및 Rosetta 재검증
+
+- Logic Pro에서 `pre-glow Diffusion Test` 프로젝트 사본의 `Audio 1` 트랙에 있는 `pre-glow-test` 클립을 루프 재생했다. PRE-GLOW Decay의 트랙 자동화 레인을 Read로 두었을 때 1마디에서 10.41 s, 2마디에서 9.35 s, 3마디에서 6.88 s를 확인했다.
+- 재생 중 AU Controls에서 Shimmer Mix 35% 및 보이스 4개 활성 상태로 Feedback을 Parallel로 전환했다. Logic에서 Parallel이 표시됐고 재생이 계속됐다. 전환 시 오디오 결과의 청취는 남아 있다.
+- Custom LCD에서 CPU/HD 미터를 표시했다. 미터를 더블클릭할 때 접근성 오류가 반복돼 상세 창의 조건별 비교는 남아 있다.
+- Apple Silicon과 x86_64 Release에서 각각 AU, VST3, Standalone을 새로 빌드하고 CTest 2개를 통과했다. Apple Silicon의 Rosetta에서 x86_64 Pedalboard 0.9.17로 x86_64 VST3를 로드했다. 크로스오버 350/5000 Hz, Decay 5 s, Shimmer Mix 35%, Parallel 및 네 보이스 활성 상태를 새 인스턴스에 복원했다. 48 kHz 및 256 프레임에서 복원 전후 임펄스 렌더의 최대 샘플 차이는 0이었다.
+- [GitHub Actions 실행](https://github.com/SongWooSeok02/pre-glow/actions/runs/45334837463)에서는 Apple Silicon, Intel macOS, Windows 작업 모두 계정 결제 또는 지출 한도 문제로 시작되지 않았다.

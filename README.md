@@ -131,3 +131,5 @@ Apple Silicon Release Standalone, AU and VST3 builds passed, along with both DSP
 ## Phase 8 beta packaging
 
 The existing local 0.1.3 Apple Silicon beta archives for AU, VST3 and Standalone passed ZIP integrity and extracted bundle signature checks. See the [Phase 7 QA record](docs/phase-7-qa.md) for the latest platform and release status.
+
+Phase 7 also verified Logic AU Decay automation playback, fresh Apple Silicon and x86_64 Release builds and DSP tests, and x86_64 VST3 state recall and rendering in Pedalboard under Rosetta. See the [Phase 7 QA notes](docs/phase-7-qa.md).
