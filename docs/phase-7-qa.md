@@ -34,7 +34,8 @@ Shimmer 피드백의 적용 계수가 0인 샘플에서는 루프 게인 최대�
 ## 남은 검증
 
 - Logic Pro 13.0에서 고정 소스, 샘플레이트, I/O 버퍼와 인스턴스 수를 기록하고 바이패스, 기본 Hall, Shimmer 4보이스, Freeze, 에디터 열림/닫힘의 성능 미터를 비교한다.
-- Logic AU와 VST3 DAW에서 기존 프로젝트 복원, 파라미터 자동화, AU/VST3 User 프리셋 왕복, Basic/Advanced 청취, Shimmer 활성 라우팅, 크로스오버 이동을 확인한다.
+- Logic AU에서 파라미터 자동화 재생, Basic/Advanced 청취 및 소리가 나는 상태에서 Shimmer 라우팅 전환을 확인한다. 기존 프로젝트 호환 범위는 저장 시점의 플러그인 버전이 확인된 프로젝트로 추가 검증한다.
+- VST3 DAW에서 기존 프로젝트 복원, 파라미터 자동화 재생, User 프리셋 UI 왕복, Basic/Advanced 청취, Shimmer 활성 라우팅 및 크로스오버 이동을 확인한다.
 - 타 플랫폼에서 실제 호스트를 사용해 확인한다.
 
 ## 2026-11-16 재검증
@@ -62,3 +63,10 @@ Pedalboard에서 설치된 Apple Silicon AU와 로컬 VST3 각각에 스키마 1
 | 7 | Dry 15%, Wet 85%가 유지됐고 Y축은 85% Wet에 해당하는 0.7로 복원됐다. |
 
 테스트용으로 구성한 플러그인 상태를 사용했다. 이전 버전에서 저장한 실제 DAW 프로젝트의 재개봉 검증은 남아 있다.
+
+## 2026-11-24 Logic AU 프로젝트 및 User 프리셋
+
+- 11월 14일에 저장된 `pre-glow Diffusion Test` 프로젝트의 임시 사본을 Logic Pro에서 열었다. 기존 `ac30 crunch` 트랙의 PRE-GLOW AU에서 Decay 10.00 s, Dry 30%, Wet 70%, Shimmer On을 확인했다. Advanced에서 Shimmer Feedback 경로와 보이스 1이 표시됐다. 프로젝트를 저장할 당시 플러그인의 정확한 버전은 확인하지 못했다.
+- Advanced에서 크로스오버 250/4000 Hz를 350/5000 Hz로 변경해 User 프리셋으로 저장했다. 450/6000 Hz로 변경한 뒤 저장한 프리셋을 로드하자 350/5000 Hz로 복원됐다.
+- Logic에서 저장한 프리셋의 페이로드를 Pedalboard 0.9.17의 VST3 호스트 상태에 넣었다. VST3가 다시 저장한 상태의 파라미터 85개가 일치했다. 48 kHz, 256 프레임에서 저장 전과 새 VST3 인스턴스에 복원한 뒤의 임펄스 렌더 최대 샘플 차이는 0이었다. VST3 DAW의 프리셋 UI는 추가 검증이 필요하다.
+- Apple Silicon의 기존 Release DSP 테스트 바이너리 두 개와 설치된 AU의 `auval -v aufx PrGl Pglo`가 통과했다. [직전 GitHub Actions 실행](https://github.com/SongWooSeok02/pre-glow/actions/runs/44035639280)의 세 플랫폼 작업은 계정 결제 또는 지출 한도 문제로 시작되지 않았다.

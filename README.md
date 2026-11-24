@@ -104,7 +104,7 @@ Open **Presets** below the spectrum in either editor mode. Filter by Factory or 
 
 User files use the `.preglowpreset` extension and the versioned processor state payload. On macOS, AU, VST3, and Standalone use `~/Library/Application Support/pre-glow/Presets`.
 
-The macOS Release Standalone, AU, and VST3 builds, both DSP tests, and validation of the installed AU passed. In-host preset UI and AU/VST3 round-trip verification are pending.
+The macOS Release Standalone, AU, and VST3 builds, both DSP tests, and validation of the installed AU passed. On Apple Silicon, Logic Pro verified the AU User preset save/load UI and both crossover controls. Pedalboard restored the AU preset payload in VST3 and matched all 85 parameters on save. A VST3 DAW preset UI round trip is pending. See the [Phase 7 QA notes](docs/phase-7-qa.md).
 
 The PRE-GLOW naming and Basic layout update passed macOS Release builds for all three formats, both DSP tests, and AU validation under the new display name.
 
