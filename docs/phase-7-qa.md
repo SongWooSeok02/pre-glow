@@ -33,7 +33,7 @@ Shimmer 피드백의 적용 계수가 0인 샘플에서는 루프 게인 최대�
 
 ## 남은 검증
 
-- Logic Pro 13.0에서 고정 소스, 샘플레이트, I/O 버퍼와 인스턴스 수를 기록하고 바이패스, 기본 Hall, Shimmer 4보이스, Freeze, 에디터 열림/닫힘의 성능 미터를 비교한다.
+- Logic Pro 13.0에서 에디터 열림/숨김의 성능 차이를 비교하려면 각 조건을 여러 루프에 걸쳐 반복 측정한다. 첫 실시간 미터 비교 결과는 아래에 기록했다.
 - Logic AU에서 Basic/Advanced를 청취로 비교하고 재생 중 Shimmer 라우팅 전환의 오디오 결과를 확인한다. 기존 프로젝트 호환 범위는 저장 시점의 플러그인 버전이 확인된 프로젝트로 추가 검증한다.
 - VST3 DAW에서 기존 프로젝트 복원, 파라미터 자동화 재생, User 프리셋 UI 왕복, Basic/Advanced 청취, Shimmer 활성 라우팅 및 크로스오버 이동을 확인한다.
 - 실제 Intel Mac과 Windows에서 호스트 검증을 진행한다.
@@ -94,3 +94,17 @@ Apple Silicon에서 Pedalboard 0.9.17로 8초 스테레오 합성 신호를 48 k
 호스트에서 VST3 Bypass를 설정한 처리 시간은 2.65 ms였다. AU의 Bypass 플래그는 이 측정에서 처리 시간의 감소가 관측되지 않아 Logic AU 바이패스 비교가 필요하다. 측정은 오프라인 호스트 처리 시간이며 에디터 열림/닫힘 조건은 Logic의 실시간 미터에서 확인할 예정이다.
 
 [직전 GitHub Actions 실행](https://github.com/SongWooSeok02/pre-glow/actions/runs/45340115050)의 세 플랫폼 작업은 계정 결제 또는 지출 한도 문제로 시작되지 않았다.
+
+### Logic 실시간 성능 미터 비교
+
+`pre-glow Diffusion Test` 프로젝트 사본에서 `Audio 1`의 `pre-glow-test`를 1마디부터 5마디까지 반복 재생했다. 48 kHz, I/O 버퍼 128 프레임, Processing Threads Automatic, MacBook Pro 스피커를 사용했다. 오디오 클립을 처리하는 PRE-GLOW AU는 한 개였고, 별도의 트랙에도 PRE-GLOW AU 한 개가 들어 있었다. Processing Threads 및 Drive I/O는 프로젝트 전체의 부하다.
+
+| 조건 | 가장 높은 Processing Threads 막대 |
+| --- | ---: |
+| PRE-GLOW 바이패스 | 전체 막대 높이의 약 2% |
+| Hall, Shimmer Off, Freeze Off, 표준 Controls 창 표시 | 약 2% |
+| Hall, Shimmer 4보이스, Freeze Off, PRE-GLOW 편집기 표시 | 약 7% |
+| Hall, Shimmer 4보이스, Freeze On, PRE-GLOW 편집기 표시 | 약 12% |
+| Hall, Shimmer 4보이스, Freeze Off, 모든 플러그인 창 숨김 | 약 12% |
+
+Shimmer Mix 35%, Feedback 20%를 적용했다. 표의 값은 조건당 한 화면에서 막대 영역의 픽셀 높이를 비교한 근사치다. 모든 화면에서 Processing Threads는 25% 눈금 아래였고 Drive I/O 막대는 보이지 않았다. 편집기 표시 여부에 따른 성능 차이는 반복 측정이 필요하다. 검증 뒤 재생을 멈추고 승인받아 지정했던 임시 키를 제거했다.
