@@ -33,7 +33,7 @@ Shimmer 피드백의 적용 계수가 0인 샘플에서는 루프 게인 최대�
 
 ## 남은 검증
 
-- Logic Pro 13.0에서 에디터 열림/숨김의 성능 차이를 비교하려면 각 조건을 여러 루프에 걸쳐 반복 측정한다. 첫 실시간 미터 비교 결과는 아래에 기록했다.
+- Logic의 에디터 표시 여부는 같은 루프에서 프로세스 CPU를 반복 측정했다. Processing Threads 미터에서는 조건별 순간 화면 비교까지 수행했다.
 - Logic AU에서 Basic/Advanced를 청취로 비교하고 재생 중 Shimmer 라우팅 전환의 오디오 결과를 확인한다. 기존 프로젝트 호환 범위는 저장 시점의 플러그인 버전이 확인된 프로젝트로 추가 검증한다.
 - VST3에서 Basic/Advanced와 Shimmer 전환을 청취로 확인한다. REAPER에서 새 검증 프로젝트 및 스키마 7 프로젝트 복원, 실시간 Decay 자동화와 렌더, User 프리셋 UI 왕복 및 크로스오버 이동을 확인했다. 스키마 7 프로젝트에서 확인한 Wet 표시와 저장값 차이는 아래에 기록했다.
 - 실제 Intel Mac과 Windows에서 호스트 검증을 진행한다.
@@ -129,3 +129,17 @@ Shimmer Mix 35%, Feedback 20%를 적용했다. 표의 값은 조건당 한 화�
 - 스키마 7 VST3에서 REAPER의 `TrackFX_SetParamNormalized`로 Wet 85%를 설정했다. 재생 전과 오디오 클립을 1.5초 이상 재생한 뒤 각각 프로젝트를 저장했다. 두 시점에서 REAPER는 85%를 읽었고, 두 파일의 VST3 상태에는 Wet 35% 및 Morph Y 0이 저장됐다. 이 절차에서 오디오 처리 여부는 차이를 바꾸지 않았다.
 - 같은 이전 VST3의 자체 편집기는 Wet 35%를 표시했다. 편집기에서 Wet을 60%로 바꾸고 REAPER 프로젝트를 저장하자 VST3 상태에 Wet 60%가 기록됐다. 최신 VST3로 프로젝트를 다시 열어 저장한 파일은 스키마 8, Wet 60%, Morph Y 약 0.2였다. 이전 편집기에서 입력한 값의 저장 및 마이그레이션을 확인했다.
 - 이 비교에서 표시와 저장값의 차이는 이전 빌드에 대한 호스트 스크립트 설정 경로에서 재현됐다. REAPER와 플러그인 사이에서 값 전달이 어긋나는 내부 지점은 확인하지 못했다.
+
+
+### Logic 편집기 표시 여부 반복 측정
+
+같은 `pre-glow Diffusion Test` 사본과 `pre-glow-test` 루프에서 Hall과 Shimmer를 켜고 Freeze를 끈 상태로, Audio 1 PRE-GLOW의 Advanced 편집기 닫힘과 표시를 번갈아 세 번씩 측정했다. macOS `top`에서 Logic Pro 프로세스 CPU를 1초 간격으로 읽고, 각 구간의 첫 누적 샘플을 제외했다. 조건별 유효 샘플은 12개다.
+
+| 조건 | CPU 중앙값 | 표본 범위 |
+| --- | ---: | ---: |
+| 편집기 닫힘 | 17.2% | 13.0–24.6% |
+| Advanced 편집기 표시 | 15.8% | 12.6–24.5% |
+
+측정 범위가 겹쳤고 세 번의 구간 비교에서 차이 방향이 일관되지 않았다. 수치는 Logic 프로세스 전체의 CPU이며, Logic Performance Meter의 Processing Threads 수치와 단위가 다르다. 재생 중 Basic에서 Advanced로 바꿨을 때 Decay 3.00 s, Dry 65%, Wet 35%, Shimmer On이 유지됐다. 청취 평가는 남아 있다. 검증 후 재생을 멈췄다.
+
+[GitHub Actions 실행](https://github.com/SongWooSeok02/pre-glow/actions/runs/45530449963)에서는 세 플랫폼 작업 모두 계정 결제 또는 지출 한도 문제로 시작되지 않았다.
