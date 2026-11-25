@@ -152,3 +152,9 @@ Apple Silicon REAPER 7.86에서 동일한 PRE-GLOW VST3 인스턴스의 Basic �
 이전에 만든 48 kHz Shimmer 비교 WAV에서 Feedback 유지 구간과 Feedback → Parallel 전환 구간을 대조했다. 1초 전환 지점의 첫 샘플 차이는 0이었다. 전환 후 처음 128프레임에서 두 신호 차분의 인접 샘플 간 최대 변화는 약 3.05e-5였다. 전환 이후 전체 구간에서 최대 샘플 차이는 약 0.00784였다. 직접 청취 평가는 남아 있다.
 
 이 Mac은 Apple M1 Pro이며 연결된 Intel Mac 또는 Windows 실행 환경이 없었다. [GitHub Actions 실행](https://github.com/SongWooSeok02/pre-glow/actions/runs/45531078948)의 세 작업은 계정 결제 또는 지출 한도 문제로 시작되지 않았다.
+
+### 전체 Shimmer 전환 조합
+
+Pedalboard 0.9.17에서 Hall, Shimmer 4보이스, 보이스 레벨 각각 0.5, Mix 35%, Feedback 20%로 1초 스테레오 신호를 처리했다. 44.1/48/88.2/96 kHz와 64/256/1024 프레임 각각에서 버퍼 경계에 Feedback, Post-Reverb, Pre-Reverb, Parallel 중 다른 경로로 바꿨다. 144개 전환 조건 모두에서 AU와 VST3의 샘플 차이는 0이었고 최대 출력 절댓값은 0.050756이었다. 각 전환은 기존 경로를 유지한 대조군과 다른 출력을 냈다. 조건에 따라 최대 샘플 차이는 약 7.41e-6부터 0.01124까지였다.
+
+Basic/Advanced 렌더와 Feedback 유지 및 Feedback → Parallel 전환 렌더를 하나의 로컬 청취 파일로 정리했다. 또한 Intel Mac에서 테스트할 수 있도록 x86_64 VST3를 로컬 ZIP으로 묶고, 압축 해제 후 아키텍처와 서명을 검증했다. 실제 Intel Mac 호스트 실행과 Windows 검증은 남아 있다. [최신 확인 CI 실행](https://github.com/SongWooSeok02/pre-glow/actions/runs/45531574898)은 계정 결제 또는 지출 한도 문제로 세 작업이 시작되지 않았다.
