@@ -35,7 +35,7 @@ Shimmer 피드백의 적용 계수가 0인 샘플에서는 루프 게인 최대�
 
 - Logic의 에디터 표시 여부는 같은 루프에서 프로세스 CPU를 반복 측정했다. Processing Threads 미터에서는 조건별 순간 화면 비교까지 수행했다.
 - Logic AU에서 Basic/Advanced를 청취로 비교하고 재생 중 Shimmer 라우팅 전환의 오디오 결과를 확인한다. 기존 프로젝트 호환 범위는 저장 시점의 플러그인 버전이 확인된 프로젝트로 추가 검증한다.
-- VST3에서 Basic/Advanced와 Shimmer 전환을 청취로 확인한다. REAPER에서 새 검증 프로젝트 및 스키마 7 프로젝트 복원, 실시간 Decay 자동화와 렌더, User 프리셋 UI 왕복 및 크로스오버 이동을 확인했다. 스키마 7 프로젝트에서 확인한 Wet 표시와 저장값 차이는 아래에 기록했다.
+- VST3에서 Basic/Advanced와 Shimmer 전환을 청취로 확인한다. Basic/Advanced로 각각 저장한 REAPER 프로젝트의 48 kHz 렌더는 샘플 단위로 일치했다. REAPER에서 새 검증 프로젝트 및 스키마 7 프로젝트 복원, 실시간 Decay 자동화와 렌더, User 프리셋 UI 왕복 및 크로스오버 이동을 확인했다. 스키마 7 프로젝트에서 확인한 Wet 표시와 저장값 차이는 아래에 기록했다.
 - 실제 Intel Mac과 Windows에서 호스트 검증을 진행한다.
 
 ## 2026-11-16 재검증
@@ -143,3 +143,12 @@ Shimmer Mix 35%, Feedback 20%를 적용했다. 표의 값은 조건당 한 화�
 측정 범위가 겹쳤고 세 번의 구간 비교에서 차이 방향이 일관되지 않았다. 수치는 Logic 프로세스 전체의 CPU이며, Logic Performance Meter의 Processing Threads 수치와 단위가 다르다. 재생 중 Basic에서 Advanced로 바꿨을 때 Decay 3.00 s, Dry 65%, Wet 35%, Shimmer On이 유지됐다. 청취 평가는 남아 있다. 검증 후 재생을 멈췄다.
 
 [GitHub Actions 실행](https://github.com/SongWooSeok02/pre-glow/actions/runs/45530449963)에서는 세 플랫폼 작업 모두 계정 결제 또는 지출 한도 문제로 시작되지 않았다.
+
+
+### 편집기 모드 및 라우팅 출력 비교
+
+Apple Silicon REAPER 7.86에서 동일한 PRE-GLOW VST3 인스턴스의 Basic 상태와 Advanced로 전환한 상태를 각각 프로젝트 사본으로 저장했다. Decay 0.10 s, Dry 65%, Wet 35%, Shimmer On이 전환 전후 일치했다. 48 kHz, 스테레오, 4초 오프라인 렌더의 최대 절댓값은 0.122768이었고 두 렌더의 최대 샘플 차이는 0이었다.
+
+이전에 만든 48 kHz Shimmer 비교 WAV에서 Feedback 유지 구간과 Feedback → Parallel 전환 구간을 대조했다. 1초 전환 지점의 첫 샘플 차이는 0이었다. 전환 후 처음 128프레임에서 두 신호 차분의 인접 샘플 간 최대 변화는 약 3.05e-5였다. 전환 이후 전체 구간에서 최대 샘플 차이는 약 0.00784였다. 직접 청취 평가는 남아 있다.
+
+이 Mac은 Apple M1 Pro이며 연결된 Intel Mac 또는 Windows 실행 환경이 없었다. [GitHub Actions 실행](https://github.com/SongWooSeok02/pre-glow/actions/runs/45531078948)의 세 작업은 계정 결제 또는 지출 한도 문제로 시작되지 않았다.
