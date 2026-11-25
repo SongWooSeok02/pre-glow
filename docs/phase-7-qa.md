@@ -35,7 +35,7 @@ Shimmer 피드백의 적용 계수가 0인 샘플에서는 루프 게인 최대�
 
 - Logic Pro 13.0에서 에디터 열림/숨김의 성능 차이를 비교하려면 각 조건을 여러 루프에 걸쳐 반복 측정한다. 첫 실시간 미터 비교 결과는 아래에 기록했다.
 - Logic AU에서 Basic/Advanced를 청취로 비교하고 재생 중 Shimmer 라우팅 전환의 오디오 결과를 확인한다. 기존 프로젝트 호환 범위는 저장 시점의 플러그인 버전이 확인된 프로젝트로 추가 검증한다.
-- VST3에서 이전 버전으로 저장한 실제 DAW 프로젝트 복원, 실시간 자동화 재생, Basic/Advanced와 Shimmer 전환 청취를 확인한다. REAPER에서 새 검증 프로젝트 복원, 자동화 렌더, User 프리셋 UI 왕복 및 크로스오버 이동을 확인했다.
+- VST3에서 Basic/Advanced와 Shimmer 전환을 청취로 확인한다. REAPER에서 새 검증 프로젝트 및 스키마 7 프로젝트 복원, 실시간 Decay 자동화와 렌더, User 프리셋 UI 왕복 및 크로스오버 이동을 확인했다. 스키마 7 프로젝트에서 확인한 Wet 표시와 저장값 차이는 아래에 기록했다.
 - 실제 Intel Mac과 Windows에서 호스트 검증을 진행한다.
 
 ## 2026-11-16 재검증
@@ -117,3 +117,9 @@ Shimmer Mix 35%, Feedback 20%를 적용했다. 표의 값은 조건당 한 화�
 - Rosetta의 x86_64 REAPER 7.86에서 x86_64 VST3로 같은 자동화 프로젝트를 다시 렌더했다. Apple Silicon 렌더와의 최대 샘플 차이는 1.19e-7이었다. 실제 Intel Mac과 Windows에서의 호스트 실행은 남아 있다.
 - 임시 검색 경로에서 PRE-GLOW를 찾지 못했다. 원본 Release VST3 번들의 서명 검사에서 리소스 오류도 확인했다. 검증용 복사본에 로컬 서명을 적용하고 macOS 표준 VST3 폴더에서 호스트 스캔을 통과한 뒤, 검증을 마치고 해당 복사본을 QA 폴더로 옮겼다.
 - Pedalboard에서 Logic 검증 클립을 48 kHz, 128 프레임으로 처리하며 1초 지점에서 Feedback을 Parallel로 바꿨다. Hall, Shimmer 4보이스, Mix 35%, Feedback 20% 조건에서 전환 후 최대 샘플 크기는 0.128941이었다. Feedback 유지 대조군과의 최대 샘플 차이는 0.007848이었고, 전환한 AU와 VST3의 렌더 최대 샘플 차이는 0이었다. 두 렌더를 이어 붙인 A/B 파일을 로컬에 생성했다.
+
+### REAPER 실시간 자동화, 이전 프로젝트 및 번들 서명
+
+- Apple Silicon REAPER 7.86에서 `PRE-GLOW QA.rpp`를 재생했다. Decay의 정규화 값은 재생 시작에서 0.155, 약 1.01초에서 0.501, 약 1.76초에서 0.720으로 바뀌었다. 트랙 출력이 확인됐고 3초 이후에 재생을 멈췄다.
+- 커밋 `cbafc45`에서 빌드한 스키마 7 VST3로 REAPER 프로젝트를 저장하고, 동일 VST3 클래스 ID의 최신 빌드로 다시 열어 별도 파일로 저장했다. 프로젝트에 저장된 VST3 상태에서 스키마 7 → 8 전환을 확인했다. Dry 15%와 Decay 1.75 s가 유지됐다. 원본 VST3 상태의 Wet은 35%, Morph Y는 0이었고, 마이그레이션 후 Morph Y는 35% Wet에 해당하는 −0.3이었다. 이 시험에서 REAPER의 Wet 파라미터 표시는 85%였으며 원본과 재저장 파일의 VST3 상태는 모두 35%였다. 표시와 저장값 차이에 대한 추가 검증이 필요하다.
+- macOS에서 JUCE가 `moduleinfo.json`을 생성한 뒤 완성된 VST3 번들에 다시 로컬 서명하도록 빌드를 수정했다. arm64 및 x86_64 Release 번들에서 `moduleinfo.json`이 포함된 상태로 `codesign --verify --strict`가 통과했고, 각 빌드의 CTest 2개도 통과했다. arm64 번들은 수동 재서명 없이 REAPER에 로드했다.
