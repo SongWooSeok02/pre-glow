@@ -83,7 +83,28 @@ inline juce::String voiceId(std::size_t voice, const VoiceParameter& parameter)
     return "shimmer_" + juce::String(static_cast<int>(voice + 1)) + "_" + parameter.suffix;
 }
 
-inline juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
+// Both host parameter IDs use the same normalised scale for Wet.
+class WetParameter final : public juce::AudioParameterFloat
+{
+public:
+    WetParameter(const juce::ParameterID& id, const juce::String& name,
+                 juce::NormalisableRange<float> range, float initial,
+                 std::atomic<float>& sharedValue,
+                 const juce::AudioParameterFloatAttributes& attributes = {})
+        : AudioParameterFloat(id, name, range, initial, attributes), value(sharedValue) {}
+
+private:
+    float getValue() const override { return value.load(std::memory_order_relaxed); }
+    void setValue(float next) override
+    {
+        if (std::isfinite(next))
+            value.store(std::clamp(next, 0.0f, 1.0f), std::memory_order_relaxed);
+    }
+
+    std::atomic<float>& value;
+};
+
+inline juce::AudioProcessorValueTreeState::ParameterLayout createLayout(std::atomic<float>& wetValue)
 {
     juce::NormalisableRange<float> decayRange { 0.1f, 120.0f, 0.01f };
     decayRange.setSkewForCentre(3.0f);
@@ -97,10 +118,12 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
         layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID { id, 3 }, name,
             juce::NormalisableRange<float> { 0.0f, 200.0f, 1.0f }, 100.0f,
             juce::AudioParameterFloatAttributes().withLabel("%")));
-    for (const auto& [id, name, initial] : { std::tuple { dry, "Dry", 65.0f }, std::tuple { wet, "Wet", 35.0f } })
-        layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID { id, 4 }, name,
-            juce::NormalisableRange<float> { 0.0f, 100.0f, 0.01f }, initial,
-            juce::AudioParameterFloatAttributes().withLabel("%")));
+    const juce::NormalisableRange<float> mixPercentRange { 0.0f, 100.0f, 0.01f };
+    const auto percent = juce::AudioParameterFloatAttributes().withLabel("%");
+    layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID { dry, 4 }, "Dry",
+        mixPercentRange, 65.0f, percent));
+    layout.add(std::make_unique<WetParameter>(juce::ParameterID { wet, 4 }, "Wet",
+        mixPercentRange, 35.0f, wetValue, percent));
     layout.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID { freeze, 5 }, "Freeze", false));
     layout.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID { infinite, 6 }, "Infinite Decay", false));
     for (const auto& [id, name, initial] : { std::tuple { bloomAmount, "Bloom Amount", 75.0f },
@@ -176,8 +199,8 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
             bandModNames[band], juce::NormalisableRange<float> { 0.0f, 100.0f, 1.0f }, 0.0f));
     layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID { morphX, 21 },
         "Morph X (A/B)", juce::NormalisableRange<float> { -1.0f, 1.0f }, -1.0f));
-    layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID { morphY, 21 },
-        "Morph Y (Wet)", juce::NormalisableRange<float> { -1.0f, 1.0f }, -0.3f));
+    layout.add(std::make_unique<WetParameter>(juce::ParameterID { morphY, 21 },
+        "Morph Y (Wet)", juce::NormalisableRange<float> { -1.0f, 1.0f }, -0.3f, wetValue));
     for (std::size_t i = 0; i < duckIds.size(); ++i)
         layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID { duckIds[i], 23 },
             duckNames[i], duckRanges[i], duckDefaults[i]));

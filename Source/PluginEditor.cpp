@@ -86,11 +86,20 @@ constexpr std::size_t swellStart = 10;
 }
 PluginEditor::MorphPad::MorphPad(PluginProcessor& owner)
     : xAttachment(*owner.state.getParameter(parameters::morphX), [this](float x) { position.x = x; repaint(); }),
-      yAttachment(*owner.state.getParameter(parameters::morphY), [this](float y) { position.y = y; repaint(); })
+      yAttachment(*owner.state.getParameter(parameters::morphY), [this](float y) { setWetPosition(y); })
 {
     setTitle("XY Morph: A/B and Wet. Double-click to centre.");
     xAttachment.sendInitialUpdate();
     yAttachment.sendInitialUpdate();
+}
+
+void PluginEditor::MorphPad::setWetPosition(float y)
+{
+    if (position.y != y)
+    {
+        position.y = y;
+        repaint();
+    }
 }
 
 juce::Rectangle<float> PluginEditor::MorphPad::plotBounds() const
@@ -536,7 +545,7 @@ void PluginEditor::loadSelectedPreset()
         const auto size = stream.getTotalLength();
         juce::MemoryBlock data;
         if (!stream.openedOk() || size <= 0 || size > maxPresetBytes
-            || stream.readIntoMemoryBlock(data, static_cast<ssize_t>(size)) != static_cast<std::size_t>(size)
+            || stream.readIntoMemoryBlock(data, static_cast<juce::ssize_t>(size)) != static_cast<std::size_t>(size)
             || !ownerProcessor.loadPreset(data))
         {
             showPresetStatus("Could not load this preset.");
@@ -802,6 +811,7 @@ void PluginEditor::updateMorphControls()
     const auto wet = 100.0f * ownerProcessor.effectiveWet();
     characterBlend.setValue(blend, juce::dontSendNotification);
     sliders[wetSliderIndex].setValue(wet, juce::dontSendNotification);
+    morphPad.setWetPosition(wet * 0.02f - 1.0f);
     morphReadout.setText("XY Morph", juce::dontSendNotification);
 }
 

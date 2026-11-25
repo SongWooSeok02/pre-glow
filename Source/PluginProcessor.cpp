@@ -8,7 +8,7 @@ namespace preglow
 PluginProcessor::PluginProcessor()
     : AudioProcessor(BusesProperties().withInput("Input", juce::AudioChannelSet::stereo(), true)
                                      .withOutput("Output", juce::AudioChannelSet::stereo(), true)),
-      state(*this, nullptr, parameters::stateType, parameters::createLayout())
+      state(*this, nullptr, parameters::stateType, parameters::createLayout(wetValue))
 {
     for (std::size_t i = 0; i < duckParameters.size(); ++i)
         duckParameters[i] = state.getRawParameterValue(parameters::duckIds[i]);
@@ -107,8 +107,7 @@ float PluginProcessor::effectiveBlend() const noexcept
 
 float PluginProcessor::effectiveWet() const noexcept
 {
-    const auto y = morphY->load(std::memory_order_relaxed);
-    return std::isfinite(y) ? 0.5f * (1.0f + std::clamp(y, -1.0f, 1.0f)) : 0.35f;
+    return wetValue.load(std::memory_order_relaxed);
 }
 
 ReverbSettings PluginProcessor::readSettings() const noexcept
@@ -402,6 +401,9 @@ juce::AudioProcessorEditor* PluginProcessor::createEditor()
 void PluginProcessor::getStateInformation(juce::MemoryBlock& destination)
 {
     auto snapshot = state.copyState();
+    const auto wet = effectiveWet();
+    snapshot.getChildWithProperty("id", parameters::wet).setProperty("value", wet * 100.0f, nullptr);
+    snapshot.getChildWithProperty("id", parameters::morphY).setProperty("value", wet * 2.0f - 1.0f, nullptr);
     snapshot.setProperty("schemaVersion", parameters::schemaVersion, nullptr);
     if (const auto xml = snapshot.createXml())
         copyXmlToBinary(*xml, destination);
@@ -440,6 +442,8 @@ void PluginProcessor::loadFactoryPreset(int characterIndex, float decaySeconds, 
             value = decaySeconds;
         else if (id == parameters::morphY)
             value = wetPercent * 0.02f - 1.0f;
+        else if (id == parameters::wet)
+            value = wetPercent;
         else if (id == parameters::dry)
             value = 100.0f - wetPercent;
         juce::ValueTree node { "PARAM" };
@@ -561,8 +565,13 @@ bool PluginProcessor::restoreState(const void* data, int size, bool validatePres
             const auto base = std::isfinite(savedWet) ? std::clamp(savedWet * 0.01f, 0.0f, 1.0f) : 0.35f;
             y.setProperty("value", 2.0f * morphValue(base, oldY) - 1.0f, nullptr);
         }
+        const auto y = restored.getChildWithProperty("id", parameters::morphY);
+        const auto axis = static_cast<float>(y.getProperty("value", -0.3f));
+        const auto wet = std::isfinite(axis) ? 0.5f * (1.0f + std::clamp(axis, -1.0f, 1.0f)) : 0.35f;
+        restored.getChildWithProperty("id", parameters::wet).setProperty("value", wet * 100.0f, nullptr);
         restored.setProperty("schemaVersion", parameters::schemaVersion, nullptr);
         state.replaceState(restored);
+        wetValue.store(wet, std::memory_order_relaxed);
         return true;
     }
     return false;
