@@ -78,3 +78,19 @@ Pedalboard에서 설치된 Apple Silicon AU와 로컬 VST3 각각에 스키마 1
 - Custom LCD에서 CPU/HD 미터를 표시했다. 미터를 더블클릭할 때 접근성 오류가 반복돼 상세 창의 조건별 비교는 남아 있다.
 - Apple Silicon과 x86_64 Release에서 각각 AU, VST3, Standalone을 새로 빌드하고 CTest 2개를 통과했다. Apple Silicon의 Rosetta에서 x86_64 Pedalboard 0.9.17로 x86_64 VST3를 로드했다. 크로스오버 350/5000 Hz, Decay 5 s, Shimmer Mix 35%, Parallel 및 네 보이스 활성 상태를 새 인스턴스에 복원했다. 48 kHz 및 256 프레임에서 복원 전후 임펄스 렌더의 최대 샘플 차이는 0이었다.
 - [GitHub Actions 실행](https://github.com/SongWooSeok02/pre-glow/actions/runs/45334837463)에서는 Apple Silicon, Intel macOS, Windows 작업 모두 계정 결제 또는 지출 한도 문제로 시작되지 않았다.
+
+## 2026-11-25 성능 비교 준비 및 오프라인 측정
+
+Logic Pro에서 `pre-glow Diffusion Test` 사본의 프로젝트 샘플레이트 48 kHz, 오디오 장치 I/O 버퍼 128 프레임, Processing Threads Automatic을 확인했다. Key Command Assignments에 `Show/Hide Performance Meter`가 있었고 키는 지정되어 있지 않았다. Logic 미터의 조건별 측정은 남아 있다.
+
+Apple Silicon에서 Pedalboard 0.9.17로 8초 스테레오 합성 신호를 48 kHz, 128 프레임, 플러그인 한 인스턴스에서 처리했다. 첫 실행을 제외하고 조건 순서를 번갈아 다섯 번 측정한 중앙값이다. Freeze는 처음 2초간 Shimmer 4보이스로 신호를 공급하고, 이후 6초간 Freeze를 켠 채 무음을 입력했다. 두 포맷의 Freeze 출력은 마지막 1초에도 잔향이 있었다.
+
+| 조건 | AU | VST3 |
+| --- | ---: | ---: |
+| Hall | 119.00 ms | 119.38 ms |
+| Hall + Shimmer 4보이스 | 332.07 ms | 334.61 ms |
+| Hall + Shimmer 4보이스, Freeze 전환 | 584.20 ms | 590.39 ms |
+
+호스트에서 VST3 Bypass를 설정한 처리 시간은 2.65 ms였다. AU의 Bypass 플래그는 이 측정에서 처리 시간의 감소가 관측되지 않아 Logic AU 바이패스 비교가 필요하다. 측정은 오프라인 호스트 처리 시간이며 에디터 열림/닫힘 조건은 Logic의 실시간 미터에서 확인할 예정이다.
+
+[직전 GitHub Actions 실행](https://github.com/SongWooSeok02/pre-glow/actions/runs/45340115050)의 세 플랫폼 작업은 계정 결제 또는 지출 한도 문제로 시작되지 않았다.
