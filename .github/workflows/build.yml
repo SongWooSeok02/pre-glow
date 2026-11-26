@@ -18,3 +18,13 @@ jobs:
       - run: cmake -S . -B build ${{ matrix.architecture }} -DCMAKE_BUILD_TYPE=Release
       - run: cmake --build build --config Release --parallel 3
       - run: ctest --test-dir build -C Release --output-on-failure
+      - name: Upload Windows x64 VST3 bundle
+        if: matrix.os == 'windows-2022'
+        shell: pwsh
+        run: Compress-Archive -LiteralPath build/pre_glow_artefacts/Release/VST3/PRE-GLOW.vst3 -DestinationPath build/PRE-GLOW-Windows-x64-VST3.zip
+      - uses: actions/upload-artifact@v4
+        if: matrix.os == 'windows-2022'
+        with:
+          name: PRE-GLOW-Windows-x64-VST3
+          path: build/PRE-GLOW-Windows-x64-VST3.zip
+          if-no-files-found: error
