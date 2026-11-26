@@ -44,6 +44,11 @@ public:
 
     std::array<float, 4> readMeterPeaks(unsigned& revision) const noexcept;
 
+private:
+    // Parameter objects reference this value for the lifetime of the state.
+    std::atomic<float> wetValue { 0.35f };
+
+public:
     juce::AudioProcessorValueTreeState state;
 
 private:
@@ -71,7 +76,6 @@ private:
     const std::atomic<float>* const shimmerFeedback = state.getRawParameterValue(parameters::shimmerFeedback);
     void upmixMonoInput(juce::AudioBuffer<float>&) const noexcept;
     const std::atomic<float>* const morphX = state.getRawParameterValue(parameters::morphX);
-    const std::atomic<float>* const morphY = state.getRawParameterValue(parameters::morphY);
     std::array<const std::atomic<float>*, 4> duckParameters {};
     const std::atomic<float>* const duckEnabled = state.getRawParameterValue(parameters::duckEnabled);
     const std::atomic<float>* const reverseEnabled = state.getRawParameterValue(parameters::reverseEnabled);

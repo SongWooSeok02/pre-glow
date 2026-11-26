@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Make the Wet and Morph Y host automation parameters control the same wet level.
+- Fix the Windows MSVC build in the User preset loader.
+
 - Match the spectrum traces and crossover overlay to the cyan and gold editor palette.
 
 - Show the Shimmer Feedback control only in Feedback routing.

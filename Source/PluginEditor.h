@@ -19,6 +19,7 @@ private:
     {
     public:
         explicit MorphPad(PluginProcessor&);
+        void setWetPosition(float);
         void paint(juce::Graphics&) override;
         void mouseDown(const juce::MouseEvent&) override;
         void mouseDrag(const juce::MouseEvent&) override;

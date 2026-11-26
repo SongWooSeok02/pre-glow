@@ -20,6 +20,8 @@ See [architecture](docs/architecture.md) for the DSP boundary and state contract
 
 ## Verification
 
+On Windows x64 with Visual Studio 2022 and Windows SDK 10.0.26100.0, the VST3 and Standalone Release builds and both CTest cases passed. In REAPER 7.86, equivalent Wet and Morph Y (Wet) envelopes produced identical 48 kHz stereo audio. An existing schema 8 project rendered the same audio before and after the fix, and a new project restored the changed wet level after reopening. Use one of the two parameters for Wet automation in a given track.
+
 On Apple Silicon with Xcode 27.2, Apple Clang 21, CMake 3.31.6 and Ninja, Release builds succeeded for AU, VST3 and Standalone. The Standalone process launched. CTest passed the stereo impulse test at 44.1, 48, 88.2 and 96 kHz, using decay settings of 0.1, 3 and 120 seconds. The test checks finite, bounded samples and stereo tail energy over four seconds per case.
 
 Ducking bypass and Reverse-like swell with attack retriggering built locally on macOS in Standalone, AU, and VST3 formats. Both existing DSP tests passed.
